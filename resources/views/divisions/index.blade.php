@@ -4,6 +4,7 @@
 <body>
     <h2>Divisions</h2>
     <a href="{{ route('divisions.create') }}">Add New Division</a>
+    <a href="{{ route('dashboard') }}">Back to Dashboard</a>
     <br><br>
 
     @if(session('success'))

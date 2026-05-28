@@ -4,6 +4,7 @@
 <body>
     <h2>Employees</h2>
     <a href="{{ route('employees.create') }}">Add New Employee</a>
+    <a href="{{ route('dashboard') }}">Back to Dashboard</a>
     <br><br>
 
     @if(session('success'))

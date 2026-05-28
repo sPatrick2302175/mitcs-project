@@ -8,6 +8,7 @@
     <h2>Departments</h2>
     
     <a href="{{ route('departments.create') }}">Add New Department</a>
+    <a href="{{ route('dashboard') }}">Back to Dashboard</a>
     <br><br>
 
     @if(session('success'))
