@@ -22,6 +22,20 @@ class User extends Authenticatable
      *
      * @return array<string, string>
      */
+    
+    protected $fillable = [
+        'name',
+        'email',
+        'password',
+        'employee_id', // employee
+        'is_admin',    // admin identifier
+    ];
+
+    public function employee()
+    {
+        return $this->belongsTo(Employee::class);
+    }
+
     protected function casts(): array
     {
         return [
