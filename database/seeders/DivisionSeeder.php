@@ -2,17 +2,14 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use App\Models\Division; 
 
 class DivisionSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        Division::create(['name' => 'Management Information Technology and Computer Services', 'code' => 'MITCS']);
-        Division::create(['name' => 'Administratative Division', 'code' => 'ADMIN']);
+        Division::create(['division_name' => 'Software Development','code' => 'DEV-01']);
+        Division::create(['division_name' => 'Recruitment','code' => 'REC-01']);
     }
 }

@@ -20,7 +20,6 @@ return new class extends Migration
             $table->string('last_name');
             $table->string('position');
             $table->integer('leave_credits')->default(15);//temporary value, can be changed later
-            $table->timestamps('created_at');
             $table->timestamps();
         });
     }
