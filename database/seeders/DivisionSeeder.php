@@ -9,7 +9,7 @@ class DivisionSeeder extends Seeder
 {
     public function run(): void
     {
-        Division::create(['division_name' => 'Software Development','code' => 'DEV-01']);
-        Division::create(['division_name' => 'Recruitment','code' => 'REC-01']);
+        Division::create(['division_name' => 'Administrative Division','code' => 'AD-01']);
+        Division::create(['division_name' => 'Systems Division','code' => 'SD-01']);
     }
 }
