@@ -9,7 +9,7 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-green-100 overflow-hidden shadow-sm sm:rounded-lg mb-4">
                 <div class="p-6 text-green-900 font-bold">
-                    Welcome to your Employee Portal.
+                    Employee Portal.
                 </div>
             </div>
 
