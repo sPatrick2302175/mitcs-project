@@ -4,18 +4,22 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DivisionController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Middleware\IsAdmin;
+use App\Http\Middleware\IsSuperAdmin;
+use App\Models\User;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
 // Default Page Route
 Route::get('/', function () {
-    return view('/auth/login');
+    return view('auth.login');
 });
 
 // Breeze Dashboard Route (Only accessible if logged in)
 Route::get('/dashboard', function () {
-    if (Auth::user()->is_admin) {
-        return view('admin.dashboard'); // Admins go here
+    // Explicitly check if the user is a Dept Admin or Super Admin (>= 1)
+    if (Auth::user()->is_admin >= User::ROLE_DEPT_ADMIN) {
+        return view('admin.dashboard'); // Both types of admins share this view now
     }
     
     return view('employee.dashboard'); // Regular employees go here
@@ -28,12 +32,22 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-// CRUD ROUTES w Admin middleware
-Route::middleware(['auth', \App\Http\Middleware\IsAdmin::class])->group(function () {
-    Route::resource('departments', App\Http\Controllers\DepartmentController::class);
-    Route::resource('divisions', App\Http\Controllers\DivisionController::class);
-    Route::resource('employees', App\Http\Controllers\EmployeeController::class);
+// --- SHARED ADMIN ROUTES ---
+// Both Department Admins (1) and Super Admins (2) can access these
+Route::middleware(['auth', IsAdmin::class])->group(function () {
+    Route::resource('divisions', DivisionController::class);
+    Route::resource('employees', EmployeeController::class);
 });
 
+// --- SUPER ADMIN ONLY ROUTES ---
+// Only Super Admins (2) can access these. Department Admins get a 403 error.
+// Inside your routes/web.php file...
+
+Route::middleware(['auth', IsSuperAdmin::class])->group(function () {
+    Route::resource('departments', DepartmentController::class);
+    
+    // Add this line to manage users (we only need index, edit, and update)
+    Route::resource('users', UserController::class)->only(['index', 'edit', 'update']);
+});
 // Breeze Authentication Routes (Handles login, register, logout, etc.)
 require __DIR__.'/auth.php';

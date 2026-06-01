@@ -22,5 +22,15 @@ class Employee extends Model
     {
         return $this->belongsTo(Department::class);
     }
-    //
+
+    public function division()
+    {
+        return $this->belongsTo(Division::class);
+    }
+
+    public function user()
+    {
+        // An employee might have one user account linked to them
+        return $this->hasOne(User::class);
+    }
 }

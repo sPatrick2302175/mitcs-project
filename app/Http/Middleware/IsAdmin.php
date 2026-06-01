@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\User; 
 use Symfony\Component\HttpFoundation\Response;
 
 class IsAdmin
@@ -16,12 +17,11 @@ class IsAdmin
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Check if a user is logged in AND their is_admin column is true
-        if (Auth::check() && Auth::user()->is_admin) {
-            return $next($request); // Let them through!
+        // Check if user is logged in AND is at least a Department Admin (>= 1)
+        if (Auth::check() && Auth::user()->is_admin >= User::ROLE_DEPT_ADMIN) {
+            return $next($request);
         }
 
-        // If they are not an admin, kick them out with a 403 error
         abort(403, 'Unauthorized action. You must be an Administrator to view this page.');
     }
 }

@@ -14,8 +14,21 @@ class EmployeeController extends Controller
      */
     public function index()
     {
-        $employees = Employee::all();
-        // Returns resources/views/employees/index.blade.php
+        $loggedInAdmin = auth()->user();
+
+        // 1. Check if Super Admin
+        if ($loggedInAdmin->is_admin === \App\Models\User::ROLE_SUPER_ADMIN) {
+            // Fetch everyone, and include their user, department, and division data
+            $employees = Employee::with(['department', 'division', 'user'])->get();
+        } 
+        // 2. Otherwise, they are a Dept Admin
+        else {
+            // Fetch ONLY employees matching the Dept Admin's department
+            $employees = Employee::with(['department', 'division', 'user'])
+                ->where('department_id', $loggedInAdmin->department_id)
+                ->get();
+        }
+
         return view('employees.index', compact('employees'));
     }
 
