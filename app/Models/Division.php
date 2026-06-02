@@ -15,7 +15,7 @@ class Division extends Model
     
     public function departments()
     {
-        return $this->hasMany(Department::class);
+        return $this->belongsTo(Department::class);
     }
     //
 }

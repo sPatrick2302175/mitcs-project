@@ -5,19 +5,19 @@
         @csrf
 
         <div>
-            <x-input-label for="employee_id_number" :value="__('Employee ID Number')" />
-            <x-text-input id="employee_id_number" class="block mt-1 w-full" type="text" name="employee_id_number" :value="old('employee_id_number')" required autofocus autocomplete="off" placeholder="000-000-000"/>
+            <x-input-label for="employee_id_number" :value="__(' ')" />
+            <x-text-input id="employee_id_number" class="block mt-1 w-full" type="text" name="employee_id_number" :value="old('employee_id_number')" required autofocus autocomplete="off" placeholder="ID number"/>
             <x-input-error :messages="$errors->get('employee_id_number')" class="mt-2" />
         </div>
 
         <div class="mt-4">
-            <x-input-label for="password" :value="__('Password')" />
+            <x-input-label for="password" :value="__(' ')" />
 
             <x-text-input id="password" class="block mt-1 w-full"
                             type="password"
                             name="password"
                             required autocomplete="new-password" 
-                            placeholder="********"/>
+                            placeholder="Password"/>
 
             <x-input-error :messages="$errors->get('password')" class="mt-2" />
         </div>

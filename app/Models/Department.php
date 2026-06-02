@@ -12,9 +12,9 @@ class Department extends Model
         'code'
     ];
     
-    public function division()
+    public function divisions()
     {
-        return $this->belongsTo(Division::class);
+        return $this->hasMany(Division::class);
     }
 
     public function employees()

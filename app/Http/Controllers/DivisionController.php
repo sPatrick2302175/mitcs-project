@@ -3,19 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Models\Division;
+use App\Models\Department;
 use Illuminate\Http\Request;
 
 class DivisionController extends Controller
 {
     public function index()
     {
-        $divisions = Division::all();
-        return view('divisions.index', compact('divisions'));
+        // Fetch departments and their divisions (Plural!)
+        $departments = \App\Models\Department::with('divisions')->get();
+        
+        return view('divisions.index', compact('departments'));
     }
 
     public function create()
     {
-        // Fetch departments so admins can pick one
         $departments = \App\Models\Department::all();
         return view('divisions.create', compact('departments'));
     }
@@ -23,7 +25,7 @@ class DivisionController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'department_id' => 'required|exists:departments,id', // <-- New validation
+            'department_id' => 'required|exists:departments,id',
             'division_name' => 'required|string|max:255',
             'code' => 'nullable|string|unique:divisions,code|max:50',
         ]);
@@ -35,7 +37,7 @@ class DivisionController extends Controller
     public function edit(string $id)
     {
         $division = Division::findOrFail($id);
-        $departments = \App\Models\Department::all(); // <-- Fetch for the edit form
+        $departments = \App\Models\Department::all(); 
         return view('divisions.edit', compact('division', 'departments'));
     }
 
@@ -43,7 +45,7 @@ class DivisionController extends Controller
     {
         $division = Division::findOrFail($id);
         $validated = $request->validate([
-            'department_id' => 'required|exists:departments,id', // <-- New validation
+            'department_id' => 'required|exists:departments,id',
             'division_name' => 'required|string|max:255',
             'code' => 'nullable|string|max:50|unique:divisions,code,' . $division->id,
         ]);
