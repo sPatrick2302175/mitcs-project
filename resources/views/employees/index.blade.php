@@ -100,7 +100,7 @@
                                                             <select name="role" onchange="this.form.submit()" class="text-xs font-semibold text-purple-700 bg-purple-50 border border-purple-200 rounded cursor-pointer focus:outline-none focus:ring-1 focus:ring-purple-500 py-1 pl-2 pr-6 hover:bg-purple-100 transition-colors">
                                                                 <option value="0" {{ $emp->user->is_admin == 0 ? 'selected' : '' }}>Employee</option>
                                                                 <option value="1" {{ $emp->user->is_admin == App\Models\User::ROLE_DEPT_ADMIN ? 'selected' : '' }}>Dept Admin</option>
-                                                                        <option value="2" {{ $emp->user->is_admin == App\Models\User::ROLE_SUPER_ADMIN ? 'selected' : '' }}>Super Admin</option>
+                                                                        
                                                             </select>
                                                         </form>
                                                     @elseif(auth()->user()->is_admin === App\Models\User::ROLE_DEPT_ADMIN)

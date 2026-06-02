@@ -7,9 +7,11 @@ use Illuminate\Http\Request;
 
 class DepartmentController extends Controller
 {
-    public function index()
+   public function index()
     {
-        $departments = Department::all();
+        // Pull every department except the system utility one
+        $departments = Department::where('code', '!=', 'SYSTEM-ADMIN')->get();
+        
         return view('departments.index', compact('departments'));
     }
 

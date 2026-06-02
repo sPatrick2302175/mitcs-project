@@ -10,8 +10,10 @@ class DivisionController extends Controller
 {
     public function index()
     {
-        // Fetch departments and their divisions (Plural!)
-        $departments = \App\Models\Department::with('divisions')->get();
+        // Fetch departments and their divisions, completely hiding the system IT utility department
+        $departments = \App\Models\Department::with('divisions')
+            ->where('code', '!=', 'SYSTEM-ADMIN')
+            ->get();
         
         return view('divisions.index', compact('departments'));
     }

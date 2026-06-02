@@ -16,17 +16,19 @@ class EmployeeController extends Controller
     {
         $loggedInAdmin = auth()->user();
 
-        // 1. Fetch employees based on role
+        // 1. Fetch employees based on role (Filtering out the Master Admin account '000000')
         if ($loggedInAdmin->is_admin === \App\Models\User::ROLE_SUPER_ADMIN) {
-            // Super Admin gets everyone
-            $employeesQuery = Employee::with(['department', 'division', 'user'])->get();
+            // Super Admin gets everyone EXCEPT the system utility account
+            $employeesQuery = Employee::with(['department', 'division', 'user'])
+                ->where('employee_id_number', '!=', '0000000')
+                ->get();
         } else {
             // Dept Admin gets only their department
-            // FIX: Pull the department_id through the linked employee profile
             $departmentId = $loggedInAdmin->employee ? $loggedInAdmin->employee->department_id : null;
 
             $employeesQuery = Employee::with(['department', 'division', 'user'])
                 ->where('department_id', $departmentId)
+                ->where('employee_id_number', '!=', '0000000') // Safety filter
                 ->get();
         }
 
