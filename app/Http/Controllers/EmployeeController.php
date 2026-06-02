@@ -16,20 +16,26 @@ class EmployeeController extends Controller
     {
         $loggedInAdmin = auth()->user();
 
-        // 1. Check if Super Admin
+        // 1. Fetch employees based on role
         if ($loggedInAdmin->is_admin === \App\Models\User::ROLE_SUPER_ADMIN) {
-            // Fetch everyone, and include their user, department, and division data
-            $employees = Employee::with(['department', 'division', 'user'])->get();
-        } 
-        // 2. Otherwise, they are a Dept Admin
-        else {
-            // Fetch ONLY employees matching the Dept Admin's department
-            $employees = Employee::with(['department', 'division', 'user'])
-                ->where('department_id', $loggedInAdmin->department_id)
+            // Super Admin gets everyone
+            $employeesQuery = Employee::with(['department', 'division', 'user'])->get();
+        } else {
+            // Dept Admin gets only their department
+            // FIX: Pull the department_id through the linked employee profile
+            $departmentId = $loggedInAdmin->employee ? $loggedInAdmin->employee->department_id : null;
+
+            $employeesQuery = Employee::with(['department', 'division', 'user'])
+                ->where('department_id', $departmentId)
                 ->get();
         }
 
-        return view('employees.index', compact('employees'));
+        // 2. Group the results by the department name
+        $groupedEmployees = $employeesQuery->groupBy(function($employee) {
+            return $employee->department ? $employee->department->department_name : 'Unassigned Department';
+        });
+
+        return view('employees.index', compact('groupedEmployees'));
     }
 
     /**
@@ -106,5 +112,54 @@ class EmployeeController extends Controller
         $employee->delete();
 
         return redirect()->route('employees.index')->with('success', 'Employee deleted successfully!');
+    }
+
+    /**
+     * UPDATE: Change the user's role (Super Admin only)
+     */
+
+    public function changeRole(Request $request, string $id)
+    {
+        // 1. Double-check security
+        if (auth()->user()->is_admin !== \App\Models\User::ROLE_SUPER_ADMIN) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        // 2. Validate incoming role
+        $request->validate([
+            'role' => 'required|integer|in:0,1,2',
+        ]);
+
+        // 3. Find the employee and their user
+        $employee = Employee::with('user')->findOrFail($id);
+
+        if (!$employee->user) {
+            return redirect()->back()->withErrors(['error' => 'Cannot change role: This employee does not have a registered user account yet.']);
+        }
+
+        // --- NEW RESTRICTION LOGIC ---
+        if ($request->role == \App\Models\User::ROLE_DEPT_ADMIN) {
+            // Check if this department already has an admin assigned
+            $existingAdmin = Employee::where('department_id', $employee->department_id)
+                ->where('id', '!=', $employee->id) // Ignore the person we are currently updating
+                ->whereHas('user', function ($query) {
+                    $query->where('is_admin', \App\Models\User::ROLE_DEPT_ADMIN);
+                })
+                ->first();
+
+            // If an admin is found, reject the change and send back an error message
+            if ($existingAdmin) {
+                $errorMsg = 'Cannot assign role: ' . $existingAdmin->first_name . ' ' . $existingAdmin->last_name . ' is already the admin for this department. Please demote them to an Employee first.';
+                return redirect()->back()->withErrors(['error' => $errorMsg]);
+            }
+        }
+        // -----------------------------
+
+        // 4. Update the role if it passes the check
+        $employee->user->update([
+            'is_admin' => $request->role
+        ]);
+
+        return redirect()->back()->with('success', 'User role updated successfully!');
     }
 }

@@ -22,6 +22,7 @@ class IsAdmin
             return $next($request);
         }
 
-        abort(403, 'Unauthorized action. You must be an Administrator to view this page.');
+        // Redirect to dashboard with an error message instead of 403 abort
+        return redirect()->route('dashboard')->with('error', 'Unauthorized action. You must be an Administrator to view this page.');
     }
 }

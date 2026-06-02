@@ -51,3 +51,5 @@ Route::middleware(['auth', IsSuperAdmin::class])->group(function () {
 });
 // Breeze Authentication Routes (Handles login, register, logout, etc.)
 require __DIR__.'/auth.php';
+
+Route::put('/employees/{employee}/change-role', [EmployeeController::class, 'changeRole'])->name('employees.changeRole');

@@ -40,7 +40,14 @@ class User extends Authenticatable
 
    public function department()
     {
-        return $this->belongsTo(Department::class);
+        return $this->hasOneThrough(
+            Department::class, 
+            Employee::class, 
+            'id',             // Foreign key on employees table (User links to Employee ID)
+            'id',             // Foreign key on departments table (Employee links to Department ID)
+            'employee_id',    // Local key on users table
+            'department_id'   // Local key on employees table
+        );
     }
 
     public function employee()

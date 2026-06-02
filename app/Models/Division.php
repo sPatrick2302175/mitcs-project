@@ -9,7 +9,8 @@ class Division extends Model
 {   
     protected $fillable = [
         'division_name',
-        'code'
+        'code',
+        'department_id'
     ];
     
     public function departments()

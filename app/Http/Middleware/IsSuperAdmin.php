@@ -17,6 +17,7 @@ class IsSuperAdmin
             return $next($request);
         }
 
-        abort(403, 'Unauthorized action. This area is restricted to Super Administrators.');
+        // Redirect to dashboard with an error message instead of 403 abort
+        return redirect()->route('dashboard')->with('error', 'Unauthorized action. This area is restricted to Super Administrators.');
     }
 }

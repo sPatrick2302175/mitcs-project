@@ -34,7 +34,7 @@
         <input type="number" name="leave_credits"><br><br>
 
         <label>Department:</label><br>
-        <select name="department_id" required>
+        <select name="department_id" id="department_dropdown" required>
             <option value="">-- Select Department --</option>
             @foreach($departments as $dept)
                 <option value="{{ $dept->id }}">{{ $dept->department_name }}</option>
@@ -42,15 +42,56 @@
         </select><br><br>
 
         <label>Division:</label><br>
-        <select name="division_id" required>
-            <option value="">-- Select Division --</option>
+        <select name="division_id" id="division_dropdown" required disabled>
+            <option value="">-- Select Department First --</option>
             @foreach($divisions as $div)
-                <option value="{{ $div->id }}">{{ $div->division_name }}</option>
+                <option value="{{ $div->id }}" data-department="{{ $div->department_id }}">
+                    {{ $div->division_name }}
+                </option>
             @endforeach
         </select><br><br>
 
         <button type="submit">Save Employee</button>
         <a href="{{ route('employees.index') }}">Cancel</a>
     </form>
+
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const deptDropdown = document.getElementById('department_dropdown');
+            const divDropdown = document.getElementById('division_dropdown');
+            
+            // Save a copy of all division options when the page loads
+            const allDivOptions = Array.from(divDropdown.options).filter(opt => opt.value !== "");
+
+            deptDropdown.addEventListener('change', function() {
+                const selectedDept = this.value;
+
+                // Reset the division dropdown
+                divDropdown.innerHTML = '<option value="">-- Select Division --</option>';
+                
+                if (!selectedDept) {
+                    divDropdown.innerHTML = '<option value="">-- Select Department First --</option>';
+                    divDropdown.disabled = true;
+                    return;
+                }
+
+                divDropdown.disabled = false;
+                let hasMatches = false;
+
+                // Only add options that match the selected department
+                allDivOptions.forEach(option => {
+                    if (option.getAttribute('data-department') === selectedDept) {
+                        divDropdown.appendChild(option.cloneNode(true));
+                        hasMatches = true;
+                    }
+                });
+
+                if (!hasMatches) {
+                    divDropdown.innerHTML = '<option value="">-- No Divisions in this Dept --</option>';
+                    divDropdown.disabled = true;
+                }
+            });
+        });
+    </script>
 </body>
 </html>
