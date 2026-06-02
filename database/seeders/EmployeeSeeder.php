@@ -9,7 +9,7 @@ class EmployeeSeeder extends Seeder
 {
     public function run(): void
     {
-        // Jane goes to HRMS (Dept 1) & Administrative Division (Div 1)
+        // Sample Employee 1 in dep and div 1
         Employee::create([
             'department_id' => 1, 
             'division_id' => 1,
@@ -20,7 +20,7 @@ class EmployeeSeeder extends Seeder
             'leave_credits' => 15
         ]);
 
-        // John goes to MITCS (Dept 2) & Systems Division (Div 2)
+        // Sample Employee 2 in dep and div 2
         Employee::create([
             'department_id' => 2, 
             'division_id' => 2, 

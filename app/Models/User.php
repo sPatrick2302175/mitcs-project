@@ -24,6 +24,7 @@ class User extends Authenticatable
      * 
      */
     
+    //User Roles
     const ROLE_EMPLOYEE = 0;
     const ROLE_DEPT_ADMIN = 1;
     const ROLE_SUPER_ADMIN = 2;

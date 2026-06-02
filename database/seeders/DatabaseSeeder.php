@@ -8,7 +8,7 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // The order here is critical: Departments -> Divisions -> Employees
+        // Departments -> Divisions -> Employees
         $this->call([
             DepartmentSeeder::class,
             DivisionSeeder::class,
