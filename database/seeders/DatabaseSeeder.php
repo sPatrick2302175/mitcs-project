@@ -37,7 +37,7 @@ class DatabaseSeeder extends Seeder
                 'position' => 'Super Admin',
                 'department_id' => $department->id,
                 'division_id' => $division->id,
-                'leave_credits' => 0, 
+                //'leave_credits' => 0, 
             ]
         );
 

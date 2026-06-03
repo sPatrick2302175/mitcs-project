@@ -12,11 +12,16 @@
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
                     </x-nav-link>
-                    <x-nav-link :href="route('dashboard')" :active="request()->routeIs('')">
-                        {{ __('Leave Request') }}
+                    <x-nav-link :href="route('leave-requests.index')" :active="request()->routeIs('leave-requests.index', 'leave-requests.create')">
+                        {{ __('My Leaves') }}
                     </x-nav-link>
 
                     @if (Auth::user()->is_admin >= App\Models\User::ROLE_DEPT_ADMIN)
+
+                        <x-nav-link :href="route('admin.leave-requests.index')" :active="request()->routeIs('admin.leave-requests.*')">
+                            {{ __('Review Leaves') }}
+                        </x-nav-link>
+
                         <x-nav-link :href="route('employees.index')" :active="request()->routeIs('employees.*')">
                             {{ __('Manage Employees') }}
                         </x-nav-link>
@@ -83,7 +88,16 @@
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
 
+            <x-responsive-nav-link :href="route('leave-requests.index')" :active="request()->routeIs('leave-requests.index', 'leave-requests.create')">
+                {{ __('My Leaves') }}
+            </x-responsive-nav-link>
+
             @if (Auth::user()->is_admin >= App\Models\User::ROLE_DEPT_ADMIN)
+                
+                <x-responsive-nav-link :href="route('admin.leave-requests.index')" :active="request()->routeIs('admin.leave-requests.*')">
+                    {{ __('Review Leaves') }}
+                </x-responsive-nav-link>
+                
                 <x-responsive-nav-link :href="route('employees.index')" :active="request()->routeIs('employees.*')">
                     {{ __('Manage Employees') }}
                 </x-responsive-nav-link>

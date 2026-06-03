@@ -55,8 +55,15 @@ class EmployeeController extends Controller
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'position' => 'required|string|max:255',
-            'leave_credits' => 'nullable|integer',
+            //'leave_credits' => 'nullable|integer',
         ]);
+
+        // INTEGRATED: Initialize specific buckets upon storage
+        $validatedData['vacation_leave_balance'] = 15.00;
+        $validatedData['sick_leave_balance'] = 15.00;
+        $validatedData['mandatory_leave_balance'] = 5;
+        $validatedData['special_privilege_leave_balance'] = 3;
+        $validatedData['special_emergency_leave_balance'] = 5;
 
         Employee::create($validatedData);
 
@@ -82,7 +89,7 @@ class EmployeeController extends Controller
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'position' => 'required|string|max:255',
-            'leave_credits' => 'required|integer',
+            //'leave_credits' => 'required|integer',
         ]);
 
         $employee->update($validatedData);
