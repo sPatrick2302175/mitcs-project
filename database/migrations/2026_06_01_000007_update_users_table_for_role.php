@@ -12,10 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            // Changes is_admin to an integer and defaults it to 0 = Employee
             $table->integer('is_admin')->default(0)->change();
-            
-            // Adds a foreign key to link Department Admins to their specific department
+            // fk, link Department Admins to their specific department
             $table->foreignId('department_id')->nullable()->constrained()->onDelete('set null');
         });
     }

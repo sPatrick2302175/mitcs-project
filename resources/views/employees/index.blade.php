@@ -58,7 +58,7 @@
                             <table class="w-full text-left border-collapse">
                                 <thead>
                                     <tr class="bg-gray-100 border-b-2 border-gray-200 text-gray-600">
-                                        <th class="p-3 text-sm font-semibold tracking-wide">Emp ID</th>
+                                        <th class="p-3 text-sm font-semibold tracking-wide">ID No.</th>
                                         <th class="p-3 text-sm font-semibold tracking-wide">Name</th> 
                                         <th class="p-3 text-sm font-semibold tracking-wide">Position</th>
                                         <th class="p-3 text-sm font-semibold tracking-wide">Division</th>
@@ -104,7 +104,7 @@
                                                             </select>
                                                         </form>
                                                     @elseif(auth()->user()->is_admin === App\Models\User::ROLE_DEPT_ADMIN)
-                                                        <a href="#" class="text-orange-600 hover:text-orange-900 font-medium hover:underline">Transfer Admin</a>
+                                                       
                                                     @endif
                                                 @endif
                                             </td>

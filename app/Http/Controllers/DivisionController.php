@@ -10,17 +10,28 @@ class DivisionController extends Controller
 {
     public function index()
     {
-        // Fetch departments and their divisions, completely hiding the system IT utility department
-        $departments = \App\Models\Department::with('divisions')
-            ->where('code', '!=', 'SYSTEM-ADMIN')
-            ->get();
-        
+        $loggedInAdmin = auth()->user();
+        // Fetch departments and their divisions, and hide system-admin
+        if ($loggedInAdmin->is_admin === \App\Models\User::ROLE_SUPER_ADMIN) {
+            $departments = Department::with('divisions')
+                ->where('code', '!=', 'SYSTEM-ADMIN')
+                ->get();
+        } else {
+            // Department Admin gets only their department and its divisions
+            $departmentId = $loggedInAdmin->employee ? $loggedInAdmin->employee->department_id : null;
+
+            $departments = Department::with('divisions')
+                ->where('id', $departmentId)
+                ->where('code', '!=', 'SYSTEM-ADMIN')
+                ->get();
+        }
+       
         return view('divisions.index', compact('departments'));
     }
 
     public function create()
     {
-        $departments = \App\Models\Department::all();
+        $departments = Department::where('code', '!=', 'SYSTEM-ADMIN')->get();
         return view('divisions.create', compact('departments'));
     }
 
@@ -39,7 +50,7 @@ class DivisionController extends Controller
     public function edit(string $id)
     {
         $division = Division::findOrFail($id);
-        $departments = \App\Models\Department::all(); 
+        $departments = Department::where('code', '!=', 'SYSTEM-ADMIN')->get();
         return view('divisions.edit', compact('division', 'departments'));
     }
 

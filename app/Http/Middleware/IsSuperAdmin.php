@@ -12,12 +12,12 @@ class IsSuperAdmin
 {
     public function handle(Request $request, Closure $next): Response
     {
-        // Check if user is logged in AND is a Super Admin (== 2)
+        // Check if user is logged in AND is a Super Admin
         if (Auth::check() && Auth::user()->is_admin === User::ROLE_SUPER_ADMIN) {
             return $next($request);
         }
 
-        // Redirect to dashboard with an error message instead of 403 abort
-        return redirect()->route('dashboard')->with('error', 'Unauthorized action. This area is restricted to Super Administrators.');
+        // Redirect to dashboard with an error message
+        return redirect()->route('dashboard')->with('error', 'Unauthorized action.');
     }
 }

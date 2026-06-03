@@ -44,7 +44,7 @@
                             <table class="w-full text-left border-collapse">
                                 <thead>
                                     <tr class="bg-gray-100 border-b-2 border-gray-200 text-gray-600">
-                                        <th class="p-3 text-sm font-semibold tracking-wide">ID</th>
+                                        
                                         <th class="p-3 text-sm font-semibold tracking-wide">Division Name</th>
                                         <th class="p-3 text-sm font-semibold tracking-wide">Code</th>
                                         <th class="p-3 text-sm font-semibold tracking-wide w-32">Actions</th>
@@ -53,7 +53,7 @@
                                 <tbody class="divide-y divide-gray-200">
                                     @forelse($dept->divisions as $div)
                                         <tr class="hover:bg-gray-50 transition-colors">
-                                            <td class="p-3 text-sm text-gray-700">{{ $div->id }}</td>
+                                            
                                             <td class="p-3 text-sm text-gray-700">{{ $div->division_name }}</td>
                                             <td class="p-3 text-sm text-gray-700">{{ $div->code ?? 'N/A' }}</td>
                                             
@@ -69,7 +69,7 @@
                                     @empty
                                         <tr>
                                             <td colspan="4" class="p-4 text-sm text-gray-400 italic text-center">
-                                                No divisions created under this department yet.
+                                                No divisions under this department yet.
                                             </td>
                                         </tr>
                                     @endforelse

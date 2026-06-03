@@ -12,6 +12,9 @@
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
                     </x-nav-link>
+                    <x-nav-link :href="route('dashboard')" :active="request()->routeIs('')">
+                        {{ __('Leave Request') }}
+                    </x-nav-link>
 
                     @if (Auth::user()->is_admin >= App\Models\User::ROLE_DEPT_ADMIN)
                         <x-nav-link :href="route('employees.index')" :active="request()->routeIs('employees.*')">

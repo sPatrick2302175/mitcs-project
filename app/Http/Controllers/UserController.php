@@ -27,11 +27,11 @@ class UserController extends Controller
     {
         $request->validate([
             'is_admin' => 'required|integer|in:0,1,2',
-            // Department is required ONLY if they are being made a Department Admin (1)
+            // required 1 admin per department
             'department_id' => 'required_if:is_admin,1|nullable|exists:departments,id',
         ]);
 
-        // If they aren't a Dept Admin, clear out their department assignment
+        // if they user is not a Dept Admin, clear out their department features
         $departmentId = $request->is_admin == User::ROLE_DEPT_ADMIN ? $request->department_id : null;
 
         $user->update([

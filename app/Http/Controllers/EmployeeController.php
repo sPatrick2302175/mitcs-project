@@ -5,34 +5,31 @@ namespace App\Http\Controllers;
 use App\Models\Employee;
 use App\Models\Department;
 use App\Models\Division;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class EmployeeController extends Controller
 {
-    /**
-     * READ: Show all employees in a list/table view
-     */
     public function index()
     {
         $loggedInAdmin = auth()->user();
 
-        // 1. Fetch employees based on role (Filtering out the Master Admin account '000000')
-        if ($loggedInAdmin->is_admin === \App\Models\User::ROLE_SUPER_ADMIN) {
-            // Super Admin gets everyone EXCEPT the system utility account
+        //Fetch employees based on role excluding super admin
+        if ($loggedInAdmin->is_admin === User::ROLE_SUPER_ADMIN) {
             $employeesQuery = Employee::with(['department', 'division', 'user'])
                 ->where('employee_id_number', '!=', '0000000')
                 ->get();
         } else {
-            // Dept Admin gets only their department
+            // Department Admin gets only their department
             $departmentId = $loggedInAdmin->employee ? $loggedInAdmin->employee->department_id : null;
 
             $employeesQuery = Employee::with(['department', 'division', 'user'])
                 ->where('department_id', $departmentId)
-                ->where('employee_id_number', '!=', '0000000') // Safety filter
+                ->where('employee_id_number', '!=', '0000000')
                 ->get();
         }
 
-        // 2. Group the results by the department name
+        // Group the table by the department name
         $groupedEmployees = $employeesQuery->groupBy(function($employee) {
             return $employee->department ? $employee->department->department_name : 'Unassigned Department';
         });
@@ -40,21 +37,15 @@ class EmployeeController extends Controller
         return view('employees.index', compact('groupedEmployees'));
     }
 
-    /**
-     * CREATE: Show the HTML form to add a new employee
-     */
     public function create()
     {
-        // We need to fetch departments and divisions so the admin can pick them in a dropdown menu
-        $departments = Department::all();
+        // fetch departments and divisions. Excludes super admin
+        $departments = Department::where('code', '!=', 'SYSTEM-ADMIN')->get();
         $divisions = Division::all();
         
         return view('employees.create', compact('departments', 'divisions'));
     }
 
-    /**
-     * CREATE: Save the form data to the database
-     */
     public function store(Request $request)
     {
         $validatedData = $request->validate([
@@ -72,21 +63,15 @@ class EmployeeController extends Controller
         return redirect()->route('employees.index')->with('success', 'Employee created successfully!');
     }
 
-    /**
-     * UPDATE: Show the form to edit an existing employee
-     */
     public function edit(string $id)
     {
         $employee = Employee::findOrFail($id);
-        $departments = Department::all();
+        $departments = Department::where('code', '!=', 'SYSTEM-ADMIN')->get();
         $divisions = Division::all();
 
         return view('employees.edit', compact('employee', 'departments', 'divisions'));
     }
 
-    /**
-     * UPDATE: Save the edited changes to the database
-     */
     public function update(Request $request, string $id)
     {
         $employee = Employee::findOrFail($id);
@@ -105,9 +90,6 @@ class EmployeeController extends Controller
         return redirect()->route('employees.index')->with('success', 'Employee updated successfully!');
     }
 
-    /**
-     * DELETE: Remove an employee
-     */
     public function destroy(string $id)
     {
         $employee = Employee::findOrFail($id);
@@ -116,36 +98,32 @@ class EmployeeController extends Controller
         return redirect()->route('employees.index')->with('success', 'Employee deleted successfully!');
     }
 
-    /**
-     * UPDATE: Change the user's role (Super Admin only)
-     */
-
     public function changeRole(Request $request, string $id)
     {
-        // 1. Double-check security
-        if (auth()->user()->is_admin !== \App\Models\User::ROLE_SUPER_ADMIN) {
+        // security check
+        if (auth()->user()->is_admin !== User::ROLE_SUPER_ADMIN) {
             abort(403, 'Unauthorized action.');
         }
 
-        // 2. Validate incoming role
+        // validate incoming role
         $request->validate([
             'role' => 'required|integer|in:0,1,2',
         ]);
 
-        // 3. Find the employee and their user
+        // find the employee and their user
         $employee = Employee::with('user')->findOrFail($id);
 
         if (!$employee->user) {
             return redirect()->back()->withErrors(['error' => 'Cannot change role: This employee does not have a registered user account yet.']);
         }
 
-        // --- NEW RESTRICTION LOGIC ---
-        if ($request->role == \App\Models\User::ROLE_DEPT_ADMIN) {
+        // RESTRICTION LOGIC 
+        if ($request->role == User::ROLE_DEPT_ADMIN) {
             // Check if this department already has an admin assigned
             $existingAdmin = Employee::where('department_id', $employee->department_id)
                 ->where('id', '!=', $employee->id) // Ignore the person we are currently updating
                 ->whereHas('user', function ($query) {
-                    $query->where('is_admin', \App\Models\User::ROLE_DEPT_ADMIN);
+                    $query->where('is_admin', User::ROLE_DEPT_ADMIN);
                 })
                 ->first();
 
@@ -155,9 +133,8 @@ class EmployeeController extends Controller
                 return redirect()->back()->withErrors(['error' => $errorMsg]);
             }
         }
-        // -----------------------------
 
-        // 4. Update the role if it passes the check
+        // if pass the check update the role
         $employee->user->update([
             'is_admin' => $request->role
         ]);

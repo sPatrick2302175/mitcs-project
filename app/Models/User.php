@@ -24,19 +24,18 @@ class User extends Authenticatable
      * 
      */
     
-    //User Roles
+    // USER ROLES
     const ROLE_EMPLOYEE = 0;
     const ROLE_DEPT_ADMIN = 1;
     const ROLE_SUPER_ADMIN = 2;
-
 
     protected $fillable = [
         'name',
         'email',
         'password',
         'employee_id', 
-        'is_admin',    
-        'department_id',    // admin identifier
+        'is_admin',  // user role identifier  
+        'department_id',   
     ];
 
    public function department()
@@ -44,8 +43,8 @@ class User extends Authenticatable
         return $this->hasOneThrough(
             Department::class, 
             Employee::class, 
-            'id',             // Foreign key on employees table (User links to Employee ID)
-            'id',             // Foreign key on departments table (Employee links to Department ID)
+            'id',             // Foreign key on employees table 
+            'id',             // Foreign key on departments table
             'employee_id',    // Local key on users table
             'department_id'   // Local key on employees table
         );

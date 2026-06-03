@@ -27,7 +27,7 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'employee_id_number' => ['required', 'string'], // Switch validation rule from email to employee_id_number
+            'employee_id_number' => ['required', 'string'],// validation rule
             'password' => ['required', 'string'],
         ];
     }
@@ -41,13 +41,13 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        // 1. Find the official employee record matching the submitted ID number
+        // find the official employee record matching the submitted ID number
         $employee = Employee::where('employee_id_number', $this->employee_id_number)->first();
 
-        // 2. Locate the web account associated with that employee profile
+        // locate the web account associated with that employee profile
         $user = $employee ? User::where('employee_id', $employee->id)->first() : null;
 
-        // 3. Authenticate using the user account email we found silently in the background
+        // authenticate using the user account email we found silently in the background
         if (! $user || ! Auth::attempt(['email' => $user->email, 'password' => $this->password], $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
