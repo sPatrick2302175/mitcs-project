@@ -1,47 +1,64 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+        <h2 class="font-semibold text-xl text-white leading-tight">
             {{ __('Apply for Leave (Form No. 6)') }}
         </h2>
     </x-slot>
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     
+    <!-- Custom Flatpickr & Premium Form Theme Overrides -->
     <style>
-        /* Approved Company Leaves (Red) */
+        .flatpickr-calendar {
+            font-family: inherit;
+            border-radius: 1rem !important;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05) !important;
+            border: 1px solid #f3f4f6 !important;
+            padding: 0.25rem;
+        }
+        .flatpickr-day.selected {
+            background: #4f46e5 !important;
+            border-color: #4f46e5 !important;
+            border-radius: 0.5rem !important;
+        }
+        /* Approved Company Leaves (Elegant Soft Rose) */
         .flatpickr-day.booked-by-other {
-            background-color: #fee2e2 !important; 
-            color: #b91c1c !important;            
-            border-color: #fca5a5 !important;      
-            font-weight: bold;
+            background-color: #fff1f2 !important; 
+            color: #e11d48 !important;            
+            border-color: #ffe4e6 !important;      
+            font-weight: 700 !important;
+            border-radius: 0.5rem !important;
         }
         
-        /* Pending Company Leaves (Yellow) */
+        /* Pending Company Leaves (Elegant Soft Amber) */
         .flatpickr-day.pending-by-other {
-            background-color: #fef08a !important; 
-            color: #854d0e !important;            
-            border-color: #fde047 !important;      
-            font-weight: bold;
+            background-color: #fef3c7 !important; 
+            color: #d97706 !important;            
+            border-color: #fde68a !important;      
+            font-weight: 700 !important;
+            border-radius: 0.5rem !important;
         }
     </style>
 
-    <div class="py-12">
+    <div class="py-12 bg-gray-50/50 min-h-screen">
         <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-8">
+            <div class="bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100/60 p-8">
                 
+                <!-- Error Alert -->
                 @if ($errors->any())
-                    <div class="mb-6 bg-red-50 border-l-4 border-red-500 p-4">
-                        <div class="flex">
-                            <div class="ml-3">
-                                <p class="text-sm text-red-700 font-bold">
-                                    Please fix the following errors before submitting:
-                                </p>
-                                <ul class="list-disc list-inside text-sm text-red-600 mt-1">
-                                    @foreach ($errors->all() as $error)
-                                        <li>{{ $error }}</li>
-                                    @endforeach
-                                </ul>
-                            </div>
+                    <div class="mb-6 bg-rose-50/70 backdrop-blur-sm border border-rose-100 rounded-2xl p-5 shadow-sm transition-all duration-300 animate-fadeIn flex items-start">
+                        <div class="shrink-0 bg-rose-100 p-2 rounded-xl">
+                            <svg class="h-5 w-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                            </svg>
+                        </div>
+                        <div class="ms-4 mt-0.5">
+                            <h3 class="text-sm font-extrabold text-rose-800 tracking-tight">Please fix the following errors before submitting:</h3>
+                            <ul class="list-disc list-inside text-sm font-medium text-rose-700 mt-1.5 space-y-0.5">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
                         </div>
                     </div>
                 @endif
@@ -49,8 +66,9 @@
                 <form action="{{ route('leave-requests.store') }}" method="POST">
                     @csrf
                     
+                    <!-- Section 6.A -->
                     <div class="mb-10">
-                        <h3 class="text-lg font-bold text-gray-800 border-b pb-2 mb-4">6.A TYPE OF LEAVE TO BE AVAILED OF</h3>
+                        <h3 class="text-xs font-black text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-3 mb-6">6.A TYPE OF LEAVE TO BE AVAILED OF</h3>
                         
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-6">
                             @php
@@ -72,121 +90,135 @@
                             @endphp
 
                             @foreach($leaveTypes as $type => $citation)
-                                <label class="flex items-start space-x-2 cursor-pointer">
-                                    <input type="radio" name="leave_type" value="{{ $type }}" @checked(old('leave_type') == $type) class="mt-1 rounded-full border-gray-300 text-indigo-600 shadow-sm" {{ $loop->first ? 'required' : '' }}>
-                                    <span class="text-sm text-gray-700">{{ $type }} <span class="text-xs text-gray-500 block">{{ $citation }}</span></span>
+                                <label class="flex items-start space-x-3 cursor-pointer group p-2 rounded-xl hover:bg-gray-50/80 transition-colors">
+                                    <input type="radio" name="leave_type" value="{{ $type }}" @checked(old('leave_type') == $type) class="mt-1 w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500 focus:ring-offset-0 bg-gray-50 transition" {{ $loop->first ? 'required' : '' }}>
+                                    <span class="text-sm font-semibold text-gray-700 group-hover:text-gray-900 transition-colors">
+                                        {{ $type }} 
+                                        <span class="text-xs font-medium text-gray-400 block mt-0.5 leading-relaxed">{{ $citation }}</span>
+                                    </span>
                                 </label>
                             @endforeach
 
-                            <div class="col-span-1 md:col-span-2 mt-2">
-                                <label class="flex items-center space-x-2 cursor-pointer mb-2">
-                                    <input type="radio" name="leave_type" value="Others" @checked(old('leave_type') == 'Others') class="rounded-full border-gray-300 text-indigo-600 shadow-sm">
-                                    <span class="text-sm text-gray-700 font-medium">Others:</span>
+                            <div class="col-span-1 md:col-span-2 mt-2 p-3 rounded-2xl bg-gray-50/50 border border-gray-100/80">
+                                <label class="flex items-center space-x-3 cursor-pointer mb-2 group">
+                                    <input type="radio" name="leave_type" value="Others" @checked(old('leave_type') == 'Others') class="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500 focus:ring-offset-0 bg-gray-50 transition">
+                                    <span class="text-sm font-bold text-gray-700 group-hover:text-gray-900 transition-colors">Others:</span>
                                 </label>
-                                <input type="text" name="leave_type_others" value="{{ old('leave_type_others') }}" placeholder="Specify other leave type..." class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                <input type="text" name="leave_type_others" value="{{ old('leave_type_others') }}" placeholder="Specify other leave type..." class="block w-full rounded-xl border-gray-200 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm font-medium py-2.5 transition-all">
                             </div>
                         </div>
                     </div>
 
+                    <!-- Section 6.B -->
                     <div class="mb-10">
-                        <h3 class="text-lg font-bold text-gray-800 border-b pb-2 mb-4">6.B DETAILS OF LEAVE</h3>
+                        <h3 class="text-xs font-black text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-3 mb-6">6.B DETAILS OF LEAVE</h3>
                         
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 p-6 rounded-lg border border-gray-200">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50/40 backdrop-blur-sm p-6 rounded-2xl border border-gray-100/80 shadow-sm">
                             <div class="space-y-4">
                                 <div>
-                                    <p class="text-sm font-semibold text-gray-800 mb-2">In case of Vacation/Special Privilege Leave:</p>
-                                    <label class="flex items-center space-x-2 mb-1">
-                                        <input type="radio" name="leave_detail_category" value="Within the Philippines" @checked(old('leave_detail_category') == 'Within the Philippines') class="rounded-full border-gray-300 text-indigo-600 shadow-sm">
-                                        <span class="text-sm text-gray-700">Within the Philippines</span>
-                                    </label>
-                                    <label class="flex items-center space-x-2">
-                                        <input type="radio" name="leave_detail_category" value="Abroad" @checked(old('leave_detail_category') == 'Abroad') class="rounded-full border-gray-300 text-indigo-600 shadow-sm">
-                                        <span class="text-sm text-gray-700">Abroad</span>
-                                    </label>
+                                    <p class="text-xs font-extrabold text-gray-400 uppercase tracking-wider mb-2">In case of Vacation/Special Privilege Leave:</p>
+                                    <div class="space-y-1">
+                                        <label class="flex items-center space-x-3 cursor-pointer group mb-1">
+                                            <input type="radio" name="leave_detail_category" value="Within the Philippines" @checked(old('leave_detail_category') == 'Within the Philippines') class="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500 focus:ring-offset-0 bg-gray-50 transition">
+                                            <span class="text-sm font-semibold text-gray-600 group-hover:text-gray-800 transition-colors">Within the Philippines</span>
+                                        </label>
+                                        <label class="flex items-center space-x-3 cursor-pointer group">
+                                            <input type="radio" name="leave_detail_category" value="Abroad" @checked(old('leave_detail_category') == 'Abroad') class="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500 focus:ring-offset-0 bg-gray-50 transition">
+                                            <span class="text-sm font-semibold text-gray-600 group-hover:text-gray-800 transition-colors">Abroad</span>
+                                        </label>
+                                    </div>
                                 </div>
 
                                 <div>
-                                    <p class="text-sm font-semibold text-gray-800 mb-2">In case of Sick Leave:</p>
-                                    <label class="flex items-center space-x-2 mb-1">
-                                        <input type="radio" name="leave_detail_category" value="In Hospital" @checked(old('leave_detail_category') == 'In Hospital') class="rounded-full border-gray-300 text-indigo-600 shadow-sm">
-                                        <span class="text-sm text-gray-700">In Hospital</span>
-                                    </label>
-                                    <label class="flex items-center space-x-2">
-                                        <input type="radio" name="leave_detail_category" value="Out Patient" @checked(old('leave_detail_category') == 'Out Patient') class="rounded-full border-gray-300 text-indigo-600 shadow-sm">
-                                        <span class="text-sm text-gray-700">Out Patient</span>
-                                    </label>
+                                    <p class="text-xs font-extrabold text-gray-400 uppercase tracking-wider mb-2">In case of Sick Leave:</p>
+                                    <div class="space-y-1">
+                                        <label class="flex items-center space-x-3 cursor-pointer group mb-1">
+                                            <input type="radio" name="leave_detail_category" value="In Hospital" @checked(old('leave_detail_category') == 'In Hospital') class="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500 focus:ring-offset-0 bg-gray-50 transition">
+                                            <span class="text-sm font-semibold text-gray-600 group-hover:text-gray-800 transition-colors">In Hospital</span>
+                                        </label>
+                                        <label class="flex items-center space-x-3 cursor-pointer group">
+                                            <input type="radio" name="leave_detail_category" value="Out Patient" @checked(old('leave_detail_category') == 'Out Patient') class="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500 focus:ring-offset-0 bg-gray-50 transition">
+                                            <span class="text-sm font-semibold text-gray-600 group-hover:text-gray-800 transition-colors">Out Patient</span>
+                                        </label>
+                                    </div>
                                 </div>
 
                                 <div>
-                                    <p class="text-sm font-semibold text-gray-800 mb-2">In case of Study Leave:</p>
-                                    <label class="flex items-center space-x-2 mb-1">
-                                        <input type="radio" name="leave_detail_category" value="Completion of Master's Degree" @checked(old('leave_detail_category') == "Completion of Master's Degree") class="rounded-full border-gray-300 text-indigo-600 shadow-sm">
-                                        <span class="text-sm text-gray-700">Completion of Master's Degree</span>
-                                    </label>
-                                    <label class="flex items-center space-x-2">
-                                        <input type="radio" name="leave_detail_category" value="BAR/Board Examination Review" @checked(old('leave_detail_category') == 'BAR/Board Examination Review') class="rounded-full border-gray-300 text-indigo-600 shadow-sm">
-                                        <span class="text-sm text-gray-700">BAR/Board Examination Review</span>
-                                    </label>
+                                    <p class="text-xs font-extrabold text-gray-400 uppercase tracking-wider mb-2">In case of Study Leave:</p>
+                                    <div class="space-y-1">
+                                        <label class="flex items-center space-x-3 cursor-pointer group mb-1">
+                                            <input type="radio" name="leave_detail_category" value="Completion of Master's Degree" @checked(old('leave_detail_category') == "Completion of Master's Degree") class="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500 focus:ring-offset-0 bg-gray-50 transition">
+                                            <span class="text-sm font-semibold text-gray-600 group-hover:text-gray-800 transition-colors">Completion of Master's Degree</span>
+                                        </label>
+                                        <label class="flex items-center space-x-3 cursor-pointer group">
+                                            <input type="radio" name="leave_detail_category" value="BAR/Board Examination Review" @checked(old('leave_detail_category') == 'BAR/Board Examination Review') class="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500 focus:ring-offset-0 bg-gray-50 transition">
+                                            <span class="text-sm font-semibold text-gray-600 group-hover:text-gray-800 transition-colors">BAR/Board Examination Review</span>
+                                        </label>
+                                    </div>
                                 </div>
 
                                 <div>
-                                    <p class="text-sm font-semibold text-gray-800 mb-2">Other purpose:</p>
-                                    <label class="flex items-center space-x-2 mb-1">
-                                        <input type="radio" name="leave_detail_category" value="Monetization of Leave Credits" @checked(old('leave_detail_category') == 'Monetization of Leave Credits') class="rounded-full border-gray-300 text-indigo-600 shadow-sm">
-                                        <span class="text-sm text-gray-700">Monetization of Leave Credits</span>
-                                    </label>
-                                    <label class="flex items-center space-x-2">
-                                        <input type="radio" name="leave_detail_category" value="Terminal Leave" @checked(old('leave_detail_category') == 'Terminal Leave') class="rounded-full border-gray-300 text-indigo-600 shadow-sm">
-                                        <span class="text-sm text-gray-700">Terminal Leave</span>
-                                    </label>
+                                    <p class="text-xs font-extrabold text-gray-400 uppercase tracking-wider mb-2">Other purpose:</p>
+                                    <div class="space-y-1">
+                                        <label class="flex items-center space-x-3 cursor-pointer group mb-1">
+                                            <input type="radio" name="leave_detail_category" value="Monetization of Leave Credits" @checked(old('leave_detail_category') == 'Monetization of Leave Credits') class="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500 focus:ring-offset-0 bg-gray-50 transition">
+                                            <span class="text-sm font-semibold text-gray-600 group-hover:text-gray-800 transition-colors">Monetization of Leave Credits</span>
+                                        </label>
+                                        <label class="flex items-center space-x-3 cursor-pointer group">
+                                            <input type="radio" name="leave_detail_category" value="Terminal Leave" @checked(old('leave_detail_category') == 'Terminal Leave') class="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500 focus:ring-offset-0 bg-gray-50 transition">
+                                            <span class="text-sm font-semibold text-gray-600 group-hover:text-gray-800 transition-colors">Terminal Leave</span>
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
 
                             <div>
-                                <label class="block text-sm font-semibold text-gray-800 mb-2">Specify Details (Illness / Location):</label>
-                                <textarea name="leave_detail_specifics" rows="4" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="Please provide location for Vacation Leave, or specific illness for Sick Leave...">{{ old('leave_detail_specifics') }}</textarea>
+                                <label class="block text-xs font-extrabold text-gray-400 uppercase tracking-wider mb-2">Specify Details (Illness / Location):</label>
+                                <textarea name="leave_detail_specifics" rows="4" class="block w-full rounded-xl border-gray-200 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm font-medium p-3 transition-all placeholder-gray-400" placeholder="Please provide location for Vacation Leave, or specific illness for Sick Leave...">{{ old('leave_detail_specifics') }}</textarea>
                             </div>
                         </div>
                     </div>
 
+                    <!-- Section 6.C & 6.D -->
                     <div class="mb-8">
-                        <h3 class="text-lg font-bold text-gray-800 border-b pb-2 mb-4">6.C & 6.D DATES AND COMMUTATION</h3>
+                        <h3 class="text-xs font-black text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-3 mb-6">6.C & 6.D DATES AND COMMUTATION</h3>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Number of Working Days</label>
-                                <input type="number" step="0.5" name="working_days_applied" value="{{ old('working_days_applied') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required>
-                                @error('working_days_applied') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                                <label class="block text-xs font-extrabold text-gray-400 uppercase tracking-wider mb-2">Number of Working Days</label>
+                                <input type="number" step="0.5" name="working_days_applied" value="{{ old('working_days_applied') }}" class="block w-full rounded-xl border-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm font-semibold py-2.5 transition-all" required>
+                                @error('working_days_applied') <span class="text-xs font-bold text-rose-500 mt-1 block">{{ $message }}</span> @enderror
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Inclusive Dates (Start)</label>
-                                <input type="text" id="start_date" name="start_date" value="{{ old('start_date') }}" placeholder="YYYY-MM-DD" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required>
-                                @error('start_date') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                                <label class="block text-xs font-extrabold text-gray-400 uppercase tracking-wider mb-2">Inclusive Dates (Start)</label>
+                                <input type="text" id="start_date" name="start_date" value="{{ old('start_date') }}" placeholder="YYYY-MM-DD" class="block w-full rounded-xl border-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm font-semibold py-2.5 transition-all" required>
+                                @error('start_date') <span class="text-xs font-bold text-rose-500 mt-1 block">{{ $message }}</span> @enderror
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Inclusive Dates (End)</label>
-                                <input type="text" id="end_date" name="end_date" value="{{ old('end_date') }}" placeholder="YYYY-MM-DD" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required>
-                                @error('end_date') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                                <label class="block text-xs font-extrabold text-gray-400 uppercase tracking-wider mb-2">Inclusive Dates (End)</label>
+                                <input type="text" id="end_date" name="end_date" value="{{ old('end_date') }}" placeholder="YYYY-MM-DD" class="block w-full rounded-xl border-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm font-semibold py-2.5 transition-all" required>
+                                @error('end_date') <span class="text-xs font-bold text-rose-500 mt-1 block">{{ $message }}</span> @enderror
                             </div>
                         </div>
                         
-                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 w-full md:w-1/2">
-                            <label class="block text-sm font-semibold text-gray-800 mb-2">Commutation</label>
+                        <div class="bg-gray-50/40 backdrop-blur-sm p-4 rounded-2xl border border-gray-100/80 w-full md:w-1/2 shadow-sm">
+                            <label class="block text-xs font-extrabold text-gray-400 uppercase tracking-wider mb-2">Commutation</label>
                             <div class="flex space-x-6">
-                                <label class="flex items-center space-x-2">
-                                    <input type="radio" name="commutation_requested" value="0" @checked(old('commutation_requested', '0') == '0') class="rounded-full border-gray-300 text-indigo-600 shadow-sm" required>
-                                    <span class="text-sm text-gray-700">Not Requested</span>
+                                <label class="flex items-center space-x-3 cursor-pointer group">
+                                    <input type="radio" name="commutation_requested" value="0" @checked(old('commutation_requested', '0') == '0') class="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500 focus:ring-offset-0 bg-gray-50 transition" required>
+                                    <span class="text-sm font-semibold text-gray-600 group-hover:text-gray-800 transition-colors">Not Requested</span>
                                 </label>
-                                <label class="flex items-center space-x-2">
-                                    <input type="radio" name="commutation_requested" value="1" @checked(old('commutation_requested') == '1') class="rounded-full border-gray-300 text-indigo-600 shadow-sm">
-                                    <span class="text-sm text-gray-700">Requested</span>
+                                <label class="flex items-center space-x-3 cursor-pointer group">
+                                    <input type="radio" name="commutation_requested" value="1" @checked(old('commutation_requested') == '1') class="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500 focus:ring-offset-0 bg-gray-50 transition">
+                                    <span class="text-sm font-semibold text-gray-600 group-hover:text-gray-800 transition-colors">Requested</span>
                                 </label>
                             </div>
                         </div>
                     </div>
 
-                    <div class="flex items-center justify-end border-t border-gray-200 pt-6 mt-6">
-                        <a href="{{ route('leave-requests.index') }}" class="text-sm text-gray-600 hover:text-gray-900 mr-4">Cancel</a>
-                        <button type="submit" class="inline-flex items-center px-6 py-3 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700">
+                    <!-- Form Navigation -->
+                    <div class="flex items-center justify-end border-t border-gray-100 pt-6 mt-6 space-x-4">
+                        <a href="{{ route('leave-requests.index') }}" class="text-xs font-extrabold uppercase tracking-wider text-gray-400 hover:text-gray-600 transition-colors">Cancel</a>
+                        <button type="submit" class="inline-flex items-center px-6 py-3 bg-[#F2A455] hover:bg-[#df9344] text-white text-xs font-extrabold uppercase tracking-wider rounded-xl shadow-md shadow-orange-500/10 transition-all duration-200 active:scale-[0.98]">
                             Submit Application
                         </button>
                     </div>
@@ -210,12 +242,12 @@
                 onDayCreate: function(dObj, dStr, fp, dayElem) {
                     const dateStr = fp.formatDate(dayElem.dateObj, "Y-m-d");
                     
-                    // Style Company Approved Dates (Red)
+                    // Style Company Approved Dates (Rose)
                     if (companyApprovedDates.includes(dateStr)) {
                         dayElem.classList.add("booked-by-other");
                         dayElem.title = "Date taken by another approved employee";
                     }
-                    // Style Company Pending Dates (Yellow)
+                    // Style Company Pending Dates (Amber)
                     else if (companyPendingDates.includes(dateStr)) {
                         dayElem.classList.add("pending-by-other");
                         dayElem.title = "Another employee has a pending request";

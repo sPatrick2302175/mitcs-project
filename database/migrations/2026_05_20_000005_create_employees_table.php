@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('employee_id_number')->unique();
             $table->string('first_name');
             $table->string('last_name');
+            $table->string('middle_initial', 5)->nullable();
             $table->string('position');
             //$table->integer('leave_credits')->default(15);//temporary value, can be changed later
             

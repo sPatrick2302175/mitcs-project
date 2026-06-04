@@ -1,249 +1,282 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+        <h2 class="font-semibold text-xl text-white leading-tight">
             {{ __('Admin: Review Leave Application') }}
         </h2>
     </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
+    <div class="py-12 bg-gray-50/50 min-h-screen">
+        <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
             
             <div class="mb-6">
-                <a href="{{ route('admin.leave-requests.index') }}" class="inline-flex items-center text-sm font-semibold text-gray-500 hover:text-gray-800 transition">
-                    ← Back to Management Masterlist
+                <a href="{{ route('admin.leave-requests.index') }}" class="inline-flex items-center text-sm font-bold text-gray-500 hover:text-gray-900 transition-colors group">
+                    <svg class="w-4 h-4 mr-2 transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                    Back to Management Masterlist
                 </a>
             </div>
 
             @if($errors->any())
-                <div class="mb-6 p-4 bg-red-100 border-l-4 border-red-500 text-red-700 rounded-r-lg shadow-sm">
-                    <div class="font-bold mb-1">Please address the processing errors below:</div>
-                    <ul class="list-disc pl-5 text-sm">
-                        @foreach($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
+                <div class="mb-8 bg-rose-50/70 backdrop-blur-sm border border-rose-100 rounded-2xl p-6 shadow-sm transition-all duration-300 animate-fadeIn">
+                    <div class="flex items-start">
+                        <div class="shrink-0 bg-rose-100 p-2.5 rounded-xl">
+                            <svg class="h-5 w-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        </div>
+                        <div class="ms-4">
+                            <h3 class="text-sm font-extrabold text-rose-800 tracking-tight mb-2">Please address the processing errors below:</h3>
+                            <ul class="list-disc pl-5 text-sm font-medium text-rose-700 space-y-1">
+                                @foreach($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    </div>
                 </div>
             @endif
 
-            <div class="bg-white overflow-hidden shadow-sm rounded-xl p-8 space-y-8">
+            <div class="bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100/60 overflow-hidden transition-all duration-300">
                 
-                <div class="flex justify-between items-start border-b border-gray-100 pb-6">
+                <!-- Header Section -->
+                <div class="p-6 md:p-8 border-b border-gray-100/60 flex flex-col md:flex-row justify-between items-start gap-6 bg-white">
                     <div>
-                        <span class="text-xs font-bold uppercase tracking-widest text-indigo-600 block mb-1">Civil Service Form No. 6</span>
-                        <h3 class="text-2xl font-black text-gray-900">
+                        <span class="text-[11px] font-bold uppercase tracking-widest text-[#F2A455] block mb-1.5">Civil Service Form No. 6</span>
+                        <h3 class="text-3xl font-black text-gray-800 tracking-tight">
                             {{ $leaveRequest->employee->first_name ?? '' }} {{ $leaveRequest->employee->last_name ?? 'Unknown Employee' }}
                         </h3>
-                        <p class="text-sm text-gray-500 mt-0.5">
-                            ID Number: <span class="font-semibold text-gray-700">{{ $leaveRequest->employee->employee_id_number ?? 'N/A' }}</span>
+                        <p class="text-sm text-gray-500 font-medium mt-1.5">
+                            ID Number: <span class="bg-gray-50 text-gray-700 px-2 py-0.5 rounded-md border border-gray-100 font-bold ml-1">{{ $leaveRequest->employee->employee_id_number ?? 'N/A' }}</span>
                         </p>
                     </div>
 
-                    <div>
+                    <div class="shrink-0">
                         @if($leaveRequest->status === 'pending')
-                            <span class="px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full bg-yellow-100 text-yellow-800 ring-4 ring-yellow-50">
+                            <span class="inline-flex items-center px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-xl bg-amber-50 text-amber-600 border border-amber-100/60 shadow-sm">
+                                <span class="w-2 h-2 rounded-full bg-amber-500 mr-2 animate-pulse"></span>
                                 Pending Review
                             </span>
                         @elseif($leaveRequest->status === 'approved')
-                            <span class="px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full bg-green-100 text-green-800 ring-4 ring-green-50">
+                            <span class="inline-flex items-center px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100/60 shadow-sm">
+                                <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                 Approved Record
                             </span>
                         @else
-                            <span class="px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full bg-red-100 text-red-800 ring-4 ring-red-50">
+                            <span class="inline-flex items-center px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-xl bg-rose-50 text-rose-600 border border-rose-100/60 shadow-sm">
+                                <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                                 Disapproved Record
                             </span>
                         @endif
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="p-6 md:p-8 space-y-10">
                     
-                    <div class="space-y-4">
-                        <h4 class="text-xs font-bold uppercase tracking-wider text-gray-400">Application Details</h4>
+                    <!-- Overview Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                         
-                        <div class="bg-slate-50/60 p-4 rounded-xl space-y-3 border border-slate-100/50">
-                            <div>
-                                <label class="text-xs text-gray-400 block">Type of Leave Requested</label>
-                                <span class="font-bold text-gray-800 text-base">{{ $leaveRequest->leave_type }}</span>
-                                @if($leaveRequest->leave_type === 'Others' && $leaveRequest->leave_type_others)
-                                    <span class="block text-sm text-indigo-600 font-semibold mt-0.5">({{ $leaveRequest->leave_type_others }})</span>
-                                @endif
-                            </div>
-
-                            @if($leaveRequest->leave_detail_category || $leaveRequest->leave_detail_specifics)
-                                <div class="pt-2 border-t border-slate-200/40">
-                                    <label class="text-xs text-gray-400 block">Details / Context Specifications</label>
-                                    <span class="text-sm font-medium text-gray-700 block">{{ $leaveRequest->leave_detail_category ?? 'N/A' }}</span>
-                                    <span class="text-xs text-gray-500 block italic mt-0.5">"{{ $leaveRequest->leave_detail_specifics ?? 'No supplementary notes' }}"</span>
-                                </div>
-                            @endif
-
-                            <div class="pt-2 border-t border-slate-200/40 grid grid-cols-2 gap-2">
-                                <div>
-                                    <label class="text-xs text-gray-400 block">Inclusive Range</label>
-                                    <span class="text-sm font-bold text-gray-800">
-                                        {{ \Carbon\Carbon::parse($leaveRequest->start_date)->format('M d, Y') }}
-                                    </span>
-                                    <span class="text-xs text-gray-400 block">to {{ \Carbon\Carbon::parse($leaveRequest->end_date)->format('M d, Y') }}</span>
-                                </div>
-                                <div>
-                                    <label class="text-xs text-gray-400 block">Days Claimed</label>
-                                    <span class="text-xl font-black text-slate-800">{{ number_format($leaveRequest->working_days_applied, 1) }} Days</span>
-                                </div>
-                            </div>
-
-                            <div class="pt-2 border-t border-slate-200/40">
-                                <label class="text-xs text-gray-400 block">Commutation Requested?</label>
-                                <span class="text-xs font-bold uppercase {{ $leaveRequest->commutation_requested ? 'text-emerald-600' : 'text-slate-500' }}">
-                                    {{ $leaveRequest->commutation_requested ? 'Yes (Requested)' : 'No (Not Requested)' }}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="space-y-4">
-                        <h4 class="text-xs font-bold uppercase tracking-wider text-gray-400">Current Employee Leave Balances</h4>
-                        
-                        <div class="grid grid-cols-2 gap-3">
-                            <div class="p-3 bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition">
-                                <span class="text-[10px] uppercase font-bold text-gray-400 block tracking-tight">Vacation Leave</span>
-                                <span class="text-xl font-black text-gray-800">{{ number_format($leaveRequest->employee->vacation_leave_balance ?? 0, 2) }}</span>
-                            </div>
-                            <div class="p-3 bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition">
-                                <span class="text-[10px] uppercase font-bold text-gray-400 block tracking-tight">Sick Leave</span>
-                                <span class="text-xl font-black text-gray-800">{{ number_format($leaveRequest->employee->sick_leave_balance ?? 0, 2) }}</span>
-                            </div>
-                            <div class="p-3 bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition">
-                                <span class="text-[10px] uppercase font-bold text-gray-400 block tracking-tight">Mandatory/Forced</span>
-                                <span class="text-xl font-black text-gray-800">{{ number_format($leaveRequest->employee->mandatory_leave_balance ?? 0, 2) }}</span>
-                            </div>
-                            <div class="p-3 bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition">
-                                <span class="text-[10px] uppercase font-bold text-gray-400 block tracking-tight">Special Privilege</span>
-                                <span class="text-xl font-black text-gray-800">{{ number_format($leaveRequest->employee->special_privilege_leave_balance ?? 0, 2) }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="border-t border-gray-100 pt-6">
-                    
-                    @if($leaveRequest->status === 'pending')
-                        <h3 class="text-lg font-bold text-gray-900 mb-4">Section 7: Details of Action on Application</h3>
-                        
-                        <form action="{{ route('admin.leave-requests.action', $leaveRequest->id) }}" method="POST" class="space-y-6">
-                            @csrf
+                        <!-- Application Details -->
+                        <div class="space-y-4">
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-gray-400">Application Details</h4>
                             
-                            <div>
-                                <label class="text-xs font-bold uppercase tracking-wider text-gray-500 block mb-2">Final Action Decision</label>
-                                <div class="grid grid-cols-2 gap-4">
-                                    <label class="border-2 border-slate-100 rounded-xl p-4 flex items-center space-x-3 cursor-pointer hover:bg-slate-50 transition peer-checked:border-slate-900">
-                                        <input type="radio" name="status" value="approved" id="action-approve" checked class="text-slate-900 focus:ring-slate-900">
-                                        <div>
-                                            <span class="block font-bold text-gray-800 text-sm">Approve Application</span>
-                                            <span class="block text-xs text-gray-400">Deducts days from selected category matching input criteria.</span>
-                                        </div>
-                                    </label>
-                                    
-                                    <label class="border-2 border-slate-100 rounded-xl p-4 flex items-center space-x-3 cursor-pointer hover:bg-slate-50 transition">
-                                        <input type="radio" name="status" value="disapproved" id="action-disapprove" class="text-red-600 focus:ring-red-500">
-                                        <div>
-                                            <span class="block font-bold text-gray-800 text-sm">Disapprove Application</span>
-                                            <span class="block text-xs text-gray-400">Rejects application and leaves current balances untouched.</span>
-                                        </div>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div id="approval-inputs-panel" class="bg-slate-50/50 p-6 rounded-xl border border-slate-100 space-y-4">
-                                <h5 class="text-xs font-bold uppercase tracking-wider text-gray-500">Approval Parameters Allocation</h5>
-                                
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label for="days_with_pay" class="text-xs font-semibold text-gray-600 block mb-1">Days With Pay</label>
-                                        <input type="number" step="0.5" min="0" name="days_with_pay" id="days_with_pay" 
-                                               value="{{ old('days_with_pay', $leaveRequest->working_days_applied) }}"
-                                               class="w-full rounded-lg border-gray-200 text-sm focus:border-slate-900 focus:ring-slate-900">
-                                    </div>
-                                    <div>
-                                        <label for="days_without_pay" class="text-xs font-semibold text-gray-600 block mb-1">Days Without Pay</label>
-                                        <input type="number" step="0.5" min="0" name="days_without_pay" id="days_without_pay" 
-                                               value="{{ old('days_without_pay', 0) }}"
-                                               class="w-full rounded-lg border-gray-200 text-sm focus:border-slate-900 focus:ring-slate-900">
-                                    </div>
-                                </div>
-
+                            <div class="bg-gray-50/50 p-6 rounded-2xl border border-gray-100/60 space-y-4">
                                 <div>
-                                    <label for="recommendation_reason" class="text-xs font-semibold text-gray-600 block mb-1">Recommendation / Approval Remarks (Optional)</label>
-                                    <textarea name="recommendation_reason" id="recommendation_reason" rows="2" 
-                                              placeholder="Provide explicit notes concerning approval details..."
-                                              class="w-full rounded-lg border-gray-200 text-sm focus:border-slate-900 focus:ring-slate-900">{{ old('recommendation_reason') }}</textarea>
-                                </div>
-                            </div>
-
-                            <div id="disapproval-inputs-panel" class="bg-red-50/30 p-6 rounded-xl border border-red-100/50 space-y-3 hidden">
-                                <h5 class="text-xs font-bold uppercase tracking-wider text-red-700">Disapproval Justification Required</h5>
-                                <div>
-                                    <label for="disapproval_reason" class="text-xs font-semibold text-gray-600 block mb-1">Reason for Disapproval</label>
-                                    <textarea name="disapproval_reason" id="disapproval_reason" rows="3" 
-                                              placeholder="Specify clear legal/operational grounds for rejection as mandated by Civil Service guidelines..."
-                                              class="w-full rounded-lg border-gray-200 text-sm focus:border-red-500 focus:ring-red-500">{{ old('disapproval_reason') }}</textarea>
-                                </div>
-                            </div>
-
-                            <div class="pt-4 border-t border-gray-100 flex justify-end">
-                                <button type="submit" class="inline-flex items-center px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold rounded-xl shadow-md transition duration-150 tracking-wide">
-                                    COMMIT TRANSACTION DATA
-                                </button>
-                            </div>
-                        </form>
-
-                    @else
-                        <div class="bg-slate-50 p-6 rounded-xl border border-slate-100 space-y-4">
-                            <h3 class="text-base font-bold text-slate-800 flex items-center">
-                                📝 Historical Transaction Audit Trail Log
-                            </h3>
-                            
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-                                <div class="space-y-2">
-                                    <div>
-                                        <span class="text-xs text-gray-400 block">Processing Action Status</span>
-                                        <span class="font-bold capitalize text-gray-800">{{ $leaveRequest->status }}</span>
-                                    </div>
-                                    <div>
-                                        <span class="text-xs text-gray-400 block">Days With Pay Credited</span>
-                                        <span class="font-semibold text-gray-700">{{ $leaveRequest->days_with_pay ?? 0 }} Days</span>
-                                    </div>
-                                    <div>
-                                        <span class="text-xs text-gray-400 block">Days Without Pay Assigned</span>
-                                        <span class="font-semibold text-gray-700">{{ $leaveRequest->days_without_pay ?? 0 }} Days</span>
-                                    </div>
-                                </div>
-
-                                <div class="space-y-2">
-                                    @if($leaveRequest->status === 'approved')
-                                        <div>
-                                            <span class="text-xs text-gray-400 block">Approval Executive Remarks</span>
-                                            <p class="text-gray-700 italic">"{{ $leaveRequest->recommendation_reason ?? 'No internal annotations recorded.' }}"</p>
-                                        </div>
-                                    @else
-                                        <div>
-                                            <span class="text-xs text-gray-400 block">Official Rejection Log Reasons</span>
-                                            <p class="text-red-700 font-medium bg-red-50 p-3 rounded-lg border border-red-100 mt-1">
-                                                {{ $leaveRequest->disapproval_reason ?? 'No disapproval explanation was supplied by processing officer.' }}
-                                            </p>
-                                        </div>
+                                    <label class="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">Type of Leave Requested</label>
+                                    <span class="font-extrabold text-gray-800 text-lg">{{ $leaveRequest->leave_type }}</span>
+                                    @if($leaveRequest->leave_type === 'Others' && $leaveRequest->leave_type_others)
+                                        <span class="block text-xs font-bold text-[#F2A455] uppercase tracking-wider mt-1">({{ $leaveRequest->leave_type_others }})</span>
                                     @endif
                                 </div>
-                            </div>
 
-                            <div class="pt-4 border-t border-slate-200 flex justify-between items-center">
-                                <span class="text-xs text-gray-400 font-medium">Form tracking item immutable. System logs locked.</span>
-                                <a href="{{ route('admin.leave-requests.index') }}" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-lg transition">
-                                    Return to Masterlist
-                                </a>
+                                @if($leaveRequest->leave_detail_category || $leaveRequest->leave_detail_specifics)
+                                    <div class="pt-3 border-t border-gray-200/50">
+                                        <label class="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">Details / Context Specifications</label>
+                                        <span class="text-sm font-bold text-gray-700 block">{{ $leaveRequest->leave_detail_category ?? 'N/A' }}</span>
+                                        <span class="text-sm text-gray-500 font-medium block italic mt-1 bg-white p-3 rounded-xl border border-gray-100 shadow-sm">"{{ $leaveRequest->leave_detail_specifics ?? 'No supplementary notes' }}"</span>
+                                    </div>
+                                @endif
+
+                                <div class="pt-3 border-t border-gray-200/50 grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">Inclusive Range</label>
+                                        <span class="text-sm font-extrabold text-gray-800 block">
+                                            {{ \Carbon\Carbon::parse($leaveRequest->start_date)->format('M d, Y') }}
+                                        </span>
+                                        <span class="text-xs text-gray-500 font-medium block mt-0.5">to {{ \Carbon\Carbon::parse($leaveRequest->end_date)->format('M d, Y') }}</span>
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">Days Claimed</label>
+                                        <span class="text-2xl font-black text-[#F2A455]">{{ number_format($leaveRequest->working_days_applied, 1) }} <span class="text-xs text-gray-500 font-bold uppercase tracking-wider">Days</span></span>
+                                    </div>
+                                </div>
+
+                                <div class="pt-3 border-t border-gray-200/50">
+                                    <label class="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">Commutation Requested?</label>
+                                    <span class="inline-flex px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-lg {{ $leaveRequest->commutation_requested ? 'bg-emerald-50 text-emerald-600 border border-emerald-100/60' : 'bg-gray-100 text-gray-500 border border-gray-200/60' }} shadow-sm">
+                                        {{ $leaveRequest->commutation_requested ? 'Yes (Requested)' : 'No (Not Requested)' }}
+                                    </span>
+                                </div>
                             </div>
                         </div>
-                    @endif
 
+                        <!-- Balances -->
+                        <div class="space-y-4">
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-gray-400">Current Employee Leave Balances</h4>
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="p-5 bg-white border border-gray-100/60 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300">
+                                    <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400 block mb-1">Vacation Leave</span>
+                                    <span class="text-2xl font-black text-gray-800">{{ number_format($leaveRequest->employee->vacation_leave_balance ?? 0, 2) }}</span>
+                                </div>
+                                <div class="p-5 bg-white border border-gray-100/60 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300">
+                                    <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400 block mb-1">Sick Leave</span>
+                                    <span class="text-2xl font-black text-gray-800">{{ number_format($leaveRequest->employee->sick_leave_balance ?? 0, 2) }}</span>
+                                </div>
+                                <div class="p-5 bg-white border border-gray-100/60 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300">
+                                    <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400 block mb-1">Mandatory/Forced</span>
+                                    <span class="text-2xl font-black text-gray-800">{{ number_format($leaveRequest->employee->mandatory_leave_balance ?? 0, 2) }}</span>
+                                </div>
+                                <div class="p-5 bg-white border border-gray-100/60 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300">
+                                    <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400 block mb-1">Special Privilege</span>
+                                    <span class="text-2xl font-black text-gray-800">{{ number_format($leaveRequest->employee->special_privilege_leave_balance ?? 0, 2) }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action/Audit Section -->
+                    <div class="pt-8 border-t border-gray-100/80">
+                        
+                        @if($leaveRequest->status === 'pending')
+                            <h3 class="text-xl font-extrabold text-gray-800 tracking-tight mb-6">Section 7: Details of Action on Application</h3>
+                            
+                            <form action="{{ route('admin.leave-requests.action', $leaveRequest->id) }}" method="POST" class="space-y-6">
+                                @csrf
+                                
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-3">Final Action Decision</label>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <label class="relative border-2 border-gray-100/80 rounded-2xl p-5 flex items-start space-x-4 cursor-pointer hover:bg-gray-50/50 transition-all duration-200 group has-[:checked]:border-gray-800 has-[:checked]:bg-gray-50/30">
+                                            <div class="flex items-center h-5 mt-0.5">
+                                                <input type="radio" name="status" value="approved" id="action-approve" checked class="w-4 h-4 text-gray-800 border-gray-300 focus:ring-gray-800">
+                                            </div>
+                                            <div>
+                                                <span class="block font-extrabold text-gray-800 text-sm mb-1 group-has-[:checked]:text-gray-900">Approve Application</span>
+                                                <span class="block text-xs text-gray-500 font-medium">Deducts days from selected category matching input criteria.</span>
+                                            </div>
+                                        </label>
+                                        
+                                        <label class="relative border-2 border-gray-100/80 rounded-2xl p-5 flex items-start space-x-4 cursor-pointer hover:bg-rose-50/30 transition-all duration-200 group has-[:checked]:border-rose-500 has-[:checked]:bg-rose-50/50">
+                                            <div class="flex items-center h-5 mt-0.5">
+                                                <input type="radio" name="status" value="disapproved" id="action-disapprove" class="w-4 h-4 text-rose-600 border-gray-300 focus:ring-rose-500">
+                                            </div>
+                                            <div>
+                                                <span class="block font-extrabold text-gray-800 text-sm mb-1 group-has-[:checked]:text-rose-700">Disapprove Application</span>
+                                                <span class="block text-xs text-gray-500 font-medium">Rejects application and leaves current balances untouched.</span>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div id="approval-inputs-panel" class="bg-gray-50/50 p-6 md:p-8 rounded-2xl border border-gray-100/60 space-y-6 transition-all duration-300">
+                                    <h5 class="text-[10px] font-bold uppercase tracking-wider text-gray-500">Approval Parameters Allocation</h5>
+                                    
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label for="days_with_pay" class="text-xs font-bold text-gray-700 block mb-2">Days With Pay</label>
+                                            <input type="number" step="0.5" min="0" name="days_with_pay" id="days_with_pay" 
+                                                   value="{{ old('days_with_pay', $leaveRequest->working_days_applied) }}"
+                                                   class="w-full rounded-xl border-gray-200/80 text-sm font-semibold focus:border-gray-800 focus:ring-gray-800 shadow-sm transition-colors">
+                                        </div>
+                                        <div>
+                                            <label for="days_without_pay" class="text-xs font-bold text-gray-700 block mb-2">Days Without Pay</label>
+                                            <input type="number" step="0.5" min="0" name="days_without_pay" id="days_without_pay" 
+                                                   value="{{ old('days_without_pay', 0) }}"
+                                                   class="w-full rounded-xl border-gray-200/80 text-sm font-semibold focus:border-gray-800 focus:ring-gray-800 shadow-sm transition-colors">
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label for="recommendation_reason" class="text-xs font-bold text-gray-700 block mb-2">Recommendation / Approval Remarks (Optional)</label>
+                                        <textarea name="recommendation_reason" id="recommendation_reason" rows="2" 
+                                                  placeholder="Provide explicit notes concerning approval details..."
+                                                  class="w-full rounded-xl border-gray-200/80 text-sm font-medium focus:border-gray-800 focus:ring-gray-800 shadow-sm transition-colors">{{ old('recommendation_reason') }}</textarea>
+                                    </div>
+                                </div>
+
+                                <div id="disapproval-inputs-panel" class="bg-rose-50/50 p-6 md:p-8 rounded-2xl border border-rose-100/60 space-y-4 hidden transition-all duration-300">
+                                    <h5 class="text-[10px] font-bold uppercase tracking-wider text-rose-600">Disapproval Justification Required</h5>
+                                    <div>
+                                        <label for="disapproval_reason" class="text-xs font-bold text-gray-800 block mb-2">Reason for Disapproval</label>
+                                        <textarea name="disapproval_reason" id="disapproval_reason" rows="3" 
+                                                  placeholder="Specify clear legal/operational grounds for rejection as mandated by Civil Service guidelines..."
+                                                  class="w-full rounded-xl border-rose-200/80 text-sm font-medium focus:border-rose-500 focus:ring-rose-500 shadow-sm transition-colors">{{ old('disapproval_reason') }}</textarea>
+                                    </div>
+                                </div>
+
+                                <div class="pt-6 border-t border-gray-100 flex justify-end">
+                                    <button type="submit" class="inline-flex items-center px-6 py-3 bg-[#F2A455] hover:bg-[#df9344] text-white text-xs font-extrabold uppercase tracking-wider rounded-xl shadow-md shadow-orange-500/20 transition-all duration-200 active:scale-[0.98]">
+                                        Commit Transaction Data
+                                    </button>
+                                </div>
+                            </form>
+
+                        @else
+                            <div class="bg-gray-50/50 p-6 md:p-8 rounded-2xl border border-gray-100/60 space-y-6">
+                                <h3 class="text-lg font-extrabold text-gray-800 tracking-tight flex items-center">
+                                    <svg class="w-5 h-5 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                    Historical Transaction Audit Trail Log
+                                </h3>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div class="space-y-4">
+                                        <div>
+                                            <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">Processing Action Status</span>
+                                            <span class="font-extrabold capitalize {{ $leaveRequest->status === 'approved' ? 'text-emerald-600' : 'text-rose-600' }}">{{ $leaveRequest->status }}</span>
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200/50">
+                                            <div>
+                                                <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">Days With Pay Credited</span>
+                                                <span class="font-black text-gray-800">{{ number_format($leaveRequest->days_with_pay ?? 0, 1) }} Days</span>
+                                            </div>
+                                            <div>
+                                                <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">Days Without Pay</span>
+                                                <span class="font-black text-gray-800">{{ number_format($leaveRequest->days_without_pay ?? 0, 1) }} Days</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        @if($leaveRequest->status === 'approved')
+                                            <div>
+                                                <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-2">Approval Executive Remarks</span>
+                                                <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                                                    <p class="text-sm font-medium text-gray-600 italic">"{{ $leaveRequest->recommendation_reason ?? 'No internal annotations recorded.' }}"</p>
+                                                </div>
+                                            </div>
+                                        @else
+                                            <div>
+                                                <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-2">Official Rejection Log Reasons</span>
+                                                <div class="bg-rose-50 p-4 rounded-xl border border-rose-100 shadow-sm">
+                                                    <p class="text-sm font-bold text-rose-700">
+                                                        {{ $leaveRequest->disapproval_reason ?? 'No disapproval explanation was supplied by processing officer.' }}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                <div class="pt-6 border-t border-gray-200/60 flex flex-col sm:flex-row justify-between items-center gap-4">
+                                    <div class="flex items-center text-xs text-gray-400 font-bold uppercase tracking-wider">
+                                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                                        Form tracking item immutable. System logs locked.
+                                    </div>
+                                    <a href="{{ route('admin.leave-requests.index') }}" class="inline-flex items-center px-6 py-2.5 bg-white border border-gray-200/80 hover:bg-gray-50 text-gray-700 font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all duration-200 shadow-sm active:scale-[0.98]">
+                                        Return to Masterlist
+                                    </a>
+                                </div>
+                            </div>
+                        @endif
+
+                    </div>
                 </div>
             </div>
         </div>

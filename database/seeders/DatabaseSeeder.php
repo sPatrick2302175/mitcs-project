@@ -34,6 +34,7 @@ class DatabaseSeeder extends Seeder
             [
                 'first_name' => 'System',
                 'last_name' => 'Administrator',
+                'middle_initial' => 'S',
                 'position' => 'Super Admin',
                 'department_id' => $department->id,
                 'division_id' => $division->id,

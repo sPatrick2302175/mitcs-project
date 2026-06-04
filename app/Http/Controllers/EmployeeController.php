@@ -54,6 +54,7 @@ class EmployeeController extends Controller
             'employee_id_number' => 'required|string|unique:employees,employee_id_number',
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
+            'middle_initial' => 'nullable|string|max:5',
             'position' => 'required|string|max:255',
             //'leave_credits' => 'nullable|integer',
         ]);
@@ -68,6 +69,15 @@ class EmployeeController extends Controller
         Employee::create($validatedData);
 
         return redirect()->route('employees.index')->with('success', 'Employee created successfully!');
+    }
+
+
+    public function show(string $id)
+    {
+        // load the relations so we can display department and division names
+        $employee = Employee::with(['department', 'division', 'user'])->findOrFail($id);
+
+        return view('employees.show', compact('employee'));
     }
 
     public function edit(string $id)
@@ -88,7 +98,8 @@ class EmployeeController extends Controller
             'department_id' => 'required|exists:departments,id',
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
-            'position' => 'required|string|max:255',
+            'middle_initial' => 'nullable|string|max:5',
+            'position' => 'required|string|max:255'
             //'leave_credits' => 'required|integer',
         ]);
 

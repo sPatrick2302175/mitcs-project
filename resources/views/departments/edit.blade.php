@@ -1,27 +1,73 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Edit Department</title>
-</head>
-<body>
+<x-app-layout>
+    <x-slot name="header">
+        <h2 class="font-semibold text-xl text-white leading-tight">
+            {{ __('Edit Department') }}: <span class="font-light">{{ $department->department_name }}</span>
+        </h2>
+    </x-slot>
 
-    <h2>Edit Department</h2>
+    <div class="py-12 bg-gray-50/50 min-h-screen">
+        <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
+            <div class="bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100/60 p-8 md:p-10 transition-all duration-300">
+                
+                @if($errors->any())
+                    <div class="mb-8 bg-rose-50/70 backdrop-blur-sm border border-rose-100 rounded-xl p-5 transition-all duration-300 animate-fadeIn">
+                        <div class="flex items-start">
+                            <div class="shrink-0">
+                                <svg class="h-5 w-5 text-rose-500" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ms-3">
+                                <h3 class="text-sm font-semibold text-rose-800">
+                                    Please fix the following errors before submitting:
+                                </h3>
+                                <ul class="list-disc list-inside text-sm text-rose-600 mt-2 space-y-1">
+                                    @foreach ($errors->all() as $error)
+                                        <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                @endif
 
-    <form action="{{ route('departments.update', $department->id) }}" method="POST">
-        @csrf
-        @method('PUT')
-        
-        <label>Department Name:</label><br>
-        <input type="text" name="department_name" value="{{ $department->department_name }}" required>
-        <br><br>
+                <form action="{{ route('departments.update', $department->id) }}" method="POST" class="space-y-8">
+                    @csrf
+                    @method('PUT')
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                        
+                        <div class="md:col-span-1 group">
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2 group-focus-within:text-[#F2A455] transition-colors duration-200">
+                                Department Name <span class="text-rose-500">*</span>
+                            </label>
+                            <input type="text" name="department_name" value="{{ old('department_name', $department->department_name) }}" required 
+                                class="block w-full rounded-xl border-gray-200 bg-gray-50/40 px-4 py-3 text-gray-800 placeholder-gray-400 focus:border-[#F2A455] focus:ring focus:ring-[#F2A455]/10 focus:bg-white transition-all duration-200 sm:text-sm">
+                        </div>
 
-        <label>Code:</label><br>
-        <input type="text" name="code" value="{{ $department->code }}" required>
-        <br><br>
+                        <div class="md:col-span-1 group">
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2 group-focus-within:text-[#F2A455] transition-colors duration-200">
+                                Code <span class="text-rose-500">*</span>
+                            </label>
+                            <input type="text" name="code" value="{{ old('code', $department->code) }}" required 
+                                class="block w-full rounded-xl border-gray-200 bg-gray-50/40 px-4 py-3 text-gray-800 placeholder-gray-400 focus:border-[#F2A455] focus:ring focus:ring-[#F2A455]/10 focus:bg-white transition-all duration-200 sm:text-sm uppercase">
+                        </div>
 
-        <button type="submit">Update</button>
-        <a href="{{ route('departments.index') }}">Cancel</a>
-    </form>
+                    </div>
 
-</body>
-</html>
+                    <div class="flex items-center justify-end border-t border-gray-100 pt-6 mt-10 space-x-3">
+                        <a href="{{ route('departments.index') }}" 
+                            class="text-sm font-semibold text-gray-500 hover:text-gray-800 px-5 py-3 rounded-xl hover:bg-gray-50 transition-all duration-200">
+                            Cancel
+                        </a>
+                        <button type="submit" 
+                            class="inline-flex items-center px-6 py-3 bg-[#F2A455] border border-transparent rounded-xl font-bold text-xs text-white uppercase tracking-widest hover:bg-[#df9344] focus:outline-none focus:ring-2 focus:ring-[#F2A455]/40 active:scale-[0.98] transition-all duration-200 shadow-lg shadow-orange-500/10">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                            Update Department
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</x-app-layout>

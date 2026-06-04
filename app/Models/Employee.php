@@ -12,6 +12,7 @@ class Employee extends Model
         'employee_id_number',
         'first_name',
         'last_name',
+        'middle_initial',
         'position',
         'leave_credits',
         'department_id',
