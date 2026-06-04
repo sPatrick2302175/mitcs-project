@@ -9,45 +9,48 @@
     <form method="POST" action="{{ route('login') }}" class="space-y-6">
         @csrf
 
+        <!-- Employee ID Number Field -->
         <div class="group">
             
-            <x-text-input id="employee_id_number" 
-                class="block w-full rounded-xl border-gray-200 bg-gray-50/40 px-4 py-3 text-gray-800 placeholder-gray-400 focus:border-[#F2A455] focus:ring focus:ring-[#F2A455]/10 focus:bg-white transition-all duration-200 sm:text-sm" 
+            <input id="employee_id_number" 
                 type="text" 
                 name="employee_id_number" 
-                :value="old('employee_id_number')" 
+                value="{{ old('employee_id_number') }}" 
                 required 
                 autofocus 
                 autocomplete="off" 
-                placeholder="Enter your ID number" />
+                placeholder="Enter your ID number"
+                class="block w-full rounded-xl border-gray-200 bg-gray-50/40 px-4 py-3 text-gray-800 placeholder-gray-400 focus:border-[#F2A455] focus:ring focus:ring-[#F2A455]/20 focus:bg-white transition-all duration-200 sm:text-sm outline-none" />
             <x-input-error :messages="$errors->get('employee_id_number')" class="mt-2 text-xs text-rose-500 font-medium" />
         </div>
 
+        <!-- Password Field -->
         <div class="group">
             <div class="flex justify-between items-center mb-2">
                 
             </div>
-            <x-text-input id="password" 
-                class="block w-full rounded-xl border-gray-200 bg-gray-50/40 px-4 py-3 text-gray-800 placeholder-gray-400 focus:border-[#F2A455] focus:ring focus:ring-[#F2A455]/10 focus:bg-white transition-all duration-200 sm:text-sm"
+            <input id="password" 
                 type="password"
                 name="password"
                 required 
                 autocomplete="current-password" 
-                placeholder="Enter your password" />
+                placeholder="Enter your password"
+                class="block w-full rounded-xl border-gray-200 bg-gray-50/40 px-4 py-3 text-gray-800 placeholder-gray-400 focus:border-[#F2A455] focus:ring focus:ring-[#F2A455]/20 focus:bg-white transition-all duration-200 sm:text-sm outline-none" />
             <x-input-error :messages="$errors->get('password')" class="mt-2 text-xs text-rose-500 font-medium" />
         </div>
 
+        <!-- Remember Me -->
         <div class="block">
             <label for="remember_me" class="inline-flex items-center cursor-pointer group">
                 <input id="remember_me" type="checkbox" 
-                    class="rounded-lg border-gray-200 text-[#F2A455] bg-gray-50/40 shadow-sm focus:border-[#F2A455] focus:ring focus:ring-[#F2A455]/20 focus:ring-offset-0 transition-all duration-200 h-4 w-4" 
+                    class="rounded-lg border-gray-200 text-[#F2A455] bg-gray-50/40 shadow-sm focus:border-[#F2A455] focus:ring focus:ring-[#F2A455]/20 focus:ring-offset-0 transition-all duration-200 h-4 w-4 outline-none" 
                     name="remember">
                 <span class="ms-2.5 text-sm font-medium text-gray-500 group-hover:text-gray-700 transition-colors duration-200">{{ __('Remember me') }}</span>
             </label>
         </div>
 
+        <!-- Action Links & Submit -->
         <div class="flex flex-col space-y-4 pt-2">
-            
             <div class="flex items-center justify-between">
                 <div class="flex flex-col space-y-1">
                     <a class="text-xs font-semibold text-gray-400 hover:text-[#F2A455] transition-colors duration-200 self-start" href="{{ route('register') }}">
@@ -66,7 +69,6 @@
                     {{ __('Log in') }}
                 </button>
             </div>
-
         </div>
     </form>
 </x-guest-layout>
