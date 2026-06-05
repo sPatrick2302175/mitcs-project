@@ -1,5 +1,4 @@
 <x-guest-layout>
-    <!-- Premium Visual Accent Layer & Context -->
     <div class="text-center mb-8">
         <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-orange-50 mb-4 border border-orange-100/50 shadow-inner">
             <svg class="w-6 h-6 text-[#F2A455]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -12,7 +11,6 @@
         </p>
     </div>
 
-    <!-- Success Session Status -->
     @if (session('status') == 'verification-link-sent')
         <div class="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-100 text-sm font-medium text-emerald-600 flex items-start space-x-3">
             <svg class="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -22,18 +20,15 @@
         </div>
     @endif
 
-    <!-- System Action Links Footer Context -->
     <div class="mt-8 flex items-center justify-between pt-4 border-t border-gray-100">
         
-        <!-- Log Out Action (Secondary) -->
         <form method="POST" action="{{ route('logout') }}">
             @csrf
-            <button type="submit" class="text-xs font-semibold text-gray-400 hover:text-gray-700 transition-colors duration-200 focus:outline-none">
+            <button type="submit" class="text-xs font-semibold text-gray-400 hover:text-[#F2A455] transition-colors duration-200 focus:outline-none">
                 {{ __('Log Out') }}
             </button>
         </form>
 
-        <!-- Primary Resend Button -->
         <form method="POST" action="{{ route('verification.send') }}">
             @csrf
             <button type="submit" 
