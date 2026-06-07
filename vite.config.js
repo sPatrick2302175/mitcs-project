@@ -14,7 +14,7 @@ export default defineConfig({
         port: 5173,      // Vite's default port
         cors: true,      // 👈 ADD THIS LINE TO FIX THE CORS ERROR
         hmr: {
-            host: '10.91.23.48', // Your specific local IP
+            //host: '10.91.23.48', // Your specific local IP
         },
     },
 });
