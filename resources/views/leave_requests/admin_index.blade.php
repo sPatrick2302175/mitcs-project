@@ -100,9 +100,9 @@
                                         </a>
 
                                         @if($request->status === 'approved')
-                                            <a href="{{ route('leave-requests.pdf', $request->id) }}" target="_blank" 
-                                                class="inline-flex items-center px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-md shadow-gray-900/10 active:scale-[0.98]">
-                                                Print Form 6
+                                            <a href="{{ route('leave-requests.pdf', $request->id) }}" class="inline-flex items-center justify-center px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-800 font-bold text-[10px] uppercase tracking-wider rounded-lg border border-indigo-100/60 transition-colors">
+                                                <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                                View PDF
                                             </a>
                                         @endif
                                     </td>

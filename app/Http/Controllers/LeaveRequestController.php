@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Cache;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
+use setasign\Fpdi\Fpdi;
 
 class LeaveRequestController extends Controller
 {
@@ -306,26 +307,189 @@ class LeaveRequestController extends Controller
     }
 
     /**
-     * Generate and download a PDF of the Leave Request.
+     * Generate and download a PDF of the Leave Request using FPDI.
      */
-    public function generatePDF($id)
+    public function generatePDF(Request $request, $id)
     {
-        $leaveRequest = LeaveRequest::with('employee')->findOrFail($id);
+        $leaveRequest = LeaveRequest::with('employee.department')->findOrFail($id);
         $user = Auth::user();
 
+        // Authorization check
         if (!$user->is_admin && $user->employee && $leaveRequest->employee_id !== $user->employee->id) {
             abort(403, 'Unauthorized action. You can only download your own leave forms.');
         }
 
-        $pdf = Pdf::loadView('leave_requests.pdf', compact('leaveRequest'));
-        $pdf->setPaper('A4', 'portrait');
+        // 1. Tell FPDF where to look for your font files BEFORE initializing!
+        if (!defined('FPDF_FONTPATH')) {
+            define('FPDF_FONTPATH', public_path('fonts/'));
+        }
 
-        $startDateStr = $leaveRequest->start_date instanceof Carbon 
+        // Initialize FPDI
+        $pdf = new Fpdi();
+
+        // Add the custom fonts (assuming the same Family Name for all)
+        $pdf->AddFont('CenturyGothic', '', 'gothic.php');
+        $pdf->AddFont('CenturyGothic', 'B', 'gothicb.php');
+        $pdf->AddFont('CenturyGothic', 'I', 'gothici.php');
+        $pdf->AddFont('CenturyGothic', 'BI', 'gothicbi.php');
+
+        // Now you can freely switch between them!
+        $pdf->SetFont('CenturyGothic', '', 10);  // Regular
+        $pdf->SetFont('CenturyGothic', 'B', 10); // Bold
+        $pdf->SetFont('CenturyGothic', 'I', 10); // Italic
+        $pdf->SetFont('CenturyGothic', 'BI', 10);// Bold Italic
+
+        // 1. Set the path to your blank official PDF template
+        // Make sure you place your blank PDF in the storage/app/templates folder!
+        $templatePath = storage_path('app/templates/CSC_Form_6_Template.pdf'); 
+        
+        // Get the page count of the template
+        $pageCount = $pdf->setSourceFile($templatePath);
+
+        // --- PAGE 1: FRONT PAGE (Fill in the data) ---
+        $page1Id = $pdf->importPage(1);
+        $size = $pdf->getTemplateSize($page1Id);
+        $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
+        $pdf->useTemplate($page1Id);
+
+        // Set default font (Arial, regular, 10pt)
+        $pdf->SetFont('CenturyGothic', 'B', 8);
+        $pdf->SetTextColor(0, 0, 0); // Black text
+
+        // --- TOP SECTION ---
+        $department = $leaveRequest->employee->department->department_name ?? 'MITCS';
+        $pdf->SetXY(30, 40); 
+        $pdf->Write(0, $department);
+
+        $pdf->SetXY(90, 40);
+        $pdf->Write(0, mb_strtoupper($leaveRequest->employee->last_name, 'UTF-8'));
+
+        $pdf->SetXY(120, 40);
+        $pdf->Write(0, mb_strtoupper($leaveRequest->employee->first_name, 'UTF-8'));
+
+        $pdf->SetXY(157, 40);
+        $mi = $leaveRequest->employee->middle_initial ?? '';
+        $formatted_mi = !empty($mi) ? mb_strtoupper($mi, 'UTF-8') . '.' : '';
+        $pdf->Write(0, $formatted_mi);
+
+        $pdf->SetXY(37, 47);
+        $pdf->Write(0, \Carbon\Carbon::parse($leaveRequest->date_of_filing)->format('M d, Y'));
+
+        $pdf->SetXY(97, 47);
+        $pdf->Write(0, mb_strtoupper($leaveRequest->employee->position, 'UTF-8'));
+
+        //SALARY
+        /*$pdf->SetXY(97, 47);
+        $pdf->Write(0, $leaveRequest->salary->position);*/
+
+        /// --- LEAVE TYPE CHECKBOXES (Using Checkmark) ---
+        // 1. Define your layout data (Lookup Dictionary) y = +5.2 to each
+        $leaveYPositions = [
+            'Vacation Leave'                   => 68.2,
+            'Mandatory/Forced Leave'           => 73.4,
+            'Sick Leave'                       => 78.6,
+            'Maternity Leave'                  => 83.8,
+            'Paternity Leave'                  => 89,
+            'Special Privilege Leave'          => 94.2,
+            'Solo Parent Leave'                => 99.4,
+            'Study Leave'                      => 104.6,
+            '10-Day VAWC Leave'                => 109.7,
+            'Rehabilitation Privilege'         => 114.8,
+            'Special Leave Benefits for Women' => 120,
+            'Special Emergency Leave'          => 125.2,
+            'Adoption Leave'                   => 130.2,
+        ];
+
+        $type = $leaveRequest->leave_type;
+
+        // 2. Handle the specific "Others" logic
+        if ($type === 'Others') {
+            $pdf->SetFont('CenturyGothic', '', 10);
+            $pdf->SetXY(40, 196);
+            $pdf->Write(0, $leaveRequest->leave_type_others);
+        } 
+        // 3. Handle standard checkboxes dynamically
+        elseif (array_key_exists($type, $leaveYPositions)) {
+            $pdf->SetXY(6, $leaveYPositions[$type]); 
+            
+            // Render the checkmark
+            $pdf->SetFont('zapfdingbats', '', 8); 
+            $pdf->Write(0, '3'); 
+            
+            // Reset font back to default
+            $pdf->SetFont('CenturyGothic', '', 10); 
+        }
+
+        // --- LEAVE DETAILS (Category & Specifics) ---
+       // --- LEAVE DETAILS (Category & Specifics) ---
+        $detailYPositions = [
+            'Within the Philippines' => 110,
+            'Abroad'                 => 117,
+            'In Hospital'            => 130,
+            'Out Patient'            => 137,
+        ];
+
+        $category = $leaveRequest->leave_detail_category;
+
+        if (array_key_exists($category, $detailYPositions)) {
+            $y = $detailYPositions[$category];
+
+            // 1. Render the checkmark symbol
+            $pdf->SetXY(110, $y);
+            $pdf->SetFont('zapfdingbats', '', 8); // Using size 8 to match your checkboxes
+            $pdf->Write(0, '3');
+
+            // 2. Render the specific details text next to it
+            $pdf->SetFont('CenturyGothic', '', 10);
+            $pdf->SetXY(150, $y);
+            $pdf->Write(0, $leaveRequest->leave_detail_specifics);
+        }
+
+        // --- DAYS AND DATES ---
+        $pdf->SetFont('CenturyGothic', '', 10);
+        $pdf->SetXY(30, 215);
+        $pdf->Write(0, number_format($leaveRequest->working_days_applied, 1) . ' days');
+
+        $pdf->SetXY(30, 230);
+        $dates = \Carbon\Carbon::parse($leaveRequest->start_date)->format('M d, Y') . ' - ' . \Carbon\Carbon::parse($leaveRequest->end_date)->format('M d, Y');
+        $pdf->Write(0, $dates);
+
+        // --- COMMUTATION ---
+        // If requested, Y = 222. If not requested, Y = 215.
+        $y = $leaveRequest->commutation_requested ? 222 : 215;
+
+        $pdf->SetXY(120, $y);
+
+        // Temporarily switch to ZapfDingbats to render the checkmark
+        $pdf->SetFont('zapfdingbats', '', 8); 
+        $pdf->Write(0, '3'); 
+
+        // Reset back to your default font
+        $pdf->SetFont('CenturyGothic', '', 10);
+
+        // --- PAGE 2: BACK PAGE (Instructions - Blank) ---
+        if ($pageCount > 1) {
+            $page2Id = $pdf->importPage(2);
+            $size2 = $pdf->getTemplateSize($page2Id);
+            $pdf->AddPage($size2['orientation'], [$size2['width'], $size2['height']]);
+            $pdf->useTemplate($page2Id);
+        }
+
+       // --- OUTPUT ---
+        $startDateStr = $leaveRequest->start_date instanceof \Carbon\Carbon 
             ? $leaveRequest->start_date->format('Ymd') 
-            : Carbon::parse($leaveRequest->start_date)->format('Ymd');
+            : \Carbon\Carbon::parse($leaveRequest->start_date)->format('Ymd');
 
         $fileName = 'CSC_Form_6_' . $leaveRequest->employee->last_name . '_' . $startDateStr . '.pdf';
-        return $pdf->download($fileName);
+        
+        // If the URL has ?download=1, force the download. Otherwise, view in browser.
+        if ($request->has('download')) {
+            $pdf->Output('D', $fileName);
+        } else {
+            $pdf->Output('I', $fileName);
+        }
+        
+        exit;
     }
 
     /**
