@@ -5,10 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\LeaveRequest;
 use App\Models\Employee;
 use App\Models\User;
+use App\Models\CustomHoliday;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Cache;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
@@ -16,9 +15,6 @@ use setasign\Fpdi\Fpdi;
 
 class LeaveRequestController extends Controller
 {
-    /**
-     * Display the employee's leave dashboard.
-     */
     public function index()
     {
         $user = Auth::user();
@@ -32,28 +28,63 @@ class LeaveRequestController extends Controller
                                      ->orderBy('created_at', 'desc')
                                      ->get();
 
-        $currentYear = date('Y');
-        $apiHolidays = $this->getPhilippineHolidays($currentYear);
-
         $calendarEvents = [];
-        foreach ($apiHolidays as $holiday) {
+
+        // Generate Regular Holidays for this year, next year, and 2026 to ensure the calendar works perfectly
+        $this->ensureRegularHolidaysExist(date('Y'));
+        $this->ensureRegularHolidaysExist(date('Y') + 1);
+        $this->ensureRegularHolidaysExist(2026);
+
+        // 1. ALL Holidays (Now pulled 100% locally from your database)
+        $holidays = CustomHoliday::all();
+        foreach ($holidays as $holiday) {
+            $isRegular = ($holiday->type === 'regular'); // Check the type
+            
+            // Append (Half-Day) label to visual indicator if applicable
+            $displayTitle = $holiday->name . ($holiday->is_half_day ? ' (Half-Day)' : '');
+
             $calendarEvents[] = [
-                'title' => $holiday['name'],
-                'start' => $holiday['date'],
-                'backgroundColor' => '#3b82f6', 
-                'borderColor' => '#2563eb',
+                'id' => 'custom_'.$holiday->id,
+                'title' => $displayTitle,
+                'start' => $holiday->date,
+                'backgroundColor' => $isRegular ? '#3b82f6' : '#f97316', // Blue for Regular, Orange for Custom
+                'borderColor' => $isRegular ? '#2563eb' : '#ea580c',
                 'textColor' => '#ffffff',
                 'allDay' => true,
-                'display' => 'block'
+                'extendedProps' => ['type' => 'custom_holiday', 'holiday_id' => $holiday->id]
+            ];
+        }
+
+        // 2. Corporate Leaves (YELLOW for Pending, GREEN for Approved)
+        $allLeaves = LeaveRequest::with('employee')->whereIn('status', ['pending', 'approved'])->get();
+        foreach ($allLeaves as $leave) {
+            $isPending = ($leave->status === 'pending');
+            $bgColor = $isPending ? '#eab308' : '#22c55e'; // Yellow : Green
+            $bdColor = $isPending ? '#ca8a04' : '#16a34a';
+
+            // FullCalendar end dates are exclusive, so we add 1 day to render correctly
+            $endDate = Carbon::parse($leave->end_date)->addDay()->format('Y-m-d');
+
+            $employeeName = $leave->employee ? $leave->employee->first_name : 'Employee';
+
+            $calendarEvents[] = [
+                'title' => $employeeName . ' (' . $leave->leave_type . ')',
+                'start' => $leave->start_date,
+                'end' => $endDate,
+                'backgroundColor' => $bgColor,
+                'borderColor' => $bdColor,
+                'textColor' => '#ffffff',
+                'allDay' => true,
+                'extendedProps' => [
+                    'type' => $leave->status . '_leave',
+                    'leave_id' => $leave->id
+                ]
             ];
         }
 
         return view('leave_requests.index', compact('employee', 'leaveRequests', 'calendarEvents'));
     }
 
-    /**
-     * Show the form for creating a new leave application.
-     */
     public function create()
     {
         $employee = Auth::user()->employee;
@@ -90,17 +121,20 @@ class LeaveRequestController extends Controller
         }
 
         $currentYear = date('Y');
-        $apiHolidays = $this->getPhilippineHolidays($currentYear);
-        $holidayDates = array_column($apiHolidays, 'date'); 
+        // Now pulls from local database instead of API
+        $localHolidays = $this->getPhilippineHolidays($currentYear);
+        
+        // ONLY block full holidays. Half-days remain clickable on the frontend flatpickr calendar!
+        $fullHolidays = array_filter($localHolidays, function($h) { 
+            return empty($h['is_half_day']); 
+        });
+        $holidayDates = array_column($fullHolidays, 'date'); 
 
         $disabledDates = array_values(array_unique(array_merge($myBookedDates, $companyApprovedDates, $holidayDates)));
 
         return view('leave_requests.create', compact('disabledDates', 'companyApprovedDates', 'companyPendingDates'));
     }
 
-    /**
-     * Store a newly created leave request in storage.
-     */
     public function store(Request $request)
     {
         $employee = Auth::user()->employee;
@@ -121,27 +155,23 @@ class LeaveRequestController extends Controller
         ]);
 
         $myOverlap = LeaveRequest::where('employee_id', $employee->id)
-            ->whereIn('status', ['pending', 'approved', 'PENDING', 'APPROVED'])
+            ->whereIn('status', ['pending', 'approved'])
             ->where('start_date', '<=', $validated['end_date'])
             ->where('end_date', '>=', $validated['start_date'])
             ->exists();
 
         if ($myOverlap) {
-            return back()->withInput()->withErrors([
-                'start_date' => 'You have already booked a leave request during these dates.'
-            ]);
+            return back()->withInput()->withErrors(['start_date' => 'You have already booked a leave request during these dates.']);
         }
 
         $companyOverlap = LeaveRequest::where('employee_id', '!=', $employee->id)
-            ->whereIn('status', ['approved', 'APPROVED'])
+            ->where('status', 'approved')
             ->where('start_date', '<=', $validated['end_date'])
             ->where('end_date', '>=', $validated['start_date'])
             ->exists();
 
         if ($companyOverlap) {
-            return back()->withInput()->withErrors([
-                'start_date' => 'One or more selected dates are already taken by another employee whose leave is approved.'
-            ]);
+            return back()->withInput()->withErrors(['start_date' => 'One or more selected dates are already taken by another employee whose leave is approved.']);
         }
 
         $daysApplied = $validated['working_days_applied'];
@@ -149,63 +179,45 @@ class LeaveRequestController extends Controller
         $balanceAvailable = 0;
 
         switch ($leaveType) {
-            case 'Vacation Leave':
-                $balanceAvailable = $employee->vacation_leave_balance;
-                break;
-            case 'Sick Leave':
-                $balanceAvailable = $employee->sick_leave_balance;
-                break;
-            case 'Mandatory/Forced Leave':
-                $balanceAvailable = $employee->mandatory_leave_balance;
-                break;
-            case 'Special Privilege Leave':
-                $balanceAvailable = $employee->special_privilege_leave_balance;
-                break;
-            case 'Special Emergency Leave':
-                $balanceAvailable = $employee->special_emergency_leave_balance;
-                break;
+            case 'Vacation Leave': $balanceAvailable = $employee->vacation_leave_balance; break;
+            case 'Sick Leave': $balanceAvailable = $employee->sick_leave_balance; break;
+            case 'Mandatory/Forced Leave': $balanceAvailable = $employee->mandatory_leave_balance; break;
+            case 'Special Privilege Leave': $balanceAvailable = $employee->special_privilege_leave_balance; break;
+            case 'Special Emergency Leave': $balanceAvailable = $employee->special_emergency_leave_balance; break;
         }
 
-        $trackedLeaves = [
-            'Vacation Leave', 'Sick Leave', 'Mandatory/Forced Leave', 
-            'Special Privilege Leave', 'Special Emergency Leave'
-        ];
+        $trackedLeaves = ['Vacation Leave', 'Sick Leave', 'Mandatory/Forced Leave', 'Special Privilege Leave', 'Special Emergency Leave'];
         
         if (in_array($leaveType, $trackedLeaves) && $balanceAvailable < $daysApplied) {
-             return back()->withInput()->withErrors([
-                 'working_days_applied' => "Insufficient balance. You only have {$balanceAvailable} days left for {$leaveType}."
-             ]);
+             return back()->withInput()->withErrors(['working_days_applied' => "Insufficient balance. You only have {$balanceAvailable} days left for {$leaveType}."]);
         }
 
         $start = Carbon::parse($validated['start_date'])->startOfDay();
         $end = Carbon::parse($validated['end_date'])->startOfDay();
         
-        $workingDays = $start->diffInDaysFiltered(function (Carbon $date) {
-            return $date->isWeekday();
-        }, $end->copy()->addDay());
+        $workingDays = $start->diffInDaysFiltered(function (Carbon $date) { return $date->isWeekday(); }, $end->copy()->addDay());
 
         $startYear = $start->year;
         $endYear = $end->year;
         
-        $apiHolidays = $this->getPhilippineHolidays($startYear);
+        $localHolidays = $this->getPhilippineHolidays($startYear);
         if ($startYear !== $endYear) {
-            $apiHolidays = array_merge($apiHolidays, $this->getPhilippineHolidays($endYear));
+            $localHolidays = array_merge($localHolidays, $this->getPhilippineHolidays($endYear));
         }
 
         $holidayCount = 0;
-        foreach ($apiHolidays as $holiday) {
+        foreach ($localHolidays as $holiday) {
             $holidayDate = Carbon::parse($holiday['date']);
             if ($holidayDate->between($start, $end) && $holidayDate->isWeekday()) {
-                $holidayCount++;
+                // If it's a half-day, only subtract 0.5 days. Otherwise, subtract 1 full day.
+                $holidayCount += empty($holiday['is_half_day']) ? 1 : 0.5;
             }
         }
 
         $maxValidWorkingDays = $workingDays - $holidayCount;
         
         if ($daysApplied > $maxValidWorkingDays) {
-             return back()->withInput()->withErrors([
-                 'working_days_applied' => "Error: You applied for {$daysApplied} days, but there are only {$maxValidWorkingDays} valid working days in this range (excluding weekends and holidays)."
-             ]);
+             return back()->withInput()->withErrors(['working_days_applied' => "Error: You applied for {$daysApplied} days, but there are only {$maxValidWorkingDays} valid working days in this range (excluding weekends and holidays)."]);
         }
 
         $validated['employee_id'] = $employee->id;
@@ -214,25 +226,17 @@ class LeaveRequestController extends Controller
 
         LeaveRequest::create($validated);
 
-        return redirect()->route('leave-requests.index')
-                         ->with('success', 'Leave application submitted successfully!');
+        return redirect()->route('leave-requests.index')->with('success', 'Leave application submitted successfully!');
     }
 
-    /**
-     * List all leave applications for Admin review.
-     */
     public function adminIndex()
     {
         $loggedInAdmin = auth()->user();
 
         if ($loggedInAdmin->is_admin === User::ROLE_SUPER_ADMIN) {
-            $leaveRequests = LeaveRequest::with('employee.department')
-                ->orderBy('created_at', 'desc')
-                ->get();
+            $leaveRequests = LeaveRequest::with('employee.department')->orderBy('created_at', 'desc')->get();
         } else { 
-            // FIXED: Changed corrupted "compression:" label to a proper legal "else" block
             $departmentId = $loggedInAdmin->employee ? $loggedInAdmin->employee->department_id : null;
-
             $leaveRequests = LeaveRequest::whereHas('employee', function($query) use ($departmentId) {
                 $query->where('department_id', $departmentId);
             })->with('employee.department')->orderBy('created_at', 'desc')->get();
@@ -241,18 +245,12 @@ class LeaveRequestController extends Controller
         return view('leave_requests.admin_index', compact('leaveRequests'));
     }
 
-    /**
-     * Show the approval/review form for a specific request.
-     */
     public function review($id)
     {
         $leaveRequest = LeaveRequest::with('employee')->findOrFail($id);
         return view('leave_requests.review', compact('leaveRequest'));
     }
 
-    /**
-     * Process the final Approval or Disapproval.
-     */
     public function action(Request $request, $id)
     {
         $leaveRequest = LeaveRequest::findOrFail($id);
@@ -269,25 +267,13 @@ class LeaveRequestController extends Controller
         $status = $request->input('status');
 
         if ($status === 'approved') {
-            // FIXED: Deduct based on the verified input field 'days_with_pay' instead of the original 'working_days_applied'
             $daysToDeduct = (float) $request->input('days_with_pay', $leaveRequest->working_days_applied);
-            
             switch ($leaveRequest->leave_type) {
-                case 'Vacation Leave':
-                    $employee->vacation_leave_balance -= $daysToDeduct;
-                    break;
-                case 'Sick Leave':
-                    $employee->sick_leave_balance -= $daysToDeduct;
-                    break;
-                case 'Mandatory/Forced Leave':
-                    $employee->mandatory_leave_balance -= $daysToDeduct;
-                    break;
-                case 'Special Privilege Leave':
-                    $employee->special_privilege_leave_balance -= $daysToDeduct;
-                    break;
-                case 'Special Emergency Leave':
-                    $employee->special_emergency_leave_balance -= $daysToDeduct;
-                    break;
+                case 'Vacation Leave': $employee->vacation_leave_balance -= $daysToDeduct; break;
+                case 'Sick Leave': $employee->sick_leave_balance -= $daysToDeduct; break;
+                case 'Mandatory/Forced Leave': $employee->mandatory_leave_balance -= $daysToDeduct; break;
+                case 'Special Privilege Leave': $employee->special_privilege_leave_balance -= $daysToDeduct; break;
+                case 'Special Emergency Leave': $employee->special_emergency_leave_balance -= $daysToDeduct; break;
             }
             $employee->save();
         }
@@ -302,172 +288,91 @@ class LeaveRequestController extends Controller
             'approving_official_id' => Auth::id(),
         ]);
 
-        return redirect()->route('admin.leave-requests.index')
-                         ->with('success', 'Leave application has been processed successfully!');
+        return redirect()->route('admin.leave-requests.index')->with('success', 'Leave application has been processed successfully!');
     }
 
-    /**
-     * Generate and download a PDF of the Leave Request using FPDI.
-     */
     public function generatePDF(Request $request, $id)
     {
         $leaveRequest = LeaveRequest::with('employee.department')->findOrFail($id);
         $user = Auth::user();
 
-        // Authorization check
         if (!$user->is_admin && $user->employee && $leaveRequest->employee_id !== $user->employee->id) {
             abort(403, 'Unauthorized action. You can only download your own leave forms.');
         }
 
-        // 1. Tell FPDF where to look for your font files BEFORE initializing!
-        if (!defined('FPDF_FONTPATH')) {
-            define('FPDF_FONTPATH', public_path('fonts/'));
-        }
+        if (!defined('FPDF_FONTPATH')) { define('FPDF_FONTPATH', public_path('fonts/')); }
 
-        // Initialize FPDI
         $pdf = new Fpdi();
-
-        // Add the custom fonts (assuming the same Family Name for all)
         $pdf->AddFont('CenturyGothic', '', 'gothic.php');
         $pdf->AddFont('CenturyGothic', 'B', 'gothicb.php');
         $pdf->AddFont('CenturyGothic', 'I', 'gothici.php');
         $pdf->AddFont('CenturyGothic', 'BI', 'gothicbi.php');
 
-        // Now you can freely switch between them!
-        $pdf->SetFont('CenturyGothic', '', 10);  // Regular
-        $pdf->SetFont('CenturyGothic', 'B', 10); // Bold
-        $pdf->SetFont('CenturyGothic', 'I', 10); // Italic
-        $pdf->SetFont('CenturyGothic', 'BI', 10);// Bold Italic
-
-        // 1. Set the path to your blank official PDF template
-        // Make sure you place your blank PDF in the storage/app/templates folder!
-        $templatePath = storage_path('app/templates/CSC_Form_6_Template.pdf'); 
+        $pdf->SetFont('CenturyGothic', '', 10);
         
-        // Get the page count of the template
+        $templatePath = storage_path('app/templates/CSC_Form_6_Template.pdf'); 
         $pageCount = $pdf->setSourceFile($templatePath);
 
-        // --- PAGE 1: FRONT PAGE (Fill in the data) ---
         $page1Id = $pdf->importPage(1);
         $size = $pdf->getTemplateSize($page1Id);
         $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
         $pdf->useTemplate($page1Id);
 
-        // Set default font (Arial, regular, 10pt)
         $pdf->SetFont('CenturyGothic', 'B', 8);
-        $pdf->SetTextColor(0, 0, 0); // Black text
+        $pdf->SetTextColor(0, 0, 0); 
 
-        // --- TOP SECTION ---
         $department = $leaveRequest->employee->department->code ?? 'MITCS';
-        $pdf->SetXY(30, 40); 
-        $pdf->Write(0, $department);
-
-        $pdf->SetXY(90, 40);
-        $pdf->Write(0, mb_strtoupper($leaveRequest->employee->last_name, 'UTF-8'));
-
-        $pdf->SetXY(120, 40);
-        $pdf->Write(0, mb_strtoupper($leaveRequest->employee->first_name, 'UTF-8'));
-
-        $pdf->SetXY(157, 40);
+        $pdf->SetXY(30, 40); $pdf->Write(0, $department);
+        $pdf->SetXY(90, 40); $pdf->Write(0, mb_strtoupper($leaveRequest->employee->last_name, 'UTF-8'));
+        $pdf->SetXY(120, 40); $pdf->Write(0, mb_strtoupper($leaveRequest->employee->first_name, 'UTF-8'));
+        
         $mi = $leaveRequest->employee->middle_initial ?? '';
         $formatted_mi = !empty($mi) ? mb_strtoupper($mi, 'UTF-8') . '.' : '';
-        $pdf->Write(0, $formatted_mi);
+        $pdf->SetXY(157, 40); $pdf->Write(0, $formatted_mi);
 
-        $pdf->SetXY(37, 47);
-        $pdf->Write(0, \Carbon\Carbon::parse($leaveRequest->date_of_filing)->format('M d, Y'));
+        $pdf->SetXY(37, 47); $pdf->Write(0, \Carbon\Carbon::parse($leaveRequest->date_of_filing)->format('M d, Y'));
+        $pdf->SetXY(97, 47); $pdf->Write(0, mb_strtoupper($leaveRequest->employee->position, 'UTF-8'));
 
-        $pdf->SetXY(97, 47);
-        $pdf->Write(0, mb_strtoupper($leaveRequest->employee->position, 'UTF-8'));
-
-        //SALARY
-        /*$pdf->SetXY(97, 47);
-        $pdf->Write(0, $leaveRequest->salary->position);*/
-
-        /// --- LEAVE TYPE CHECKBOXES (Using Checkmark) ---
-        // 1. Define your layout data (Lookup Dictionary) y = +5.2 to each
         $leaveYPositions = [
-            'Vacation Leave'                   => 68.2,
-            'Mandatory/Forced Leave'           => 73.4,
-            'Sick Leave'                       => 78.6,
-            'Maternity Leave'                  => 83.8,
-            'Paternity Leave'                  => 89,
-            'Special Privilege Leave'          => 94.2,
-            'Solo Parent Leave'                => 99.4,
-            'Study Leave'                      => 104.6,
-            '10-Day VAWC Leave'                => 109.7,
-            'Rehabilitation Privilege'         => 114.8,
-            'Special Leave Benefits for Women' => 120,
-            'Special Emergency Leave'          => 125.2,
-            'Adoption Leave'                   => 130.2,
+            'Vacation Leave' => 68.2, 'Mandatory/Forced Leave' => 73.4, 'Sick Leave' => 78.6,
+            'Maternity Leave' => 83.8, 'Paternity Leave' => 89, 'Special Privilege Leave' => 94.2,
+            'Solo Parent Leave' => 99.4, 'Study Leave' => 104.6, '10-Day VAWC Leave' => 109.7,
+            'Rehabilitation Privilege' => 114.8, 'Special Leave Benefits for Women' => 120,
+            'Special Emergency Leave' => 125.2, 'Adoption Leave' => 130.2,
         ];
 
         $type = $leaveRequest->leave_type;
 
-        // 2. Handle the specific "Others" logic
         if ($type === 'Others') {
             $pdf->SetFont('CenturyGothic', '', 10);
-            $pdf->SetXY(40, 196);
-            $pdf->Write(0, $leaveRequest->leave_type_others);
-        } 
-        // 3. Handle standard checkboxes dynamically
-        elseif (array_key_exists($type, $leaveYPositions)) {
+            $pdf->SetXY(40, 196); $pdf->Write(0, $leaveRequest->leave_type_others);
+        } elseif (array_key_exists($type, $leaveYPositions)) {
             $pdf->SetXY(6, $leaveYPositions[$type]); 
-            
-            // Render the checkmark
             $pdf->SetFont('zapfdingbats', '', 8); 
             $pdf->Write(0, '3'); 
-            
-            // Reset font back to default
-            $pdf->SetFont('CenturyGothic', '', 10); 
         }
 
-        // --- LEAVE DETAILS (Category & Specifics) ---
-       // --- LEAVE DETAILS (Category & Specifics) ---
-        $detailYPositions = [
-            'Within the Philippines' => 110,
-            'Abroad'                 => 117,
-            'In Hospital'            => 130,
-            'Out Patient'            => 137,
-        ];
-
+        $detailYPositions = ['Within the Philippines' => 110, 'Abroad' => 117, 'In Hospital' => 130, 'Out Patient' => 137];
         $category = $leaveRequest->leave_detail_category;
 
         if (array_key_exists($category, $detailYPositions)) {
             $y = $detailYPositions[$category];
-
-            // 1. Render the checkmark symbol
             $pdf->SetXY(110, $y);
-            $pdf->SetFont('zapfdingbats', '', 8); // Using size 8 to match your checkboxes
+            $pdf->SetFont('zapfdingbats', '', 8); 
             $pdf->Write(0, '3');
-
-            // 2. Render the specific details text next to it
             $pdf->SetFont('CenturyGothic', '', 10);
             $pdf->SetXY(150, $y);
             $pdf->Write(0, $leaveRequest->leave_detail_specifics);
         }
 
-        // --- DAYS AND DATES ---
         $pdf->SetFont('CenturyGothic', '', 10);
-        $pdf->SetXY(30, 215);
-        $pdf->Write(0, number_format($leaveRequest->working_days_applied, 1) . ' days');
+        $pdf->SetXY(30, 215); $pdf->Write(0, number_format($leaveRequest->working_days_applied, 1) . ' days');
+        $pdf->SetXY(30, 230); $pdf->Write(0, \Carbon\Carbon::parse($leaveRequest->start_date)->format('M d, Y') . ' - ' . \Carbon\Carbon::parse($leaveRequest->end_date)->format('M d, Y'));
 
-        $pdf->SetXY(30, 230);
-        $dates = \Carbon\Carbon::parse($leaveRequest->start_date)->format('M d, Y') . ' - ' . \Carbon\Carbon::parse($leaveRequest->end_date)->format('M d, Y');
-        $pdf->Write(0, $dates);
-
-        // --- COMMUTATION ---
-        // If requested, Y = 222. If not requested, Y = 215.
         $y = $leaveRequest->commutation_requested ? 222 : 215;
-
         $pdf->SetXY(120, $y);
+        $pdf->SetFont('zapfdingbats', '', 8); $pdf->Write(0, '3'); 
 
-        // Temporarily switch to ZapfDingbats to render the checkmark
-        $pdf->SetFont('zapfdingbats', '', 8); 
-        $pdf->Write(0, '3'); 
-
-        // Reset back to your default font
-        $pdf->SetFont('CenturyGothic', '', 10);
-
-        // --- PAGE 2: BACK PAGE (Instructions - Blank) ---
         if ($pageCount > 1) {
             $page2Id = $pdf->importPage(2);
             $size2 = $pdf->getTemplateSize($page2Id);
@@ -475,40 +380,63 @@ class LeaveRequestController extends Controller
             $pdf->useTemplate($page2Id);
         }
 
-       // --- OUTPUT ---
-        $startDateStr = $leaveRequest->start_date instanceof \Carbon\Carbon 
-            ? $leaveRequest->start_date->format('Ymd') 
-            : \Carbon\Carbon::parse($leaveRequest->start_date)->format('Ymd');
-
+        $startDateStr = $leaveRequest->start_date instanceof \Carbon\Carbon ? $leaveRequest->start_date->format('Ymd') : \Carbon\Carbon::parse($leaveRequest->start_date)->format('Ymd');
         $fileName = 'CSC_Form_6_' . $leaveRequest->employee->last_name . '_' . $startDateStr . '.pdf';
         
-        // If the URL has ?download=1, force the download. Otherwise, view in browser.
-        if ($request->has('download')) {
-            $pdf->Output('D', $fileName);
-        } else {
-            $pdf->Output('I', $fileName);
-        }
-        
+        if ($request->has('download')) { $pdf->Output('D', $fileName); } else { $pdf->Output('I', $fileName); }
         exit;
     }
 
     /**
-     * Helper method to fetch and cache Philippine Holidays from an external API.
+     * Now purely fetches holidays stored by the Admin in the local database.
+     * Includes the is_half_day column for accurate counting and front-end handling.
      */
     private function getPhilippineHolidays($year)
     {
-        return Cache::remember("api_ph_holidays_{$year}", now()->addDays(30), function () use ($year) {
-            try {
-                $response = Http::timeout(5)->get("https://date.nager.at/api/v3/PublicHolidays/{$year}/PH");
-                
-                if ($response->successful()) {
-                    return $response->json();
-                }
-            } catch (\Exception $e) {
-                // Fail gracefully and return empty array if offline
-            }
-            
-            return [];
-        });
+        return CustomHoliday::whereYear('date', $year)
+                            ->get(['name', 'date', 'is_half_day'])
+                            ->toArray();
+    }
+    
+    /**
+     * Secretly generates standard PH holidays into the database if they don't exist yet.
+     */
+    private function ensureRegularHolidaysExist($year)
+    {
+        // REMOVED EARLY RETURN TO DYNAMICALLY INJECT INDIVIDUAL MISSING HOLIDAYS
+
+        // Calculate Holy Week (Movable)
+        $easterDays = easter_days($year);
+        $easter = new \DateTime("$year-03-21");
+        $easter->modify("+$easterDays days");
+
+        $maundyThursday = clone $easter;
+        $maundyThursday->modify('-3 days');
+
+        $goodFriday = clone $easter;
+        $goodFriday->modify('-2 days');
+
+        $nationalHeroesDay = new \DateTime("last monday of august $year");
+
+        $regularHolidays = [
+            ['name' => "New Year's Day", 'date' => "$year-01-01"],
+            ['name' => "Araw ng Kagitingan", 'date' => "$year-04-09"],
+            ['name' => "Maundy Thursday", 'date' => $maundyThursday->format('Y-m-d')],
+            ['name' => "Good Friday", 'date' => $goodFriday->format('Y-m-d')],
+            ['name' => "Labor Day", 'date' => "$year-05-01"],
+            ['name' => "Independence Day", 'date' => "$year-06-12"],
+            ['name' => "National Heroes Day", 'date' => $nationalHeroesDay->format('Y-m-d')],
+            ['name' => "Bonifacio Day", 'date' => "$year-11-30"],
+            ['name' => "Christmas Day", 'date' => "$year-12-25"],
+            ['name' => "Rizal Day", 'date' => "$year-12-30"],
+        ];
+
+        // Inject them safely into the database
+        foreach ($regularHolidays as $holiday) {
+            CustomHoliday::firstOrCreate(
+                ['date' => $holiday['date']], 
+                ['name' => $holiday['name'], 'type' => 'regular', 'is_half_day' => false]
+            );
+        }
     }
 }

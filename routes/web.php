@@ -4,7 +4,9 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DivisionController;
 use App\Http\Controllers\EmployeeController;
-use App\Http\Controllers\LeaveRequestController; // <-- Added Leave Request Controller
+use App\Http\Controllers\LeaveRequestController;
+use App\Http\Controllers\CustomHolidayController;
+use App\Http\Controllers\UserController; // <-- Added missing UserController import
 use App\Http\Middleware\IsAdmin;
 use App\Http\Middleware\IsSuperAdmin;
 use App\Models\User;
@@ -56,6 +58,9 @@ Route::middleware(['auth', IsAdmin::class])->group(function () {
         Route::get('/leave-requests', [LeaveRequestController::class, 'adminIndex'])->name('leave-requests.index');
         Route::get('/leave-requests/{id}/review', [LeaveRequestController::class, 'review'])->name('leave-requests.review');
         Route::post('/leave-requests/{id}/action', [LeaveRequestController::class, 'action'])->name('leave-requests.action');
+        
+        // Custom Holidays Management Route
+        Route::resource('custom-holidays', CustomHolidayController::class)->except(['show']);
     });
 });
 
@@ -72,5 +77,3 @@ Route::middleware(['auth', IsSuperAdmin::class])->group(function () {
 require __DIR__.'/auth.php';
 
 Route::put('/employees/{employee}/change-role', [EmployeeController::class, 'changeRole'])->name('employees.changeRole');
-
-
