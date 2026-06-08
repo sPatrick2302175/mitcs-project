@@ -357,7 +357,7 @@ class LeaveRequestController extends Controller
         $pdf->SetTextColor(0, 0, 0); // Black text
 
         // --- TOP SECTION ---
-        $department = $leaveRequest->employee->department->department_name ?? 'MITCS';
+        $department = $leaveRequest->employee->department->code ?? 'MITCS';
         $pdf->SetXY(30, 40); 
         $pdf->Write(0, $department);
 
