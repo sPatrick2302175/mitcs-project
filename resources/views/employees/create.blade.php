@@ -76,6 +76,14 @@
                         </div>
 
                         <div class="group">
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2 group-focus-within:text-[#F2A455] transition-colors duration-200">
+                                Position Code <span class="text-rose-500">*</span>
+                            </label>
+                            <input type="text" name="position_code" value="{{ old('position_code') }}" required 
+                                class="block w-full rounded-xl border-gray-200 bg-gray-50/40 px-4 py-3 text-gray-800 placeholder-gray-400 focus:border-[#F2A455] focus:ring focus:ring-[#F2A455]/10 focus:bg-white transition-all duration-200 sm:text-sm">
+                        </div>
+
+                        <div class="group">
                             <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2 group-focus-within:text-[#F2A455] transition-colors duration-200">Leave Credits (Temp)</label>
                             <input type="number" name="leave_credits" value="{{ old('leave_credits') }}" 
                                 class="block w-full rounded-xl border-gray-200 bg-gray-50/40 px-4 py-3 text-gray-800 placeholder-gray-400 focus:border-[#F2A455] focus:ring focus:ring-[#F2A455]/10 focus:bg-white transition-all duration-200 sm:text-sm">

@@ -93,7 +93,7 @@
                                         <tr class="hover:bg-gray-50/50 transition-colors duration-200 group">
                                             <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-600 group-hover:text-gray-900 transition-colors">{{ $emp->employee_id_number }}</td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-800">{{ $emp->first_name }} {{ $emp->last_name }}</td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-600">{{ $emp->position }}</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-600">{{ $emp->position_code }}</td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-600">
                                                 @if($emp->division)
                                                     <span class="bg-gray-100 text-gray-600 px-2.5 py-1 rounded-md text-xs font-semibold">{{ $emp->division->division_name }}</span>

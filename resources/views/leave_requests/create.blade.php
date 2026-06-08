@@ -185,18 +185,14 @@
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                             <div>
                                 <label class="block text-xs font-extrabold text-gray-400 uppercase tracking-wider mb-2">Number of Working Days</label>
-                                <input type="number" step="0.5" name="working_days_applied" value="{{ old('working_days_applied') }}" class="block w-full rounded-xl border-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm font-semibold py-2.5 transition-all" required>
+                                <input type="number" id="working_days_applied" step="0.5" name="working_days_applied" value="{{ old('working_days_applied') }}" class="block w-full rounded-xl border-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm font-semibold py-2.5 transition-all bg-gray-50 cursor-not-allowed" readonly required>
                                 @error('working_days_applied') <span class="text-xs font-bold text-rose-500 mt-1 block">{{ $message }}</span> @enderror
                             </div>
-                            <div>
-                                <label class="block text-xs font-extrabold text-gray-400 uppercase tracking-wider mb-2">Inclusive Dates (Start)</label>
-                                <input type="text" id="start_date" name="start_date" value="{{ old('start_date') }}" placeholder="YYYY-MM-DD" class="block w-full rounded-xl border-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm font-semibold py-2.5 transition-all" required>
-                                @error('start_date') <span class="text-xs font-bold text-rose-500 mt-1 block">{{ $message }}</span> @enderror
-                            </div>
-                            <div>
-                                <label class="block text-xs font-extrabold text-gray-400 uppercase tracking-wider mb-2">Inclusive Dates (End)</label>
-                                <input type="text" id="end_date" name="end_date" value="{{ old('end_date') }}" placeholder="YYYY-MM-DD" class="block w-full rounded-xl border-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm font-semibold py-2.5 transition-all" required>
-                                @error('end_date') <span class="text-xs font-bold text-rose-500 mt-1 block">{{ $message }}</span> @enderror
+                            <div class="col-span-1 md:col-span-2">
+                                <label class="block text-xs font-extrabold text-gray-400 uppercase tracking-wider mb-2">Selected Leave Dates</label>
+                                <input type="text" id="selected_dates" name="selected_dates" value="{{ old('selected_dates') }}" placeholder="Click to select one or multiple dates..." class="block w-full rounded-xl border-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm font-semibold py-2.5 transition-all bg-white" required readonly>
+                                @error('selected_dates') <span class="text-xs font-bold text-rose-500 mt-1 block">{{ $message }}</span> @enderror
+                                <p class="text-xs font-medium text-gray-400 mt-1.5">You can select non-consecutive dates. Weekends and company approved dates are omitted automatically.</p>
                             </div>
                         </div>
                         
@@ -255,14 +251,22 @@
                 }
             };
 
-            const startPicker = flatpickr("#start_date", {
+            // Initialize multi-datepicker configuration
+            flatpickr("#selected_dates", {
                 ...commonConfig,
+                mode: "multiple",
+                conjunction: ", ",
                 onChange: function(selectedDates, dateStr, instance) {
-                    endDatePicker.set('minDate', dateStr);
+                    // Filter out any accidental weekend selections on the frontend count
+                    const workingDays = selectedDates.filter(date => {
+                        const day = date.getDay();
+                        return day !== 0 && day !== 6; // 0 = Sunday, 6 = Saturday
+                    });
+                    
+                    // Dynamically populate the working days field
+                    document.getElementById('working_days_applied').value = workingDays.length;
                 }
             });
-
-            const endDatePicker = flatpickr("#end_date", commonConfig);
         });
     </script>
 </x-app-layout>

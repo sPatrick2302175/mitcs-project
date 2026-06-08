@@ -47,6 +47,11 @@
                             <p class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Position</p>
                             <p class="font-bold text-gray-800 sm:text-base">{{ $employee->position }}</p>
                         </div>
+
+                        <div class="bg-gray-50/40 p-4 rounded-xl border border-gray-100/40">
+                            <p class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Position Code</p>
+                            <p class="font-bold text-gray-800 sm:text-base">{{ $employee->position_code ?? 'N/A' }}</p>
+                        </div>
                         
                         <div class="bg-gray-50/40 p-4 rounded-xl border border-gray-100/40 flex flex-col justify-center">
                             <p class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">System Status</p>

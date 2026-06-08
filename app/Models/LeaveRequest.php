@@ -85,4 +85,9 @@ class LeaveRequest extends Model
     {
         return $this->belongsTo(User::class, 'approving_official_id');
     }
+
+    public function details()
+    {
+        return $this->hasMany(LeaveRequestDetail::class);
+    }
 }

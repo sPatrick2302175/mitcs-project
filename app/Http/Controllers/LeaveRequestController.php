@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\LeaveRequest;
+use Illuminate\Support\Facades\DB;
+use App\Models\LeaveRequestDetail;
 use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -115,35 +117,45 @@ class LeaveRequestController extends Controller
             'leave_detail_category' => 'nullable|string',
             'leave_detail_specifics' => 'nullable|string',
             'working_days_applied' => 'required|numeric|min:0.5',
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after_or_equal:start_date',
+            'selected_dates' => 'required|string', // Validating the comma-separated date string
             'commutation_requested' => 'required|boolean',
         ]);
 
-        $myOverlap = LeaveRequest::where('employee_id', $employee->id)
-            ->whereIn('status', ['pending', 'approved', 'PENDING', 'APPROVED'])
-            ->where('start_date', '<=', $validated['end_date'])
-            ->where('end_date', '>=', $validated['start_date'])
-            ->exists();
+        // 1. Process and Clean Dates String into an Ordered Array
+        $rawDates = array_map('trim', explode(',', $validated['selected_dates']));
+        sort($rawDates); // Chronological ordering
+        
+        // Extrapolate master table fallbacks for index displays
+        $masterStartDate = Carbon::parse($rawDates[0])->startOfDay();
+        $masterEndDate = Carbon::parse(end($rawDates))->startOfDay();
+
+        // 2. Personal Overlap Check (Inspecting Specific Picked Days against DB Details)
+        $myOverlap = LeaveRequestDetail::whereIn('leave_date', $rawDates)
+            ->whereHas('leaveRequest', function ($query) use ($employee) {
+                $query->where('employee_id', $employee->id)
+                    ->whereIn('status', ['pending', 'approved', 'PENDING', 'APPROVED']);
+            })->exists();
 
         if ($myOverlap) {
             return back()->withInput()->withErrors([
-                'start_date' => 'You have already booked a leave request during these dates.'
+                'selected_dates' => 'You have already booked a leave request for one or more of these specific dates.'
             ]);
         }
 
-        $companyOverlap = LeaveRequest::where('employee_id', '!=', $employee->id)
-            ->whereIn('status', ['approved', 'APPROVED'])
-            ->where('start_date', '<=', $validated['end_date'])
-            ->where('end_date', '>=', $validated['start_date'])
-            ->exists();
+        // 3. Company-Wide Overlap Check
+        $companyOverlap = LeaveRequestDetail::whereIn('leave_date', $rawDates)
+            ->whereHas('leaveRequest', function ($query) use ($employee) {
+                $query->where('employee_id', '!=', $employee->id)
+                    ->whereIn('status', ['approved', 'APPROVED']);
+            })->exists();
 
         if ($companyOverlap) {
             return back()->withInput()->withErrors([
-                'start_date' => 'One or more selected dates are already taken by another employee whose leave is approved.'
+                'selected_dates' => 'One or more selected dates are already taken by another employee whose leave is approved.'
             ]);
         }
 
+        // 4. Employee Balance Verification
         $daysApplied = $validated['working_days_applied'];
         $leaveType = $validated['leave_type'];
         $balanceAvailable = 0;
@@ -172,50 +184,77 @@ class LeaveRequestController extends Controller
         ];
         
         if (in_array($leaveType, $trackedLeaves) && $balanceAvailable < $daysApplied) {
-             return back()->withInput()->withErrors([
-                 'working_days_applied' => "Insufficient balance. You only have {$balanceAvailable} days left for {$leaveType}."
-             ]);
+            return back()->withInput()->withErrors([
+                'working_days_applied' => "Insufficient balance. You only have {$balanceAvailable} days left for {$leaveType}."
+            ]);
         }
 
-        $start = Carbon::parse($validated['start_date'])->startOfDay();
-        $end = Carbon::parse($validated['end_date'])->startOfDay();
-        
-        $workingDays = $start->diffInDaysFiltered(function (Carbon $date) {
-            return $date->isWeekday();
-        }, $end->copy()->addDay());
-
-        $startYear = $start->year;
-        $endYear = $end->year;
+        // 5. Holiday Deductions Processing
+        $startYear = $masterStartDate->year;
+        $endYear = $masterEndDate->year;
         
         $apiHolidays = $this->getPhilippineHolidays($startYear);
         if ($startYear !== $endYear) {
             $apiHolidays = array_merge($apiHolidays, $this->getPhilippineHolidays($endYear));
         }
 
-        $holidayCount = 0;
-        foreach ($apiHolidays as $holiday) {
-            $holidayDate = Carbon::parse($holiday['date']);
-            if ($holidayDate->between($start, $end) && $holidayDate->isWeekday()) {
-                $holidayCount++;
+        $holidayDateStrings = array_map(function($holiday) {
+            return Carbon::parse($holiday['date'])->format('Y-m-d');
+        }, $apiHolidays);
+
+        // Filter array to count valid business days and build structural records
+        $validWorkingDays = 0;
+        $detailsToInsert = [];
+
+        foreach ($rawDates as $dateString) {
+            $date = Carbon::parse($dateString);
+            
+            if ($date->isWeekday() && !in_array($dateString, $holidayDateStrings)) {
+                $validWorkingDays++;
+                
+                $detailsToInsert[] = [
+                    'leave_date' => $dateString,
+                    'day_fraction' => 1.00, // Matches your premium schema default
+                    'is_with_pay' => true,  // Matches your premium schema default
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
             }
         }
 
-        $maxValidWorkingDays = $workingDays - $holidayCount;
-        
-        if ($daysApplied > $maxValidWorkingDays) {
-             return back()->withInput()->withErrors([
-                 'working_days_applied' => "Error: You applied for {$daysApplied} days, but there are only {$maxValidWorkingDays} valid working days in this range (excluding weekends and holidays)."
-             ]);
+        if ($daysApplied > $validWorkingDays) {
+            return back()->withInput()->withErrors([
+                'working_days_applied' => "Error: You applied for {$daysApplied} days, but you only selected {$validWorkingDays} valid working days (excluding weekends/holidays)."
+            ]);
         }
 
+        // 6. Database Insertion Transaction Execution
         $validated['employee_id'] = $employee->id;
         $validated['date_of_filing'] = now();
         $validated['status'] = 'pending';
+        
+        // Inject structural start and end ranges so legacy summary scripts don't crash
+        $validated['start_date'] = $masterStartDate->format('Y-m-d');
+        $validated['end_date'] = $masterEndDate->format('Y-m-d');
 
-        LeaveRequest::create($validated);
+        DB::transaction(function () use ($validated, $detailsToInsert) {
+            // Drop the array payload item string before saving to master schema table
+            unset($validated['selected_dates']); 
+            
+            $leaveRequest = LeaveRequest::create($validated);
+
+            // Map parent ID across internal elements
+            foreach ($detailsToInsert as &$detail) {
+                $detail['leave_request_id'] = $leaveRequest->id;
+            }
+
+            if (!empty($detailsToInsert)) {
+                LeaveRequestDetail::insert($detailsToInsert);
+            }
+        });
 
         return redirect()->route('leave-requests.index')
-                         ->with('success', 'Leave application submitted successfully!');
+                        ->with('success', 'Leave application submitted successfully!');
     }
 
     /**
@@ -376,7 +415,7 @@ class LeaveRequestController extends Controller
         $pdf->Write(0, \Carbon\Carbon::parse($leaveRequest->date_of_filing)->format('M d, Y'));
 
         $pdf->SetXY(97, 47);
-        $pdf->Write(0, mb_strtoupper($leaveRequest->employee->position, 'UTF-8'));
+        $pdf->Write(0, mb_strtoupper($leaveRequest->employee->position_code, 'UTF-8'));
 
         //SALARY
         /*$pdf->SetXY(97, 47);
@@ -423,10 +462,10 @@ class LeaveRequestController extends Controller
         // --- LEAVE DETAILS (Category & Specifics) ---
        // --- LEAVE DETAILS (Category & Specifics) ---
         $detailYPositions = [
-            'Within the Philippines' => 110,
-            'Abroad'                 => 117,
-            'In Hospital'            => 130,
-            'Out Patient'            => 137,
+            'Within the Philippines' => 74,
+            'Abroad'                 => 79.2,
+            'In Hospital'            => 89.6,
+            'Out Patient'            => 94.8,//missing others
         ];
 
         $category = $leaveRequest->leave_detail_category;
@@ -435,7 +474,7 @@ class LeaveRequestController extends Controller
             $y = $detailYPositions[$category];
 
             // 1. Render the checkmark symbol
-            $pdf->SetXY(110, $y);
+            $pdf->SetXY(117.8, $y);
             $pdf->SetFont('zapfdingbats', '', 8); // Using size 8 to match your checkboxes
             $pdf->Write(0, '3');
 

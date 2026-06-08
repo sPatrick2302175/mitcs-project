@@ -51,11 +51,12 @@ class EmployeeController extends Controller
         $validatedData = $request->validate([
             'division_id' => 'required|exists:divisions,id',
             'department_id' => 'required|exists:departments,id',
-            'employee_id_number' => 'required|string|unique:employees,employee_id_number',
+            'employee_id_number' => 'required|string|unique:employees,employee_id_number,max:10',
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
-            'middle_initial' => 'nullable|string|max:5',
+            'middle_initial' => 'nullable|string|max:1',
             'position' => 'required|string|max:255',
+            'position_code' => 'required|string|max:20',
             //'leave_credits' => 'nullable|integer',
         ]);
 
@@ -98,8 +99,9 @@ class EmployeeController extends Controller
             'department_id' => 'required|exists:departments,id',
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
-            'middle_initial' => 'nullable|string|max:5',
-            'position' => 'required|string|max:255'
+            'middle_initial' => 'nullable|string|max:1',
+            'position' => 'required|string|max:255',
+            'position_code' => 'required|string|max:20',
             //'leave_credits' => 'required|integer',
         ]);
 

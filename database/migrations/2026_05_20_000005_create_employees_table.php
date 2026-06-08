@@ -20,6 +20,8 @@ return new class extends Migration
             $table->string('last_name');
             $table->string('middle_initial', 5)->nullable();
             $table->string('position');
+            $table->string('position_code')->nullable();
+            //position code
             //$table->integer('leave_credits')->default(15);//temporary value, can be changed later
             
             // --- INTEGRATED FROM GROUPMATE's WORK ---

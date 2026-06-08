@@ -14,6 +14,7 @@ class Employee extends Model
         'last_name',
         'middle_initial',
         'position',
+        'position_code',
         'leave_credits',
         'department_id',
         'division_id',
