@@ -8,12 +8,15 @@
                     </a>
                 </div>
 
+                <!-- Desktop Navigation Links -->
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                    <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
+                    <!-- Dashboard now handles personal leave index and stays active during creation -->
+                    <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard', 'leave-requests.create')">
                         {{ __('Dashboard') }}
                     </x-nav-link>
-                    <x-nav-link :href="route('leave-requests.index')" :active="request()->routeIs('leave-requests.index', 'leave-requests.create')">
-                        {{ __('My Leaves') }}
+
+                    <x-nav-link :href="route('leave-requests.history')" :active="request()->routeIs('leave-requests.history')">
+                        {{ __('My Leave History') }}
                     </x-nav-link>
 
                     @if (Auth::user()->is_admin >= App\Models\User::ROLE_DEPT_ADMIN)
@@ -80,14 +83,15 @@
         </div>
     </div>
 
+    <!-- Mobile Navigation Links -->
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden bg-white/95 backdrop-blur-md border-b border-gray-100">
         <div class="pt-2 pb-3 space-y-1">
-            <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
+            <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard', 'leave-requests.create')">
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
 
-            <x-responsive-nav-link :href="route('leave-requests.index')" :active="request()->routeIs('leave-requests.index', 'leave-requests.create')">
-                {{ __('My Leaves') }}
+            <x-responsive-nav-link :href="route('leave-requests.history')" :active="request()->routeIs('leave-requests.history')">
+                {{ __('My Leave History') }}
             </x-responsive-nav-link>
 
             @if (Auth::user()->is_admin >= App\Models\User::ROLE_DEPT_ADMIN)

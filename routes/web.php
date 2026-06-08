@@ -16,16 +16,10 @@ Route::get('/', function () {
     return view('auth.login');
 });
 
-// Breeze Dashboard Route (Only accessible if logged in)
-Route::get('/dashboard', function () {
-    // Explicitly check if the user is a Dept Admin or Super Admin (>= 1)
-    if (Auth::user()->is_admin >= User::ROLE_DEPT_ADMIN) {
-        return view('admin.dashboard'); // Both types of admins share this view now
-    }
-    
-    return view('employee.dashboard'); // Regular employees go here
-})->middleware(['auth', 'verified'])->name('dashboard');
+//  PASTE THIS IN ITS PLACE:
+Route::get('/dashboard', [LeaveRequestController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
 
+Route::redirect('/leave-requests', '/dashboard')->name('leave-requests.index');
 // Breeze Profile & Employee Leave Routes
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -36,7 +30,7 @@ Route::middleware('auth')->group(function () {
     // EMPLOYEE LEAVE ROUTES
     // ==========================================
     // Allows any authenticated user to view their balance, apply, and get PDFs
-    Route::get('/leave-requests', [LeaveRequestController::class, 'index'])->name('leave-requests.index');
+    Route::get('/my-leave-history', [LeaveRequestController::class, 'myHistory'])->name('leave-requests.history');
     Route::get('/leave-requests/create', [LeaveRequestController::class, 'create'])->name('leave-requests.create');
     Route::post('/leave-requests', [LeaveRequestController::class, 'store'])->name('leave-requests.store');
     Route::get('/leave-requests/{id}/pdf', [LeaveRequestController::class, 'generatePdf'])->name('leave-requests.pdf');
