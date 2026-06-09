@@ -403,8 +403,6 @@ class LeaveRequestController extends Controller
      */
     private function ensureRegularHolidaysExist($year)
     {
-        // REMOVED EARLY RETURN TO DYNAMICALLY INJECT INDIVIDUAL MISSING HOLIDAYS
-
         // Calculate Holy Week (Movable)
         $easterDays = easter_days($year);
         $easter = new \DateTime("$year-03-21");
@@ -433,10 +431,20 @@ class LeaveRequestController extends Controller
 
         // Inject them safely into the database
         foreach ($regularHolidays as $holiday) {
-            CustomHoliday::firstOrCreate(
-                ['date' => $holiday['date']], 
-                ['name' => $holiday['name'], 'type' => 'regular', 'is_half_day' => false]
-            );
+            // Check if a holiday with this name ALREADY exists in this specific year
+            $exists = CustomHoliday::where('name', $holiday['name'])
+                                   ->whereYear('date', $year)
+                                   ->exists();
+
+            // Only create it if the admin hasn't already moved/renamed it for this year
+            if (!$exists) {
+                CustomHoliday::create([
+                    'date' => $holiday['date'], 
+                    'name' => $holiday['name'], 
+                    'type' => 'regular', 
+                    'is_half_day' => false
+                ]);
+            }
         }
     }
 }

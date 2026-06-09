@@ -64,6 +64,36 @@ class CustomHolidayController extends Controller
     }
 
     /**
+     * Show the form for editing the specified custom holiday.
+     */
+    public function edit(CustomHoliday $customHoliday)
+    {
+        return view('admin.custom_holidays.edit', compact('customHoliday'));
+    }
+
+    /**
+     * Update the specified custom holiday in storage.
+     */
+    public function update(Request $request, CustomHoliday $customHoliday)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'date' => 'required|date',
+            'type' => 'required|in:regular,custom',
+        ]);
+
+        $customHoliday->update([
+            'name' => $request->name,
+            'date' => $request->date,
+            'type' => $request->type,
+            'is_half_day' => $request->has('is_half_day'),
+        ]);
+
+        return redirect()->route('admin.custom-holidays.index')
+                         ->with('success', 'Holiday updated successfully!');
+    }
+
+    /**
      * Remove the specified custom holiday from storage.
      */
     public function destroy(CustomHoliday $customHoliday)

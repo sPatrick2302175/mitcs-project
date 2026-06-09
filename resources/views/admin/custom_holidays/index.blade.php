@@ -106,11 +106,15 @@
                                         </td>
 
                                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <form action="{{ route('admin.custom-holidays.destroy', $holiday->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to remove this holiday?');">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="text-red-600 hover:text-red-900">Delete</button>
-                                            </form>
+                                            <div class="flex justify-end space-x-3">
+                                                <a href="{{ route('admin.custom-holidays.edit', $holiday->id) }}" class="text-indigo-600 hover:text-indigo-900">Edit</a>
+                                                
+                                                <form action="{{ route('admin.custom-holidays.destroy', $holiday->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to remove this holiday?');">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="text-red-600 hover:text-red-900">Delete</button>
+                                                </form>
+                                            </div>
                                         </td>
                                     </tr>
                                 @empty
@@ -135,7 +139,7 @@
             flatpickr("#dates", {
                 mode: "multiple",
                 dateFormat: "Y-m-d",
-                minDate: "today", // Optional: Prevents selecting past dates
+                minDate: "today", 
                 inline: false,
             });
         });
