@@ -19,7 +19,7 @@
                         {{ __('My Leave History') }}
                     </x-nav-link>
 
-                    @if (Auth::user()->is_admin >= App\Models\User::ROLE_DEPT_ADMIN)
+                    @if(in_array(Auth::user()->is_admin, [App\Models\User::ROLE_SUPER_ADMIN, App\Models\User::ROLE_DEPT_HEAD, App\Models\User::ROLE_ADMIN_OFFICER]))
                         <x-nav-link :href="route('admin.leave-requests.index')" :active="request()->routeIs('admin.leave-requests.*')">
                             {{ __('Review Leaves') }}
                         </x-nav-link>
@@ -94,7 +94,7 @@
                 {{ __('My Leave History') }}
             </x-responsive-nav-link>
 
-            @if (Auth::user()->is_admin >= App\Models\User::ROLE_DEPT_ADMIN)
+            @if(in_array(Auth::user()->is_admin, [App\Models\User::ROLE_SUPER_ADMIN, App\Models\User::ROLE_DEPT_HEAD, App\Models\User::ROLE_ADMIN_OFFICER]))
                 <x-responsive-nav-link :href="route('admin.leave-requests.index')" :active="request()->routeIs('admin.leave-requests.*')">
                     {{ __('Review Leaves') }}
                 </x-responsive-nav-link>

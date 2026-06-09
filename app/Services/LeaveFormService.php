@@ -305,6 +305,54 @@ class LeaveFormService
         $pdf->SetXY($slColumnX, $rowBalanceY); 
         $pdf->Cell($columnWidth, 0, $slBalanceText, 0, 0, 'C');
 
+
+        //admin responses
+        $pdf->SetFont('CenturyGothic', '', 8);
+
+        if ($leaveRequest->status === 'approved') {
+            // 1. Check the "7.C APPROVED FOR" checkbox
+            $pdf->SetXY(117.8, 220); // Replace with your actual checkbox coordinates
+            $pdf->SetFont('zapfdingbats', '', 8); 
+            $pdf->Write(0, '3'); // '3' renders as a checkmark in ZapfDingbats
+            
+            // Switch back to regular font for text
+            $pdf->SetFont('CenturyGothic', '', 8);
+
+            // 2. Write the number of days with pay (if any)
+            if ($leaveRequest->days_with_pay > 0) {
+                $pdf->SetXY(135, 225); // Replace with your "days with pay" underline coordinates
+                $pdf->Write(0, $leaveRequest->days_with_pay . ' days');
+            }
+
+            // 3. Write the number of days without pay (if any)
+            if ($leaveRequest->days_without_pay > 0) {
+                $pdf->SetXY(135, 230); // Replace with your "days without pay" underline coordinates
+                $pdf->Write(0, $leaveRequest->days_without_pay . ' days');
+            }
+
+            // 4. Write any specific approval/recommendation remarks
+            if (!empty($leaveRequest->recommendation_reason)) {
+                $pdf->SetXY(125, 235); // Replace with your remarks section coordinates
+                $pdf->Write(0, $leaveRequest->recommendation_reason);
+            }
+        } 
+        elseif ($leaveRequest->status === 'disapproved') {
+            // 1. Check the "7.D DISAPPROVED DUE TO" checkbox
+            $pdf->SetXY(117.8, 245); // Replace with your actual disapproval checkbox coordinates
+            $pdf->SetFont('zapfdingbats', '', 8); 
+            $pdf->Write(0, '3');
+            
+            // Switch back to regular font for text
+            $pdf->SetFont('CenturyGothic', '', 8);
+
+            // 2. Write the reason for disapproval
+            // Note: If the reason is long, you can use your explode() logic here to split it into two lines!
+            if (!empty($leaveRequest->disapproval_reason)) {
+                $pdf->SetXY(121, 250); // Replace with your disapproval reason line coordinates
+                $pdf->Write(0, $leaveRequest->disapproval_reason);
+            }
+        }
+
         // PAGE 2 BACK PAGE DO nothing!
         if ($pageCount > 1) {
             $page2Id = $pdf->importPage(2);

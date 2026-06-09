@@ -15,18 +15,85 @@
                     <div class="flex justify-between items-center border-b border-gray-100 pb-4 mb-6">
                         <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400">Basic Information</h3>
                         
-                        @if($employee->user && $employee->user->id !== auth()->id()) 
-                            @if(auth()->user()->is_admin === App\Models\User::ROLE_SUPER_ADMIN)
-                                <form action="{{ route('employees.changeRole', $employee->id) }}" method="POST" class="inline-block">
-                                    @csrf
-                                    @method('PUT')
-                                    <select name="role" onchange="this.form.submit()" 
-                                        class="text-xs font-bold text-purple-700 bg-purple-50 border border-purple-100 rounded-xl cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500/20 py-2 pl-3 pr-8 hover:bg-purple-100/70 transition-all duration-200">
-                                        <option value="0" {{ $employee->user->is_admin == 0 ? 'selected' : '' }}>Employee</option>
-                                        <option value="1" {{ $employee->user->is_admin == App\Models\User::ROLE_DEPT_ADMIN ? 'selected' : '' }}>Dept Admin</option>
-                                    </select>
-                                </form>
-                            @endif
+                        @if(auth()->user()->is_admin === App\Models\User::ROLE_SUPER_ADMIN)
+                            {{-- Modern Custom Dropdown for Super Admin --}}
+                            <form action="{{ route('employees.changeRole', $employee->id) }}" method="POST" class="relative inline-block custom-dropdown">
+                                @csrf
+                                @method('PUT')
+
+                                @php
+                                    // Dynamically style the button based on the current role
+                                    $currentRole = $employee->user ? $employee->user->is_admin : 0;
+                                    $roleText = 'Employee';
+                                    $btnClass = 'text-gray-700 bg-gray-50 border-gray-200 hover:bg-gray-100 focus:ring-gray-400';
+
+                                    if ($currentRole == App\Models\User::ROLE_DEPT_HEAD) {
+                                        $roleText = 'Dept Head';
+                                        $btnClass = 'text-purple-700 bg-purple-50 border-purple-200 hover:bg-purple-100 focus:ring-purple-400';
+                                    } elseif ($currentRole == App\Models\User::ROLE_ADMIN_OFFICER) {
+                                        $roleText = 'Admin Officer';
+                                        $btnClass = 'text-blue-700 bg-blue-50 border-blue-200 hover:bg-blue-100 focus:ring-blue-400';
+                                    }
+                                @endphp
+
+                                <input type="hidden" name="role" value="{{ $currentRole }}">
+
+                                <button type="button" onclick="toggleDropdown(this)" class="flex items-center justify-between w-36 px-3 py-1.5 text-xs font-semibold border rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors duration-200 {{ $btnClass }}">
+                                    <span>{{ $roleText }}</span>
+                                    <svg class="w-4 h-4 ml-2 transition-transform duration-300 transform dropdown-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </button>
+
+                                <div class="absolute right-0 z-50 w-36 mt-2 origin-top-right bg-white border border-gray-100 rounded-md shadow-lg opacity-0 invisible transform scale-95 transition-all duration-200 ease-out dropdown-menu">
+                                    <div class="p-1 space-y-1">
+                                        <button type="button" onclick="submitRole(this, 0)" class="block w-full px-3 py-2 text-xs font-medium text-left text-gray-700 rounded-md hover:bg-gray-100 transition-colors">
+                                            Employee
+                                        </button>
+                                        <button type="button" onclick="submitRole(this, {{ App\Models\User::ROLE_DEPT_HEAD }})" class="block w-full px-3 py-2 text-xs font-medium text-left text-purple-700 rounded-md hover:bg-purple-50 transition-colors">
+                                            Dept Head
+                                        </button>
+                                        <button type="button" onclick="submitRole(this, {{ App\Models\User::ROLE_ADMIN_OFFICER }})" class="block w-full px-3 py-2 text-xs font-medium text-left text-blue-700 rounded-md hover:bg-blue-50 transition-colors">
+                                            Admin Officer
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+
+                        @elseif(auth()->user()->is_admin === App\Models\User::ROLE_DEPT_HEAD)
+                            {{-- Modern Custom Dropdown for Dept Head --}}
+                            <form action="{{ route('employees.changeRole', $employee->id) }}" method="POST" class="relative inline-block custom-dropdown">
+                                @csrf
+                                @method('PUT')
+
+                                @php
+                                    $currentRole = $employee->user ? $employee->user->is_admin : 0;
+                                    $roleText = $currentRole == App\Models\User::ROLE_ADMIN_OFFICER ? 'Admin Officer' : 'Employee';
+                                    $btnClass = $currentRole == App\Models\User::ROLE_ADMIN_OFFICER
+                                        ? 'text-blue-700 bg-blue-50 border-blue-200 hover:bg-blue-100 focus:ring-blue-400'
+                                        : 'text-gray-700 bg-gray-50 border-gray-200 hover:bg-gray-100 focus:ring-gray-400';
+                                @endphp
+
+                                <input type="hidden" name="role" value="{{ $currentRole }}">
+
+                                <button type="button" onclick="toggleDropdown(this)" class="flex items-center justify-between w-36 px-3 py-1.5 text-xs font-semibold border rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors duration-200 {{ $btnClass }}">
+                                    <span>{{ $roleText }}</span>
+                                    <svg class="w-4 h-4 ml-2 transition-transform duration-300 transform dropdown-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </button>
+
+                                <div class="absolute right-0 z-50 w-36 mt-2 origin-top-right bg-white border border-gray-100 rounded-md shadow-lg opacity-0 invisible transform scale-95 transition-all duration-200 ease-out dropdown-menu">
+                                    <div class="p-1 space-y-1">
+                                        <button type="button" onclick="submitRole(this, 0)" class="block w-full px-3 py-2 text-xs font-medium text-left text-gray-700 rounded-md hover:bg-gray-100 transition-colors">
+                                            Employee
+                                        </button>
+                                        <button type="button" onclick="submitRole(this, {{ App\Models\User::ROLE_ADMIN_OFFICER }})" class="block w-full px-3 py-2 text-xs font-medium text-left text-blue-700 rounded-md hover:bg-blue-50 transition-colors">
+                                            Admin Officer
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+
+                        @elseif(auth()->user()->is_admin === App\Models\User::ROLE_ADMIN_OFFICER)
+                            {{-- Admin Officer View --}}
+                    
                         @endif
                     </div>
                     
@@ -135,4 +202,44 @@
 
         </div>
     </div>
+    <script>
+        function toggleDropdown(button) {
+            const form = button.closest('.custom-dropdown');
+            const menu = form.querySelector('.dropdown-menu');
+            const icon = form.querySelector('.dropdown-icon');
+
+            // Check if menu is currently hidden
+            const isClosed = menu.classList.contains('opacity-0');
+
+            // Close all other dropdowns on the page first (prevents overlap)
+            document.querySelectorAll('.dropdown-menu').forEach(m => closeMenu(m));
+
+            if (isClosed) {
+                // Open the dropdown and rotate icon
+                menu.classList.remove('opacity-0', 'invisible', 'scale-95');
+                menu.classList.add('opacity-100', 'visible', 'scale-100');
+                icon.classList.add('rotate-180');
+            }
+        }
+
+        function closeMenu(menu) {
+            menu.classList.remove('opacity-100', 'visible', 'scale-100');
+            menu.classList.add('opacity-0', 'invisible', 'scale-95');
+            const icon = menu.closest('.custom-dropdown').querySelector('.dropdown-icon');
+            if (icon) icon.classList.remove('rotate-180');
+        }
+
+        function submitRole(button, roleValue) {
+            const form = button.closest('form');
+            form.querySelector('input[name="role"]').value = roleValue; // Set hidden input
+            form.submit(); // Submit the Laravel form natively
+        }
+
+        // Automatically close the dropdown if the user clicks anywhere outside of it
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.custom-dropdown')) {
+                document.querySelectorAll('.dropdown-menu').forEach(menu => closeMenu(menu));
+            }
+        });
+    </script>
 </x-app-layout>

@@ -25,9 +25,11 @@ class User extends Authenticatable
      */
     
     // USER ROLES
+    
     const ROLE_EMPLOYEE = 0;
-    const ROLE_DEPT_ADMIN = 1;
-    const ROLE_SUPER_ADMIN = 2;
+    const ROLE_ADMIN_OFFICER = 1; 
+    const ROLE_SUPER_ADMIN = 2;   
+    const ROLE_DEPT_HEAD = 3;
 
     protected $fillable = [
         'name',

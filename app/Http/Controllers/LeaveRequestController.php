@@ -56,20 +56,38 @@ class LeaveRequestController extends Controller
             return redirect()->route('dashboard')->with('error', 'You do not have an employee profile linked to your account yet.');
         }
         
+        // 1. Get the current user's booked dates
         $myBookedDates = $this->leaveService->getBookedDates(
-            LeaveRequest::where('employee_id', $employee->id)->whereIn('status', ['pending', 'approved', 'PENDING', 'APPROVED'])
-        );
-        $companyApprovedDates = $this->leaveService->getBookedDates(
-            LeaveRequest::where('employee_id', '!=', $employee->id)->whereIn('status', ['approved', 'APPROVED'])
-        );
-        $companyPendingDates = $this->leaveService->getBookedDates(
-            LeaveRequest::where('employee_id', '!=', $employee->id)->whereIn('status', ['pending', 'PENDING'])
+            LeaveRequest::where('employee_id', $employee->id)
+                ->whereIn('status', ['pending', 'approved', 'PENDING', 'APPROVED'])
         );
 
+        // 2. NEW: Get approved dates ONLY for other employees in the SAME division
+        $divisionApprovedDates = $this->leaveService->getBookedDates(
+            LeaveRequest::whereIn('status', ['approved', 'APPROVED'])
+                ->whereHas('employee', function($q) use ($employee) {
+                    $q->where('division_id', $employee->division_id)
+                    ->where('id', '!=', $employee->id);
+                })
+        );
+
+        // 3. NEW: Get pending dates ONLY for other employees in the SAME division
+        $divisionPendingDates = $this->leaveService->getBookedDates(
+            LeaveRequest::whereIn('status', ['pending', 'PENDING'])
+                ->whereHas('employee', function($q) use ($employee) {
+                    $q->where('division_id', $employee->division_id)
+                    ->where('id', '!=', $employee->id);
+                })
+        );
+        
+        // 4. Get holidays
         $holidayDates = array_column($this->leaveService->getPhilippineHolidays(date('Y')), 'date'); 
-        $disabledDates = array_values(array_unique(array_merge($myBookedDates, $companyApprovedDates, $holidayDates)));
+        
+        // 5. Merge all dates that should be completely disabled on the calendar (Added divisionPendingDates here!)
+        $disabledDates = array_values(array_unique(array_merge($myBookedDates, $divisionApprovedDates, $divisionPendingDates, $holidayDates)));
 
-        return view('leave_requests.create', compact('disabledDates', 'companyApprovedDates', 'companyPendingDates'));
+        // Pass the new variables to the view
+        return view('leave_requests.create', compact('disabledDates', 'divisionApprovedDates', 'divisionPendingDates', 'myBookedDates'));
     }
 
     public function store(StoreLeaveRequest $request)
@@ -85,7 +103,7 @@ class LeaveRequestController extends Controller
             return back()->withInput()->withErrors(['selected_dates' => 'You have already booked a leave request for one or more of these specific dates.']);
         }
 
-        if ($this->leaveService->checkCompanyOverlap($employee, $rawDates)) {
+        if ($this->leaveService->checkDivisionOverlap($employee, $rawDates)) {
             return back()->withInput()->withErrors(['selected_dates' => 'One or more selected dates are already taken by another employee whose leave is approved.']);
         }
 
@@ -229,7 +247,7 @@ class LeaveRequestController extends Controller
         }
 
         // Start the query isolated to ONLY this employee
-        $query = \App\Models\LeaveRequest::where('employee_id', $employee->id);
+        $query = LeaveRequest::where('employee_id', $employee->id);
 
         // 1. Keyword Search (matches Type or Details)
         if ($request->filled('search')) {
@@ -269,15 +287,7 @@ class LeaveRequestController extends Controller
         }
 
         // 4. Handle Sorting Dynamically
-        $sortBy = $request->input('sort_by', 'date_of_filing');
-        $sortOrder = $request->input('sort_order', 'desc');
-        
-        $allowedSorts = ['date_of_filing', 'working_days_applied', 'start_date'];
-        if (in_array($sortBy, $allowedSorts)) {
-            $query->orderBy($sortBy, $sortOrder === 'asc' ? 'asc' : 'desc');
-        } else {
-            $query->orderBy('date_of_filing', 'desc');
-        }
+        $query->orderBy('created_at', 'desc');
 
         // Use pagination instead of get() so the page doesn't crash if they have 500 records
         $leaveRequests = $query->paginate(15)->withQueryString();

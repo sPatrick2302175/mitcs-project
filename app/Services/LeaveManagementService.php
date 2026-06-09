@@ -26,14 +26,13 @@ class LeaveManagementService
 
     public function getBookedDates($queryBuilder): array
     {
-        $dates = [];
-        foreach ($queryBuilder->get() as $leave) {
-            $period = \Carbon\CarbonPeriod::create($leave->start_date, $leave->end_date);
-            foreach ($period as $date) { 
-                $dates[] = $date->format('Y-m-d'); 
-            }
-        }
-        return $dates;
+        // 1. Get the IDs of the leave requests matching the query (e.g., all pending requests)
+        $leaveRequestIds = $queryBuilder->pluck('id');
+
+        // 2. Fetch only the exact, distinct dates associated with those specific requests
+        return LeaveRequestDetail::whereIn('leave_request_id', $leaveRequestIds)
+            ->pluck('leave_date')
+            ->toArray();
     }
 
     public function checkPersonalOverlap(Employee $employee, array $rawDates): bool
@@ -45,12 +44,17 @@ class LeaveManagementService
             })->exists();
     }
 
-    public function checkCompanyOverlap(Employee $employee, array $rawDates): bool
+    public function checkDivisionOverlap(Employee $employee, array $rawDates): bool//companyoverlap
     {
         return LeaveRequestDetail::whereIn('leave_date', $rawDates)
             ->whereHas('leaveRequest', function ($query) use ($employee) {
-                $query->where('employee_id', '!=', $employee->id)
-                      ->whereIn('status', ['approved', 'APPROVED']);
+                // Only look at pending or approved leaves
+                $query->whereIn('status', ['pending', 'approved', 'PENDING', 'APPROVED'])
+                    ->whereHas('employee', function ($empQuery) use ($employee) {
+                        // THIS IS THE MAGIC: Match the division, but exclude the current employee
+                        $empQuery->where('division_id', $employee->division_id)
+                                ->where('id', '!=', $employee->id);
+                    });
             })->exists();
     }
 

@@ -50,7 +50,10 @@
                 @php
                     // Check if this specific department has at least one Dept Admin
                     $hasAdmin = $employees->contains(function ($emp) {
-                        return $emp->user && $emp->user->is_admin == App\Models\User::ROLE_DEPT_ADMIN;
+                        return $emp->user && in_array($emp->user->is_admin, [
+                            App\Models\User::ROLE_DEPT_HEAD, 
+                            App\Models\User::ROLE_ADMIN_OFFICER
+                        ]);
                     });
                 @endphp
 

@@ -5,6 +5,7 @@ use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DivisionController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\LeaveRequestController; 
+use App\Http\Controllers\UserController; // Ensure this is imported
 use App\Http\Middleware\IsAdmin;
 use App\Http\Middleware\IsSuperAdmin;
 use App\Models\User;
@@ -16,9 +17,7 @@ Route::get('/', function () {
     return view('auth.login');
 });
 
-//  PASTE THIS IN ITS PLACE:
 Route::get('/dashboard', [LeaveRequestController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
-
 Route::redirect('/leave-requests', '/dashboard')->name('leave-requests.index');
 
 // Breeze Profile & Employee Leave Routes
@@ -30,26 +29,25 @@ Route::middleware('auth')->group(function () {
     // ==========================================
     // EMPLOYEE LEAVE ROUTES
     // ==========================================
-    // Allows any authenticated user to view their balance, apply, and get PDFs
     Route::get('/my-leave-history', [LeaveRequestController::class, 'myHistory'])->name('leave-requests.history');
     Route::get('/leave-requests/create', [LeaveRequestController::class, 'create'])->name('leave-requests.create');
     Route::post('/leave-requests', [LeaveRequestController::class, 'store'])->name('leave-requests.store');
     Route::get('/leave-requests/{id}/pdf', [LeaveRequestController::class, 'generatePdf'])->name('leave-requests.pdf');
-    
-    // --> NEW ROUTE: Employee read-only view for a specific leave application
     Route::get('/leave-requests/{id}', [LeaveRequestController::class, 'show'])->name('leave-requests.show');
 });
 
 // --- SHARED ADMIN ROUTES ---
-// Both Department Admins (1) and Super Admins (2) can access these
+// Admin Officers (1), Super Admins (2), and Department Heads (3) can access these
 Route::middleware(['auth', IsAdmin::class])->group(function () {
     Route::resource('divisions', DivisionController::class);
     Route::resource('employees', EmployeeController::class);
 
+    // 🔐 SECURED: Moved inside the Admin group so standard employees are blocked entirely
+    Route::put('/employees/{employee}/change-role', [EmployeeController::class, 'changeRole'])->name('employees.changeRole');
+
     // ==========================================
     // ADMIN / MANAGEMENT LEAVE ROUTES
     // ==========================================
-    // Placed here so both Department Admins and Super Admins can review requests
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/leave-requests', [LeaveRequestController::class, 'adminIndex'])->name('leave-requests.index');
         Route::get('/leave-requests/{id}/review', [LeaveRequestController::class, 'review'])->name('leave-requests.review');
@@ -58,7 +56,7 @@ Route::middleware(['auth', IsAdmin::class])->group(function () {
 });
 
 // --- SUPER ADMIN ONLY ROUTES ---
-// Only Super Admins (2) can access these. Department Admins get a 403 error.
+// Only Super Admins (2) can access these. Others get a 403 error.
 Route::middleware(['auth', IsSuperAdmin::class])->group(function () {
     Route::resource('departments', DepartmentController::class);
     
@@ -66,7 +64,5 @@ Route::middleware(['auth', IsSuperAdmin::class])->group(function () {
     Route::resource('users', UserController::class)->only(['index', 'edit', 'update']);
 });
 
-// Breeze Authentication Routes (Handles login, register, logout, etc.)
+// Breeze Authentication Routes
 require __DIR__.'/auth.php';
-
-Route::put('/employees/{employee}/change-role', [EmployeeController::class, 'changeRole'])->name('employees.changeRole');

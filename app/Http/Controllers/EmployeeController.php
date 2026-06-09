@@ -20,7 +20,7 @@ class EmployeeController extends Controller
                 ->where('employee_id_number', '!=', '0000000')
                 ->get();
         } else {
-            // Department Admin gets only their department
+            // Both Admin Officers (1) and Dept Heads (3) fall here and safely get only their department's team
             $departmentId = $loggedInAdmin->employee ? $loggedInAdmin->employee->department_id : null;
 
             $employeesQuery = Employee::with(['department', 'division', 'user'])
@@ -39,7 +39,6 @@ class EmployeeController extends Controller
 
     public function create()
     {
-        // Fetch departments and divisions. Excludes super admin
         $departments = Department::where('code', '!=', 'SYSTEM-ADMIN')->get();
         $divisions = Division::all();
         
@@ -51,14 +50,13 @@ class EmployeeController extends Controller
         $validatedData = $request->validate([
             'division_id' => 'required|exists:divisions,id',
             'department_id' => 'required|exists:departments,id',
-            'employee_id_number' => 'required|string|unique:employees,employee_id_number,max:10',
+            'employee_id_number' => 'required|string|unique:employees,employee_id_number|max:10',
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'middle_initial' => 'nullable|string|max:1',
             'position' => 'required|string|max:255',
             'position_code' => 'required|string|max:20',
             
-            // Allow admins to input initial leave balances
             'vacation_leave_balance' => 'required|numeric|min:0',
             'sick_leave_balance' => 'required|numeric|min:0',
             'mandatory_leave_balance' => 'required|numeric|min:0',
@@ -67,15 +65,12 @@ class EmployeeController extends Controller
         ]);
 
         Employee::create($validatedData);
-
         return redirect()->route('employees.index')->with('success', 'Employee created successfully!');
     }
 
     public function show(string $id)
     {
-        // Load the relations so we can display department and division names
         $employee = Employee::with(['department', 'division', 'user'])->findOrFail($id);
-
         return view('employees.show', compact('employee'));
     }
 
@@ -101,7 +96,6 @@ class EmployeeController extends Controller
             'position' => 'required|string|max:255',
             'position_code' => 'required|string|max:20',
 
-            // Allow admins to edit existing leave balances
             'vacation_leave_balance' => 'required|numeric|min:0',
             'sick_leave_balance' => 'required|numeric|min:0',
             'mandatory_leave_balance' => 'required|numeric|min:0',
@@ -110,7 +104,6 @@ class EmployeeController extends Controller
         ]);
 
         $employee->update($validatedData);
-
         return redirect()->route('employees.index')->with('success', 'Employee updated successfully!');
     }
 
@@ -122,43 +115,70 @@ class EmployeeController extends Controller
         return redirect()->route('employees.index')->with('success', 'Employee deleted successfully!');
     }
 
+    // 🔐 REWRITTEN: Role adjustment security engine
     public function changeRole(Request $request, string $id)
     {
-        // Security check
-        if (auth()->user()->is_admin !== User::ROLE_SUPER_ADMIN) {
+        $currentUser = auth()->user();
+
+        // 1. Authorization Check: Only Super Admins and Department Heads can change roles
+        if (!in_array($currentUser->is_admin, [User::ROLE_SUPER_ADMIN, User::ROLE_DEPT_HEAD])) {
             abort(403, 'Unauthorized action.');
         }
 
-        // Validate incoming role
-        $request->validate([
-            'role' => 'required|integer|in:0,1,2',
-        ]);
-
-        // Find the employee and their user
         $employee = Employee::with('user')->findOrFail($id);
 
         if (!$employee->user) {
             return redirect()->back()->withErrors(['error' => 'Cannot change role: This employee does not have a registered user account yet.']);
         }
 
-        // RESTRICTION LOGIC 
-        if ($request->role == User::ROLE_DEPT_ADMIN) {
-            // Check if this department already has an admin assigned
+        // 2. Department Boundary Check: Department Heads can ONLY touch their own department's employees
+        if ($currentUser->is_admin === User::ROLE_DEPT_HEAD) {
+            $myDepartmentId = $currentUser->employee ? $currentUser->employee->department_id : null;
+            if ($employee->department_id !== $myDepartmentId) {
+                abort(403, 'Unauthorized action. You can only alter roles for members within your own department.');
+            }
+        }
+
+        // 3. Dynamic Validation: 
+        // Super Admins can assign any role (0,1,2,3)
+        // Department Heads can only toggle between Employee (0) and Admin Officer (1)
+        $allowedRoles = $currentUser->is_admin === User::ROLE_SUPER_ADMIN ? '0,1,2,3' : '0,1';
+
+        $request->validate([
+            'role' => 'required|integer|in:' . $allowedRoles,
+        ]);
+
+        // 4. Cap Limit: Check if this department already has an Admin Officer assigned
+        if ($request->role == User::ROLE_ADMIN_OFFICER) {
             $existingAdmin = Employee::where('department_id', $employee->department_id)
-                ->where('id', '!=', $employee->id) // Ignore the person we are currently updating
+                ->where('id', '!=', $employee->id) 
                 ->whereHas('user', function ($query) {
-                    $query->where('is_admin', User::ROLE_DEPT_ADMIN);
+                    $query->where('is_admin', User::ROLE_ADMIN_OFFICER);
                 })
                 ->first();
 
-            // If an admin is found, reject the change and send back an error message
             if ($existingAdmin) {
-                $errorMsg = 'Cannot assign role: ' . $existingAdmin->first_name . ' ' . $existingAdmin->last_name . ' is already the admin for this department. Please demote them to an Employee first.';
+                $errorMsg = 'Cannot assign role: ' . $existingAdmin->first_name . ' ' . $existingAdmin->last_name . ' is already the Admin Officer for this department. Please demote them to an Employee first.';
                 return redirect()->back()->withErrors(['error' => $errorMsg]);
             }
         }
 
-        // If pass the check update the role
+        // 5. Cap Limit: Check if this department already has a Department Head assigned (For Super Admin changes)
+        if ($request->role == User::ROLE_DEPT_HEAD) {
+            $existingHead = Employee::where('department_id', $employee->department_id)
+                ->where('id', '!=', $employee->id)
+                ->whereHas('user', function ($query) {
+                    $query->where('is_admin', User::ROLE_DEPT_HEAD);
+                })
+                ->first();
+
+            if ($existingHead) {
+                $errorMsg = 'Cannot assign role: ' . $existingHead->first_name . ' ' . $existingHead->last_name . ' is already the Department Head for this department.';
+                return redirect()->back()->withErrors(['error' => $errorMsg]);
+            }
+        }
+
+        // Commit role update
         $employee->user->update([
             'is_admin' => $request->role
         ]);

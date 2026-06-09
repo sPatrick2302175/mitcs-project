@@ -154,6 +154,8 @@
                                 <form action="{{ route('admin.leave-requests.action', $leaveRequest->id) }}" method="POST" class="space-y-6">
                                     @csrf
                                     
+                                    <input type="hidden" name="origin" value="{{ request()->routeIs('admin.*') ? 'masterlist' : 'dashboard' }}">
+                                    
                                     <div>
                                         <label class="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-3">Final Action Decision</label>
                                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -7,7 +7,6 @@
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     
-    <!-- Custom Flatpickr & Premium Form Theme Overrides -->
     <style>
         .flatpickr-calendar {
             font-family: inherit;
@@ -16,27 +15,47 @@
             border: 1px solid #f3f4f6 !important;
             padding: 0.25rem;
         }
+        
         .flatpickr-day.selected {
             background: #4f46e5 !important;
             border-color: #4f46e5 !important;
             border-radius: 0.5rem !important;
         }
-        /* Approved Company Leaves (Elegant Soft Rose) */
-        .flatpickr-day.booked-by-other {
-            background-color: #fff1f2 !important; 
-            color: #e11d48 !important;            
-            border-color: #ffe4e6 !important;      
-            font-weight: 700 !important;
+
+        /* Styling for Approved Leaves (Red/Taken) - OVERRIDE DISABLED STATE */
+        .flatpickr-day.flatpickr-disabled.booked-by-other, 
+        .flatpickr-day.flatpickr-disabled.booked-by-other:hover {
+            background-color: #ffbcbc !important; 
+            border-color: #ef4444 !important;
+            color: #1d1d1d !important;
             border-radius: 0.5rem !important;
+            font-weight: 700 !important;
+            opacity: 0.65 !important;
+            cursor: not-allowed;
         }
-        
-        /* Pending Company Leaves (Elegant Soft Amber) */
-        .flatpickr-day.pending-by-other {
-            background-color: #fef3c7 !important; 
-            color: #d97706 !important;            
-            border-color: #fde68a !important;      
-            font-weight: 700 !important;
+
+        /* Styling for Pending Leaves (Orange/Warning) - OVERRIDE DISABLED STATE */
+        .flatpickr-day.flatpickr-disabled.pending-by-other, 
+        .flatpickr-day.flatpickr-disabled.pending-by-other:hover {
+            background-color: #ffecca !important; 
+            border-color: #f59e0b !important;
+            color: #1d1d1d !important;
             border-radius: 0.5rem !important;
+            font-weight: 700 !important;
+            opacity: 0.65 !important;
+            cursor: not-allowed;
+        }
+
+        /* Styling for MY Own Booked Leaves (Blue) - OVERRIDE DISABLED STATE */
+        .flatpickr-day.flatpickr-disabled.my-booked-date, 
+        .flatpickr-day.flatpickr-disabled.my-booked-date:hover {
+            background-color: #c3d9fc !important; /* Tailwind Blue-500 */
+            border-color: #3b82f6 !important;
+            color: #1d1d1d !important;
+            border-radius: 0.5rem !important;
+            font-weight: 700 !important;
+            opacity: 0.8 !important;
+            cursor: not-allowed;
         }
     </style>
 
@@ -218,7 +237,8 @@
                             </div>
                         </div>
                     </div>
-
+                    
+                
                     <!-- Form Navigation -->
                     <div class="flex items-center justify-end border-t border-gray-100 pt-6 mt-6 space-x-4">
                         <a href="{{ route('leave-requests.index') }}" class="text-xs font-extrabold uppercase tracking-wider text-gray-400 hover:text-gray-600 transition-colors">Cancel</a>
@@ -326,11 +346,14 @@
             handleLeaveTypeChange();
 
             /* -------------------------------------------------------------
-               Flatpickr Logic
+            Flatpickr Logic
             ------------------------------------------------------------- */
-            const disabledDates = @json($disabledDates ?? []);
-            const companyApprovedDates = @json($companyApprovedDates ?? []);
-            const companyPendingDates = @json($companyPendingDates ?? []);
+            const disabledDates = @json($disabledDates ?? []).map(d => d.substring(0, 10));
+            const divisionApprovedDates = @json($divisionApprovedDates ?? []).map(d => d.substring(0, 10));
+            const divisionPendingDates = @json($divisionPendingDates ?? []).map(d => d.substring(0, 10));
+
+            // 1. ADD THIS LINE: Grab your own booked dates
+            const myBookedDates = @json($myBookedDates ?? []).map(d => d.substring(0, 10));
 
             const commonConfig = {
                 dateFormat: "Y-m-d",
@@ -339,12 +362,18 @@
                 onDayCreate: function(dObj, dStr, fp, dayElem) {
                     const dateStr = fp.formatDate(dayElem.dateObj, "Y-m-d");
                     
-                    if (companyApprovedDates.includes(dateStr)) {
-                        dayElem.classList.add("booked-by-other");
-                        dayElem.title = "Date taken by another approved employee";
+                    // 2. ADD THIS CHECK: If the date is yours, color it blue!
+                    if (myBookedDates.includes(dateStr)) {
+                        dayElem.classList.add("my-booked-date");
+                        dayElem.title = "You have already requested this date.";
                     }
-                    else if (companyPendingDates.includes(dateStr)) {
+                    else if (divisionApprovedDates.includes(dateStr)) {
+                        dayElem.classList.add("booked-by-other");
+                        dayElem.title = "This date is taken by an approved leave in your division.";
+                    }
+                    else if (divisionPendingDates.includes(dateStr)) {
                         dayElem.classList.add("pending-by-other");
+                        dayElem.title = "A coworker in your division has a pending leave request for this date.";
                     }
                 }
             };
