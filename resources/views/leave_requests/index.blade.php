@@ -21,8 +21,6 @@
 
     <div class="py-12 bg-gray-50/50 min-h-screen">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-8">
-            
-            
 
             @if(session('success'))
                 <div class="bg-emerald-50/70 backdrop-blur-sm border border-emerald-100 rounded-2xl p-5 shadow-sm transition-all duration-300 animate-fadeIn flex items-start">
@@ -137,16 +135,18 @@
                                                 </span>
                                             @endif
                                         </td>
-                                        <td class="py-4 px-6 text-center whitespace-nowrap">
-                                            @if($request->status !== 'pending')
-                                                <a href="{{ route('leave-requests.pdf', $request->id) }}" class="inline-flex items-center justify-center px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-800 font-bold text-[10px] uppercase tracking-wider rounded-lg border border-indigo-100/60 transition-colors">
+                                        
+                                        <td class="py-4 px-6 text-center whitespace-nowrap space-x-1.5">
+                                            <a href="{{ route('leave-requests.show', $request->id) }}" class="inline-flex items-center justify-center px-3 py-1.5 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-800 font-bold text-[10px] uppercase tracking-wider rounded-lg border border-gray-200/60 shadow-sm transition-all duration-200 active:scale-[0.98]">
+                                                
+                                                View Record
+                                            </a>
+
+                                            @if($request->status === 'approved')
+                                                <a href="{{ route('leave-requests.pdf', $request->id) }}" class="inline-flex items-center justify-center px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-800 font-bold text-[10px] uppercase tracking-wider rounded-lg border border-indigo-100/60 transition-colors shadow-sm">
                                                     <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                                                     View PDF
                                                 </a>
-                                            @else
-                                                <span class="text-gray-400 text-[10px] font-bold uppercase tracking-wider bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100/80">
-                                                    Locked
-                                                </span>
                                             @endif
                                         </td>
                                     </tr>
@@ -163,7 +163,8 @@
                                     </tr>
                                 @endforelse
                             </tbody>
-                        </table> </div>
+                        </table> 
+                    </div>
                 </div>
             @else
                 <div class="bg-amber-50 border border-amber-200 rounded-2xl p-6 shadow-sm flex items-start space-x-4">

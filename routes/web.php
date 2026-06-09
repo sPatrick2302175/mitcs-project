@@ -4,7 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DivisionController;
 use App\Http\Controllers\EmployeeController;
-use App\Http\Controllers\LeaveRequestController; // <-- Added Leave Request Controller
+use App\Http\Controllers\LeaveRequestController; 
 use App\Http\Middleware\IsAdmin;
 use App\Http\Middleware\IsSuperAdmin;
 use App\Models\User;
@@ -20,6 +20,7 @@ Route::get('/', function () {
 Route::get('/dashboard', [LeaveRequestController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::redirect('/leave-requests', '/dashboard')->name('leave-requests.index');
+
 // Breeze Profile & Employee Leave Routes
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -34,6 +35,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/leave-requests/create', [LeaveRequestController::class, 'create'])->name('leave-requests.create');
     Route::post('/leave-requests', [LeaveRequestController::class, 'store'])->name('leave-requests.store');
     Route::get('/leave-requests/{id}/pdf', [LeaveRequestController::class, 'generatePdf'])->name('leave-requests.pdf');
+    
+    // --> NEW ROUTE: Employee read-only view for a specific leave application
+    Route::get('/leave-requests/{id}', [LeaveRequestController::class, 'show'])->name('leave-requests.show');
 });
 
 // --- SHARED ADMIN ROUTES ---
@@ -66,5 +70,3 @@ Route::middleware(['auth', IsSuperAdmin::class])->group(function () {
 require __DIR__.'/auth.php';
 
 Route::put('/employees/{employee}/change-role', [EmployeeController::class, 'changeRole'])->name('employees.changeRole');
-
-

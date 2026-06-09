@@ -161,6 +161,22 @@ class LeaveRequestController extends Controller
             'leaveRequests' => $query->get()
         ]);
     }
+
+    public function show($id)
+    {
+        $leaveRequest = LeaveRequest::with('employee.department')->findOrFail($id);
+        $user = Auth::user();
+
+        // Security Check: Make sure standard employees only see their own!
+        if (!$user->is_admin && $user->employee && $leaveRequest->employee_id !== $user->employee->id) {
+            abort(403, 'Unauthorized action. You can only view your own leave requests.');
+        }
+
+        // Reuses your existing review blade
+        return view('leave_requests.review', compact('leaveRequest'));
+    }
+
+
     public function review($id)
     {
         return view('leave_requests.review', ['leaveRequest' => LeaveRequest::with('employee')->findOrFail($id)]);

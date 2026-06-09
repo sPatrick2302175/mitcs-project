@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-white leading-tight">
-            {{ request()->routeIs('admin.*') ? __('Admin: Review Leave Application') : __('My Leave Application Details') }}
+            {{ __('My Leave Application Details') }}
         </h2>
     </x-slot>
 
@@ -9,36 +9,11 @@
         <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
             
             <div class="mb-6">
-                @if(request()->routeIs('admin.*'))
-                    <a href="{{ route('admin.leave-requests.index') }}" class="inline-flex items-center text-sm font-bold text-gray-500 hover:text-gray-900 transition-colors group">
-                        <svg class="w-4 h-4 mr-2 transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-                        Back to Management Masterlist
-                    </a>
-                @else
-                    <a href="{{ route('leave-requests.index') }}" class="inline-flex items-center text-sm font-bold text-gray-500 hover:text-gray-900 transition-colors group">
-                        <svg class="w-4 h-4 mr-2 transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-                        Back to Leave Dashboard
-                    </a>
-                @endif
+                <a href="{{ route('employee.leave-requests.index') }}" class="inline-flex items-center text-sm font-bold text-gray-500 hover:text-gray-900 transition-colors group">
+                    <svg class="w-4 h-4 mr-2 transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                    Back to My Leave Applications
+                </a>
             </div>
-
-            @if($errors->any())
-                <div class="mb-8 bg-rose-50/70 backdrop-blur-sm border border-rose-100 rounded-2xl p-6 shadow-sm transition-all duration-300 animate-fadeIn">
-                    <div class="flex items-start">
-                        <div class="shrink-0 bg-rose-100 p-2.5 rounded-xl">
-                            <svg class="h-5 w-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                        </div>
-                        <div class="ms-4">
-                            <h3 class="text-sm font-extrabold text-rose-800 tracking-tight mb-2">Please address the processing errors below:</h3>
-                            <ul class="list-disc pl-5 text-sm font-medium text-rose-700 space-y-1">
-                                @foreach($errors->all() as $error)
-                                    <li>{{ $error }}</li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            @endif
 
             <div class="bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100/60 overflow-hidden transition-all duration-300">
                 
@@ -62,12 +37,12 @@
                         @elseif($leaveRequest->status === 'approved')
                             <span class="inline-flex items-center px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100/60 shadow-sm">
                                 <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                Approved Record
+                                Approved
                             </span>
                         @else
                             <span class="inline-flex items-center px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-xl bg-rose-50 text-rose-600 border border-rose-100/60 shadow-sm">
                                 <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                                Disapproved Record
+                                Disapproved
                             </span>
                         @endif
                     </div>
@@ -121,7 +96,7 @@
                         </div>
 
                         <div class="space-y-4">
-                            <h4 class="text-xs font-bold uppercase tracking-wider text-gray-400">Current Employee Leave Balances</h4>
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-gray-400">Your Leave Balances</h4>
                             
                             <div class="grid grid-cols-2 gap-4">
                                 <div class="p-5 bg-white border border-gray-100/60 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300">
@@ -147,102 +122,28 @@
                     <div class="pt-8 border-t border-gray-100/80">
                         
                         @if($leaveRequest->status === 'pending')
-                            
-                            @if(auth()->user()->is_admin)
-                                <h3 class="text-xl font-extrabold text-gray-800 tracking-tight mb-6">Section 7: Details of Action on Application</h3>
-                                
-                                <form action="{{ route('admin.leave-requests.action', $leaveRequest->id) }}" method="POST" class="space-y-6">
-                                    @csrf
-                                    
-                                    <div>
-                                        <label class="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-3">Final Action Decision</label>
-                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <label class="relative border-2 border-gray-100/80 rounded-2xl p-5 flex items-start space-x-4 cursor-pointer hover:bg-gray-50/50 transition-all duration-200 group has-[:checked]:border-gray-800 has-[:checked]:bg-gray-50/30">
-                                                <div class="flex items-center h-5 mt-0.5">
-                                                    <input type="radio" name="status" value="approved" id="action-approve" checked class="w-4 h-4 text-gray-800 border-gray-300 focus:ring-gray-800">
-                                                </div>
-                                                <div>
-                                                    <span class="block font-extrabold text-gray-800 text-sm mb-1 group-has-[:checked]:text-gray-900">Approve Application</span>
-                                                    <span class="block text-xs text-gray-500 font-medium">Deducts days from selected category matching input criteria.</span>
-                                                </div>
-                                            </label>
-                                            
-                                            <label class="relative border-2 border-gray-100/80 rounded-2xl p-5 flex items-start space-x-4 cursor-pointer hover:bg-rose-50/30 transition-all duration-200 group has-[:checked]:border-rose-500 has-[:checked]:bg-rose-50/50">
-                                                <div class="flex items-center h-5 mt-0.5">
-                                                    <input type="radio" name="status" value="disapproved" id="action-disapprove" class="w-4 h-4 text-rose-600 border-gray-300 focus:ring-rose-500">
-                                                </div>
-                                                <div>
-                                                    <span class="block font-extrabold text-gray-800 text-sm mb-1 group-has-[:checked]:text-rose-700">Disapprove Application</span>
-                                                    <span class="block text-xs text-gray-500 font-medium">Rejects application and leaves current balances untouched.</span>
-                                                </div>
-                                            </label>
-                                        </div>
-                                    </div>
-
-                                    <div id="approval-inputs-panel" class="bg-gray-50/50 p-6 md:p-8 rounded-2xl border border-gray-100/60 space-y-6 transition-all duration-300">
-                                        <h5 class="text-[10px] font-bold uppercase tracking-wider text-gray-500">Approval Parameters Allocation</h5>
-                                        
-                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <div>
-                                                <label class="text-xs font-bold text-gray-700 block mb-2" for="days_with_pay">Days With Pay</label>
-                                                <input type="number" step="0.5" min="0" name="days_with_pay" id="days_with_pay" 
-                                                       value="{{ old('days_with_pay', $leaveRequest->working_days_applied) }}"
-                                                       class="w-full rounded-xl border-gray-200/80 text-sm font-semibold focus:border-gray-800 focus:ring-gray-800 shadow-sm transition-colors">
-                                            </div>
-                                            <div>
-                                                <label class="text-xs font-bold text-gray-700 block mb-2" for="days_without_pay">Days Without Pay</label>
-                                                <input type="number" step="0.5" min="0" name="days_without_pay" id="days_without_pay" 
-                                                       value="{{ old('days_without_pay', 0) }}"
-                                                       class="w-full rounded-xl border-gray-200/80 text-sm font-semibold focus:border-gray-800 focus:ring-gray-800 shadow-sm transition-colors">
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <label class="text-xs font-bold text-gray-700 block mb-2" for="recommendation_reason">Recommendation / Approval Remarks (Optional)</label>
-                                            <textarea name="recommendation_reason" id="recommendation_reason" rows="2" 
-                                                      placeholder="Provide explicit notes concerning approval details..."
-                                                      class="w-full rounded-xl border-gray-200/80 text-sm font-medium focus:border-gray-800 focus:ring-gray-800 shadow-sm transition-colors">{{ old('recommendation_reason') }}</textarea>
-                                        </div>
-                                    </div>
-
-                                    <div id="disapproval-inputs-panel" class="bg-rose-50/50 p-6 md:p-8 rounded-2xl border border-rose-100/60 space-y-4 hidden transition-all duration-300">
-                                        <h5 class="text-[10px] font-bold uppercase tracking-wider text-rose-600">Disapproval Justification Required</h5>
-                                        <div>
-                                            <label class="text-xs font-bold text-gray-800 block mb-2" for="disapproval_reason">Reason for Disapproval</label>
-                                            <textarea name="disapproval_reason" id="disapproval_reason" rows="3" 
-                                                      placeholder="Specify clear legal/operational grounds for rejection as mandated by Civil Service guidelines..."
-                                                      class="w-full rounded-xl border-rose-200/80 text-sm font-medium focus:border-rose-500 focus:ring-rose-500 shadow-sm transition-colors">{{ old('disapproval_reason') }}</textarea>
-                                        </div>
-                                    </div>
-
-                                    <div class="pt-6 border-t border-gray-100 flex justify-end">
-                                        <button type="submit" class="inline-flex items-center px-6 py-3 bg-[#F2A455] hover:bg-[#df9344] text-white text-xs font-extrabold uppercase tracking-wider rounded-xl shadow-md shadow-orange-500/20 transition-all duration-200 active:scale-[0.98]">
-                                            Commit Transaction Data
-                                        </button>
-                                    </div>
-                                </form>
-                            @else
-                                <div class="bg-amber-50/40 p-8 rounded-2xl border border-amber-100/60 text-center space-y-3">
-                                    <div class="inline-flex p-3 bg-amber-100 text-amber-600 rounded-2xl shadow-inner mb-1">
-                                        <svg class="w-6 h-6 animate-spin-slow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="bg-amber-50/50 border border-amber-100 rounded-2xl p-6 md:p-8 flex flex-col sm:flex-row justify-between items-center gap-6">
+                                <div class="flex items-start">
+                                    <div class="shrink-0 bg-amber-100 p-2.5 rounded-xl text-amber-600">
+                                        <svg class="h-6 w-6 animate-spin-slow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                         </svg>
                                     </div>
-                                    <h3 class="text-lg font-extrabold text-gray-800 tracking-tight">Application Processing Awaiting Review</h3>
-                                    <p class="text-sm font-medium text-gray-500 max-w-md mx-auto">This request has been locked against updates and is currently awaiting formalized evaluation by your Department Supervisor or HR approving officials.</p>
-                                    <div class="pt-4 flex justify-center">
-                                        <a href="{{ route('leave-requests.index') }}" class="inline-flex items-center px-6 py-2.5 bg-white border border-gray-200/80 hover:bg-gray-50 text-gray-700 font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all duration-200 shadow-sm active:scale-[0.98]">
-                                            Return to Dashboard
-                                        </a>
+                                    <div class="ms-4">
+                                        <h4 class="text-sm font-extrabold text-amber-900 tracking-tight">Section 7: Status Update</h4>
+                                        <p class="text-sm font-medium text-amber-700 mt-1">This application is currently waiting for validation and processing actions from Human Resources / Administration.</p>
                                     </div>
                                 </div>
-                            @endif
+                                <a href="{{ route('employee.leave-requests.index') }}" class="w-full sm:w-auto text-center inline-flex justify-center items-center px-6 py-2.5 bg-white border border-gray-200/80 hover:bg-gray-50 text-gray-700 font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all duration-200 shadow-sm active:scale-[0.98]">
+                                    Return to My Requests
+                                </a>
+                            </div>
 
                         @else
                             <div class="bg-gray-50/50 p-6 md:p-8 rounded-2xl border border-gray-100/60 space-y-6">
                                 <h3 class="text-lg font-extrabold text-gray-800 tracking-tight flex items-center">
                                     <svg class="w-5 h-5 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                    Historical Transaction Audit Trail Log
+                                    Section 7: Details of Action on Application (Processed Log)
                                 </h3>
                                 
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -271,7 +172,7 @@
                                                     <p class="text-sm font-medium text-gray-600 italic">"{{ $leaveRequest->recommendation_reason ?? 'No internal annotations recorded.' }}"</p>
                                                 </div>
                                             </div>
-                                        @else
+                                        </@else
                                             <div>
                                                 <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-2">Official Rejection Log Reasons</span>
                                                 <div class="bg-rose-50 p-4 rounded-xl border border-rose-100 shadow-sm">
@@ -289,16 +190,9 @@
                                         <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
                                         Form tracking item immutable. System logs locked.
                                     </div>
-                                    
-                                    @if(request()->routeIs('admin.*'))
-                                        <a href="{{ route('admin.leave-requests.index') }}" class="inline-flex items-center px-6 py-2.5 bg-white border border-gray-200/80 hover:bg-gray-50 text-gray-700 font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all duration-200 shadow-sm active:scale-[0.98]">
-                                            Return to Masterlist
-                                        </a>
-                                    @else
-                                        <a href="{{ route('leave-requests.index') }}" class="inline-flex items-center px-6 py-2.5 bg-white border border-gray-200/80 hover:bg-gray-50 text-gray-700 font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all duration-200 shadow-sm active:scale-[0.98]">
-                                            Return to Dashboard
-                                        </a>
-                                    @endif
+                                    <a href="{{ route('employee.leave-requests.index') }}" class="inline-flex items-center px-6 py-2.5 bg-white border border-gray-200/80 hover:bg-gray-50 text-gray-700 font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all duration-200 shadow-sm active:scale-[0.98]">
+                                        Return to My Requests
+                                    </a>
                                 </div>
                             </div>
                         @endif
@@ -308,30 +202,4 @@
             </div>
         </div>
     </div>
-
-    @if($leaveRequest->status === 'pending' && auth()->user()->is_admin)
-        <script>
-            document.addEventListener('DOMContentLoaded', function () {
-                const radioApprove = document.getElementById('action-approve');
-                const radioDisapprove = document.getElementById('action-disapprove');
-                const approvalPanel = document.getElementById('approval-inputs-panel');
-                const disapprovalPanel = document.getElementById('disapproval-inputs-panel');
-
-                if (radioApprove && radioDisapprove) {
-                    function togglePanels() {
-                        if (radioApprove.checked) {
-                            approvalPanel.classList.remove('hidden');
-                            disapprovalPanel.classList.add('hidden');
-                        } else if (radioDisapprove.checked) {
-                            approvalPanel.classList.add('hidden');
-                            disapprovalPanel.classList.remove('hidden');
-                        }
-                    }
-
-                    radioApprove.addEventListener('change', togglePanels);
-                    radioDisapprove.addEventListener('change', togglePanels);
-                }
-            });
-        </script>
-    @endif
 </x-app-layout>

@@ -21,7 +21,7 @@
                 </div>
             @endif
 
-            <!-- 🛠️ NEW: Dynamic Search & Filter Controls Panel -->
+            <!--  NEW: Dynamic Search & Filter Controls Panel -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                 <!-- Using a default dynamic fallback action to current window URL route -->
                 <form id="admin-filter-form" method="GET" action="{{ url()->current() }}" onsubmit="event.preventDefault();" class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -46,7 +46,7 @@
                     <div>
                         <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">Review Status State</label>
                         <select id="admin-status-select" name="status" class="w-full bg-gray-50 border border-gray-200 text-sm rounded-xl px-4 py-2 focus:bg-white focus:border-indigo-400 focus:ring-0 transition-colors">
-                            <option value="">All Statuses</option>
+                            <option value="">All Status</option>
                             <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending (Needs Review)</option>
                             <option value="approved" {{ request('status') == 'approved' ? 'selected' : '' }}>Approved</option>
                             <option value="disapproved" {{ request('status') == 'disapproved' ? 'selected' : '' }}>Disapproved</option>
@@ -115,6 +115,7 @@
                                             </span>
                                         @elseif($request->status === 'approved')
                                             <span class="inline-flex px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100/60 shadow-sm">
+                                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                                 Approved
                                             </span>
                                         @else

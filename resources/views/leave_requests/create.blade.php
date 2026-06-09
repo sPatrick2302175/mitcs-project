@@ -109,13 +109,17 @@
                         </div>
                     </div>
 
-                    <!-- Section 6.B -->
-                    <div class="mb-10">
+                    <!-- Section 6.B Container -->
+                    <div id="section_6b_wrapper" class="transition-all duration-500 ease-in-out overflow-hidden max-h-0 opacity-0 pointer-events-none">
                         <h3 class="text-xs font-black text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-3 mb-6">6.B DETAILS OF LEAVE</h3>
                         
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50/40 backdrop-blur-sm p-6 rounded-2xl border border-gray-100/80 shadow-sm">
-                            <div class="space-y-4">
-                                <div>
+                        <div id="details_layout_container" class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50/40 backdrop-blur-sm p-6 rounded-2xl border border-gray-100/80 shadow-sm mb-10 transition-all duration-500">
+                            
+                            <!-- Left Column (Subcategories) - Padding added to children to prevent clipping -->
+                            <div id="sub_categories_left_col" class="transition-all duration-300 ease-in-out">
+                                
+                                <!-- Vacation / Special Privilege Block -->
+                                <div id="details_vacation" class="transition-all duration-300 ease-in-out max-h-0 opacity-0 overflow-hidden px-1.5 py-0.5">
                                     <p class="text-xs font-extrabold text-gray-400 uppercase tracking-wider mb-2">In case of Vacation/Special Privilege Leave:</p>
                                     <div class="space-y-1">
                                         <label class="flex items-center space-x-3 cursor-pointer group mb-1">
@@ -129,7 +133,8 @@
                                     </div>
                                 </div>
 
-                                <div>
+                                <!-- Sick Leave Block -->
+                                <div id="details_sick" class="transition-all duration-300 ease-in-out max-h-0 opacity-0 overflow-hidden px-1.5 py-0.5">
                                     <p class="text-xs font-extrabold text-gray-400 uppercase tracking-wider mb-2">In case of Sick Leave:</p>
                                     <div class="space-y-1">
                                         <label class="flex items-center space-x-3 cursor-pointer group mb-1">
@@ -143,7 +148,8 @@
                                     </div>
                                 </div>
 
-                                <div>
+                                <!-- Study Leave Block -->
+                                <div id="details_study" class="transition-all duration-300 ease-in-out max-h-0 opacity-0 overflow-hidden px-1.5 py-0.5">
                                     <p class="text-xs font-extrabold text-gray-400 uppercase tracking-wider mb-2">In case of Study Leave:</p>
                                     <div class="space-y-1">
                                         <label class="flex items-center space-x-3 cursor-pointer group mb-1">
@@ -157,7 +163,8 @@
                                     </div>
                                 </div>
 
-                                <div>
+                                <!-- Others Block -->
+                                <div id="details_others" class="transition-all duration-300 ease-in-out max-h-0 opacity-0 overflow-hidden px-1.5 py-0.5">
                                     <p class="text-xs font-extrabold text-gray-400 uppercase tracking-wider mb-2">Other purpose:</p>
                                     <div class="space-y-1">
                                         <label class="flex items-center space-x-3 cursor-pointer group mb-1">
@@ -172,9 +179,10 @@
                                 </div>
                             </div>
 
-                            <div>
-                                <label class="block text-xs font-extrabold text-gray-400 uppercase tracking-wider mb-2">Specify Details (Illness / Location):</label>
-                                <textarea name="leave_detail_specifics" rows="4" class="block w-full rounded-xl border-gray-200 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm font-medium p-3 transition-all placeholder-gray-400" placeholder="Please provide location for Vacation Leave, or specific illness for Sick Leave...">{{ old('leave_detail_specifics') }}</textarea>
+                            <!-- Text Area specifics container -->
+                            <div id="specifics_container" class="transition-all duration-300 ease-in-out max-h-0 opacity-0 overflow-hidden w-full">
+                                <label id="specifics_label" class="block text-xs font-extrabold text-gray-400 uppercase tracking-wider mb-2">Specify Details:</label>
+                                <textarea id="specifics_input" name="leave_detail_specifics" rows="4" class="block w-full rounded-xl border-gray-200 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm font-medium p-3 transition-all placeholder-gray-400" placeholder="">{{ old('leave_detail_specifics') }}</textarea>
                             </div>
                         </div>
                     </div>
@@ -226,44 +234,130 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Retrieve mapped dates from Controller
+            /* -------------------------------------------------------------
+               Dynamic Form 6.B Visibility Logic (Smooth Transition Mode)
+            ------------------------------------------------------------- */
+            const typeRadios = document.querySelectorAll('input[name="leave_type"]');
+            const wrapper6B = document.getElementById('section_6b_wrapper');
+            const detailsLayoutContainer = document.getElementById('details_layout_container');
+            const subCategoriesLeftCol = document.getElementById('sub_categories_left_col');
+            
+            const subBlocks = {
+                'Vacation Leave': document.getElementById('details_vacation'),
+                'Special Privilege Leave': document.getElementById('details_vacation'),
+                'Sick Leave': document.getElementById('details_sick'),
+                'Study Leave': document.getElementById('details_study'),
+                'Others': document.getElementById('details_others')
+            };
+            
+            const specificsContainer = document.getElementById('specifics_container');
+            const specificsLabel = document.getElementById('specifics_label');
+            const specificsInput = document.getElementById('specifics_input');
+
+            function showElement(el, maxPercentHeight = 'max-h-[500px]') {
+                el.classList.remove('max-h-0', 'opacity-0');
+                el.classList.add(maxPercentHeight, 'opacity-100');
+            }
+
+            function hideElement(el, maxPercentHeight = 'max-h-[500px]') {
+                el.classList.remove(maxPercentHeight, 'opacity-100');
+                el.classList.add('max-h-0', 'opacity-0');
+            }
+
+            function handleLeaveTypeChange() {
+                const selectedType = document.querySelector('input[name="leave_type"]:checked')?.value;
+                
+                // Reset layout structure modifications completely
+                subCategoriesLeftCol.classList.remove('hidden');
+                specificsContainer.classList.remove('max-w-xl', 'mx-auto');
+                detailsLayoutContainer.className = "grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50/40 backdrop-blur-sm p-6 rounded-2xl border border-gray-100/80 shadow-sm mb-10 transition-all duration-500";
+
+                // Hide all inside elements cleanly
+                Object.values(subBlocks).forEach(block => hideElement(block));
+                hideElement(specificsContainer);
+
+                const typesWithSubOptions = ['Vacation Leave', 'Special Privilege Leave', 'Sick Leave', 'Study Leave', 'Others', 'Special Leave Benefits for Women'];
+                
+                if (typesWithSubOptions.includes(selectedType)) {
+                    // Activate master wrapper smoothly
+                    wrapper6B.classList.remove('max-h-0', 'opacity-0', 'pointer-events-none');
+                    wrapper6B.classList.add('max-h-[1000px]', 'opacity-100', 'pointer-events-auto');
+
+                    if (['Vacation Leave', 'Special Privilege Leave'].includes(selectedType)) {
+                        showElement(subBlocks[selectedType]);
+                        showElement(specificsContainer);
+                        specificsLabel.textContent = 'Specify Destination (If Abroad):';
+                        specificsInput.placeholder = 'Please provide destination...';
+                    } 
+                    else if (selectedType === 'Sick Leave') {
+                        showElement(subBlocks['Sick Leave']);
+                        showElement(specificsContainer);
+                        specificsLabel.textContent = 'Specify Illness:';
+                        specificsInput.placeholder = 'Please describe specific illness...';
+                    }
+                    else if (selectedType === 'Special Leave Benefits for Women') {
+                        // 1. Hide left sub-options panel completely to clear layout space
+                        subCategoriesLeftCol.classList.add('hidden');
+                        
+                        // 2. Reposition layout context into a clean, unified structure
+                        detailsLayoutContainer.className = "flex flex-col items-center justify-center bg-gray-50/40 backdrop-blur-sm p-6 rounded-2xl border border-gray-100/80 shadow-sm mb-10 transition-all duration-500";
+                        
+                        // 3. Scale text box area smoothly with elegant maximum constraints
+                        specificsContainer.classList.add('max-w-xl', 'mx-auto');
+                        showElement(specificsContainer);
+                        
+                        specificsLabel.textContent = 'Specify Illness (Special Leave for Women):';
+                        specificsInput.placeholder = 'Please describe specific illness...';
+                    }
+                    else if (selectedType === 'Study Leave' || selectedType === 'Others') {
+                        showElement(subBlocks[selectedType]);
+                    }
+                } else {
+                    // Collapse master envelope safely if type needs no details
+                    wrapper6B.classList.remove('max-h-[1000px]', 'opacity-100', 'pointer-events-auto');
+                    wrapper6B.classList.add('max-h-0', 'opacity-0', 'pointer-events-none');
+                }
+            }
+
+            typeRadios.forEach(radio => {
+                radio.addEventListener('change', handleLeaveTypeChange);
+            });
+
+            handleLeaveTypeChange();
+
+            /* -------------------------------------------------------------
+               Flatpickr Logic
+            ------------------------------------------------------------- */
             const disabledDates = @json($disabledDates ?? []);
             const companyApprovedDates = @json($companyApprovedDates ?? []);
             const companyPendingDates = @json($companyPendingDates ?? []);
 
             const commonConfig = {
                 dateFormat: "Y-m-d",
-                disable: disabledDates, // Disables both YOUR leaves and company APPROVED leaves
-                minDate: "today",       // Disables past dates
+                disable: disabledDates, 
+                minDate: "today",       
                 onDayCreate: function(dObj, dStr, fp, dayElem) {
                     const dateStr = fp.formatDate(dayElem.dateObj, "Y-m-d");
                     
-                    // Style Company Approved Dates (Rose)
                     if (companyApprovedDates.includes(dateStr)) {
                         dayElem.classList.add("booked-by-other");
                         dayElem.title = "Date taken by another approved employee";
                     }
-                    // Style Company Pending Dates (Amber)
                     else if (companyPendingDates.includes(dateStr)) {
                         dayElem.classList.add("pending-by-other");
-                        dayElem.title = "Another employee has a pending request";
                     }
                 }
             };
 
-            // Initialize multi-datepicker configuration
             flatpickr("#selected_dates", {
                 ...commonConfig,
                 mode: "multiple",
                 conjunction: ", ",
                 onChange: function(selectedDates, dateStr, instance) {
-                    // Filter out any accidental weekend selections on the frontend count
                     const workingDays = selectedDates.filter(date => {
                         const day = date.getDay();
-                        return day !== 0 && day !== 6; // 0 = Sunday, 6 = Saturday
+                        return day !== 0 && day !== 6; 
                     });
-                    
-                    // Dynamically populate the working days field
                     document.getElementById('working_days_applied').value = workingDays.length;
                 }
             });

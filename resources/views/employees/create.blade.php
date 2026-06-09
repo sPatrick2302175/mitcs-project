@@ -84,12 +84,6 @@
                         </div>
 
                         <div class="group">
-                            <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2 group-focus-within:text-[#F2A455] transition-colors duration-200">Leave Credits (Temp)</label>
-                            <input type="number" name="leave_credits" value="{{ old('leave_credits') }}" 
-                                class="block w-full rounded-xl border-gray-200 bg-gray-50/40 px-4 py-3 text-gray-800 placeholder-gray-400 focus:border-[#F2A455] focus:ring focus:ring-[#F2A455]/10 focus:bg-white transition-all duration-200 sm:text-sm">
-                        </div>
-
-                        <div class="group">
                             <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2 group-focus-within:text-[#F2A455] transition-colors duration-200">
                                 Department <span class="text-rose-500">*</span>
                             </label>
@@ -102,6 +96,7 @@
                             </select>
                         </div>
 
+                        
                         <div class="group">
                             <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2 group-focus-within:text-[#F2A455] transition-colors duration-200">
                                 Division <span class="text-rose-500">*</span>
@@ -116,6 +111,54 @@
                                 @endforeach
                             </select>
                         </div>
+
+                        <div class="md:col-span-2 pt-4 mt-2 border-t border-gray-100/60">
+                            <h3 class="text-sm font-bold text-gray-700 mb-4 uppercase tracking-wider">Initial Leave Balances</h3>
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
+                                
+                                <div class="group">
+                                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2 group-focus-within:text-[#F2A455] transition-colors duration-200">
+                                        Vacation Leave <span class="text-rose-500">*</span>
+                                    </label>
+                                    <input type="number" step="0.01" min="0" name="vacation_leave_balance" value="{{ old('vacation_leave_balance', 15) }}" required 
+                                        class="block w-full rounded-xl border-gray-200 bg-gray-50/40 px-4 py-3 text-gray-800 focus:border-[#F2A455] focus:ring focus:ring-[#F2A455]/10 focus:bg-white transition-all duration-200 sm:text-sm">
+                                </div>
+
+                                <div class="group">
+                                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2 group-focus-within:text-[#F2A455] transition-colors duration-200">
+                                        Sick Leave <span class="text-rose-500">*</span>
+                                    </label>
+                                    <input type="number" step="0.01" min="0" name="sick_leave_balance" value="{{ old('sick_leave_balance', 15) }}" required 
+                                        class="block w-full rounded-xl border-gray-200 bg-gray-50/40 px-4 py-3 text-gray-800 focus:border-[#F2A455] focus:ring focus:ring-[#F2A455]/10 focus:bg-white transition-all duration-200 sm:text-sm">
+                                </div>
+
+                                <div class="group">
+                                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2 group-focus-within:text-[#F2A455] transition-colors duration-200">
+                                        Mandatory Leave <span class="text-rose-500">*</span>
+                                    </label>
+                                    <input type="number" step="0.01" min="0" name="mandatory_leave_balance" value="{{ old('mandatory_leave_balance', 5) }}" required 
+                                        class="block w-full rounded-xl border-gray-200 bg-gray-50/40 px-4 py-3 text-gray-800 focus:border-[#F2A455] focus:ring focus:ring-[#F2A455]/10 focus:bg-white transition-all duration-200 sm:text-sm">
+                                </div>
+
+                                <div class="group">
+                                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2 group-focus-within:text-[#F2A455] transition-colors duration-200">
+                                        Special Privilege <span class="text-rose-500">*</span>
+                                    </label>
+                                    <input type="number" step="0.01" min="0" name="special_privilege_leave_balance" value="{{ old('special_privilege_leave_balance', 3) }}" required 
+                                        class="block w-full rounded-xl border-gray-200 bg-gray-50/40 px-4 py-3 text-gray-800 focus:border-[#F2A455] focus:ring focus:ring-[#F2A455]/10 focus:bg-white transition-all duration-200 sm:text-sm">
+                                </div>
+
+                                <div class="group">
+                                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2 group-focus-within:text-[#F2A455] transition-colors duration-200">
+                                        Special Emergency <span class="text-rose-500">*</span>
+                                    </label>
+                                    <input type="number" step="0.01" min="0" name="special_emergency_leave_balance" value="{{ old('special_emergency_leave_balance', 5) }}" required 
+                                        class="block w-full rounded-xl border-gray-200 bg-gray-50/40 px-4 py-3 text-gray-800 focus:border-[#F2A455] focus:ring focus:ring-[#F2A455]/10 focus:bg-white transition-all duration-200 sm:text-sm">
+                                </div>
+
+                            </div>
+                        </div>
+
 
                     </div>
 

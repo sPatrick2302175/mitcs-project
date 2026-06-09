@@ -14,7 +14,7 @@ class EmployeeController extends Controller
     {
         $loggedInAdmin = auth()->user();
 
-        //Fetch employees based on role excluding super admin
+        // Fetch employees based on role excluding super admin
         if ($loggedInAdmin->is_admin === User::ROLE_SUPER_ADMIN) {
             $employeesQuery = Employee::with(['department', 'division', 'user'])
                 ->where('employee_id_number', '!=', '0000000')
@@ -39,7 +39,7 @@ class EmployeeController extends Controller
 
     public function create()
     {
-        // fetch departments and divisions. Excludes super admin
+        // Fetch departments and divisions. Excludes super admin
         $departments = Department::where('code', '!=', 'SYSTEM-ADMIN')->get();
         $divisions = Division::all();
         
@@ -57,25 +57,23 @@ class EmployeeController extends Controller
             'middle_initial' => 'nullable|string|max:1',
             'position' => 'required|string|max:255',
             'position_code' => 'required|string|max:20',
-            //'leave_credits' => 'nullable|integer',
+            
+            // Allow admins to input initial leave balances
+            'vacation_leave_balance' => 'required|numeric|min:0',
+            'sick_leave_balance' => 'required|numeric|min:0',
+            'mandatory_leave_balance' => 'required|numeric|min:0',
+            'special_privilege_leave_balance' => 'required|numeric|min:0',
+            'special_emergency_leave_balance' => 'required|numeric|min:0',
         ]);
-
-        // INTEGRATED: Initialize specific buckets upon storage
-        $validatedData['vacation_leave_balance'] = 15.00;
-        $validatedData['sick_leave_balance'] = 15.00;
-        $validatedData['mandatory_leave_balance'] = 5;
-        $validatedData['special_privilege_leave_balance'] = 3;
-        $validatedData['special_emergency_leave_balance'] = 5;
 
         Employee::create($validatedData);
 
         return redirect()->route('employees.index')->with('success', 'Employee created successfully!');
     }
 
-
     public function show(string $id)
     {
-        // load the relations so we can display department and division names
+        // Load the relations so we can display department and division names
         $employee = Employee::with(['department', 'division', 'user'])->findOrFail($id);
 
         return view('employees.show', compact('employee'));
@@ -102,7 +100,13 @@ class EmployeeController extends Controller
             'middle_initial' => 'nullable|string|max:1',
             'position' => 'required|string|max:255',
             'position_code' => 'required|string|max:20',
-            //'leave_credits' => 'required|integer',
+
+            // Allow admins to edit existing leave balances
+            'vacation_leave_balance' => 'required|numeric|min:0',
+            'sick_leave_balance' => 'required|numeric|min:0',
+            'mandatory_leave_balance' => 'required|numeric|min:0',
+            'special_privilege_leave_balance' => 'required|numeric|min:0',
+            'special_emergency_leave_balance' => 'required|numeric|min:0',
         ]);
 
         $employee->update($validatedData);
@@ -120,17 +124,17 @@ class EmployeeController extends Controller
 
     public function changeRole(Request $request, string $id)
     {
-        // security check
+        // Security check
         if (auth()->user()->is_admin !== User::ROLE_SUPER_ADMIN) {
             abort(403, 'Unauthorized action.');
         }
 
-        // validate incoming role
+        // Validate incoming role
         $request->validate([
             'role' => 'required|integer|in:0,1,2',
         ]);
 
-        // find the employee and their user
+        // Find the employee and their user
         $employee = Employee::with('user')->findOrFail($id);
 
         if (!$employee->user) {
@@ -154,7 +158,7 @@ class EmployeeController extends Controller
             }
         }
 
-        // if pass the check update the role
+        // If pass the check update the role
         $employee->user->update([
             'is_admin' => $request->role
         ]);
