@@ -96,4 +96,23 @@ class LeaveManagementService
             $employee->save();
         }
     }
+
+    /**
+     * Validates and executes the cancellation of a pending leave request.
+     */
+    public function cancelLeaveRequest(LeaveRequest $leaveRequest, $user): void
+    {
+        // 1. Ownership security check
+        if (!$user->employee || $leaveRequest->employee_id !== $user->employee->id) {
+            throw new \Exception('Unauthorized action. You can only cancel your own leave requests.');
+        }
+
+        // 2. State configuration check
+        if (strtolower($leaveRequest->status) !== 'pending') {
+            throw new \Exception('You can only cancel leave requests that are currently pending.');
+        }
+
+        // 3. Execution (No balance adjustments needed because it was never approved/deducted)
+        $leaveRequest->update(['status' => 'cancelled']);
+    }
 }

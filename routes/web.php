@@ -4,22 +4,22 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DivisionController;
 use App\Http\Controllers\EmployeeController;
-use App\Http\Controllers\LeaveRequestController; // <-- Added Leave Request Controller
+use App\Http\Controllers\LeaveRequestController;
+use App\Http\Controllers\UserController; // <-- Added this missing import
 use App\Http\Middleware\IsAdmin;
 use App\Http\Middleware\IsSuperAdmin;
-use App\Models\User;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Auth;
 
 // Default Page Route
 Route::get('/', function () {
     return view('auth.login');
 });
 
-//  PASTE THIS IN ITS PLACE:
+// Dashboard Route mapped to LeaveRequest index
 Route::get('/dashboard', [LeaveRequestController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::redirect('/leave-requests', '/dashboard')->name('leave-requests.index');
+
 // Breeze Profile & Employee Leave Routes
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -34,6 +34,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/leave-requests/create', [LeaveRequestController::class, 'create'])->name('leave-requests.create');
     Route::post('/leave-requests', [LeaveRequestController::class, 'store'])->name('leave-requests.store');
     Route::get('/leave-requests/{id}/pdf', [LeaveRequestController::class, 'generatePdf'])->name('leave-requests.pdf');
+    
+    // NEW: Cancel pending leave requests
+    Route::patch('/leave-requests/{id}/cancel', [LeaveRequestController::class, 'cancel'])->name('leave-requests.cancel');
 });
 
 // --- SHARED ADMIN ROUTES ---
@@ -66,5 +69,3 @@ Route::middleware(['auth', IsSuperAdmin::class])->group(function () {
 require __DIR__.'/auth.php';
 
 Route::put('/employees/{employee}/change-role', [EmployeeController::class, 'changeRole'])->name('employees.changeRole');
-
-

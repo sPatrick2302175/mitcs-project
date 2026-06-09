@@ -161,6 +161,7 @@ class LeaveRequestController extends Controller
             'leaveRequests' => $query->get()
         ]);
     }
+
     public function review($id)
     {
         return view('leave_requests.review', ['leaveRequest' => LeaveRequest::with('employee')->findOrFail($id)]);
@@ -247,11 +248,6 @@ class LeaveRequestController extends Controller
             $query->where('status', $request->input('status'));
         }
 
-        // 3. Filter by Status
-        if ($request->filled('status')) {
-            $query->where('status', $request->input('status'));
-        }
-
         // 4. Handle Sorting Dynamically
         $sortBy = $request->input('sort_by', 'date_of_filing');
         $sortOrder = $request->input('sort_order', 'desc');
@@ -267,5 +263,33 @@ class LeaveRequestController extends Controller
         $leaveRequests = $query->paginate(15)->withQueryString();
 
         return view('leave_requests.history', compact('leaveRequests'));
+    }
+
+    /**
+     * Cancel an active pending leave request.
+     */
+    public function cancel($id)
+    {
+        $leaveRequest = LeaveRequest::findOrFail($id);
+        $user = Auth::user();
+        $employeeId = $user->employee->id ?? null;
+
+        // 1. Security Check: Ensure the logged-in user's employee ID matches the request
+        if (!$employeeId || $leaveRequest->employee_id !== $employeeId) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        // 2. Safety Check: Ensure it hasn't already been approved/disapproved
+        if ($leaveRequest->status !== 'pending') {
+            return redirect()->back()->with('error', 'Only pending leave requests can be cancelled.');
+        }
+
+        // 3. Handle the cancellation by updating status instead of deleting the record
+        $leaveRequest->update([
+            'status' => 'cancelled'
+        ]);
+
+        // 4. Redirect back
+        return redirect()->back()->with('success', 'Leave request was successfully cancelled.');
     }
 }

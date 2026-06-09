@@ -36,11 +36,12 @@ return new class extends Migration
             
             // Tracking Application Status
             $table->enum('status', [
-                'pending', 
-                'recommended_for_approval', 
-                'recommended_for_disapproval', 
-                'approved', 
-                'disapproved'
+            'pending', 
+            'recommended_for_approval', 
+            'recommended_for_disapproval', 
+            'approved', 
+            'disapproved', 
+            'cancelled'
             ])->default('pending');
             
             // 7.B RECOMMENDATION

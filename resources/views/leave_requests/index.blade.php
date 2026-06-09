@@ -22,8 +22,6 @@
     <div class="py-12 bg-gray-50/50 min-h-screen">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-8">
             
-            
-
             @if(session('success'))
                 <div class="bg-emerald-50/70 backdrop-blur-sm border border-emerald-100 rounded-2xl p-5 shadow-sm transition-all duration-300 animate-fadeIn flex items-start">
                     <div class="shrink-0 bg-emerald-100 p-2 rounded-xl">
@@ -32,6 +30,18 @@
                     <div class="ms-4 mt-0.5">
                         <h3 class="text-sm font-extrabold text-emerald-800 tracking-tight">Success</h3>
                         <p class="text-sm font-medium text-emerald-700 mt-0.5">{{ session('success') }}</p>
+                    </div>
+                </div>
+            @endif
+
+            @if(session('error'))
+                <div class="bg-rose-50/70 backdrop-blur-sm border border-rose-100 rounded-2xl p-5 shadow-sm transition-all duration-300 animate-fadeIn flex items-start">
+                    <div class="shrink-0 bg-rose-100 p-2 rounded-xl">
+                        <svg class="h-5 w-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <div class="ms-4 mt-0.5">
+                        <h3 class="text-sm font-extrabold text-rose-800 tracking-tight">Error</h3>
+                        <p class="text-sm font-medium text-rose-700 mt-0.5">{{ session('error') }}</p>
                     </div>
                 </div>
             @endif
@@ -135,6 +145,11 @@
                                                     <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                                                     Disapproved
                                                 </span>
+                                            @elseif($request->status === 'cancelled')
+                                                <span class="inline-flex items-center px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-lg bg-gray-100 text-gray-500 border border-gray-200 shadow-sm">
+                                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
+                                                    Cancelled
+                                                </span>
                                             @endif
                                         </td>
                                         <td class="py-4 px-6 text-center whitespace-nowrap">
@@ -144,9 +159,14 @@
                                                     View PDF
                                                 </a>
                                             @else
-                                                <span class="text-gray-400 text-[10px] font-bold uppercase tracking-wider bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100/80">
-                                                    Locked
-                                                </span>
+                                                <form action="{{ route('leave-requests.cancel', $request->id) }}" method="POST" class="inline-block" onsubmit="return confirm('Are you sure you want to cancel this pending leave request?');">
+                                                    @csrf
+                                                    @method('PATCH')
+                                                    <button type="submit" class="inline-flex items-center justify-center px-3 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-800 font-bold text-[10px] uppercase tracking-wider rounded-lg border border-rose-100/60 transition-colors">
+                                                        <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                                        Cancel
+                                                    </button>
+                                                </form>
                                             @endif
                                         </td>
                                     </tr>
@@ -163,7 +183,8 @@
                                     </tr>
                                 @endforelse
                             </tbody>
-                        </table> </div>
+                        </table> 
+                    </div>
                 </div>
             @else
                 <div class="bg-amber-50 border border-amber-200 rounded-2xl p-6 shadow-sm flex items-start space-x-4">
