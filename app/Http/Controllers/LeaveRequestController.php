@@ -11,6 +11,7 @@ use App\Services\LeaveManagementService;
 use App\Services\LeaveFormService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\CustomHoliday;
 use Carbon\Carbon;
 
 class LeaveRequestController extends Controller
@@ -28,23 +29,100 @@ class LeaveRequestController extends Controller
     public function index()
     {
         $employee = Auth::user()->employee;
+        
+        // Fetch individual logged-in employee's requests for the view data-table
         $leaveRequests = $employee 
-        ? LeaveRequest::where('employee_id', $employee->id)
-            ->where('created_at', '>=', now()->subDays(30)) //Hides items older than 30 days
+        ? LeaveRequest::with('details')
+            ->where('employee_id', $employee->id)
+            ->where('created_at', '>=', now()->subDays(30)) // Hides items older than 30 days
             ->orderBy('created_at', 'desc')
             ->get() 
         : collect();
 
-        $apiHolidays = $this->leaveService->getPhilippineHolidays(date('Y'));
-        $calendarEvents = array_map(fn($holiday) => [
-            'title' => $holiday['name'],
-            'start' => $holiday['date'],
-            'backgroundColor' => '#3b82f6', 
-            'borderColor' => '#2563eb',
-            'textColor' => '#ffffff',
-            'allDay' => true,
-            'display' => 'block'
-        ], $apiHolidays);
+        $calendarEvents = [];
+
+        // Generate Regular Holidays to ensure the calendar works perfectly
+        $this->ensureRegularHolidaysExist(date('Y'));
+        $this->ensureRegularHolidaysExist(date('Y') + 1);
+        $this->ensureRegularHolidaysExist(2026);
+
+        // 1. ALL Holidays (RESTORED: Pulling from local holiday table)
+        $holidays = CustomHoliday::all();
+        foreach ($holidays as $holiday) {
+            $isRegular = ($holiday->type === 'regular'); 
+            $displayTitle = $holiday->name . ($holiday->is_half_day ? ' (Half-Day)' : '');
+
+            $calendarEvents[] = [
+                'id' => 'custom_'.$holiday->id,
+                'title' => $displayTitle,
+                'start' => $holiday->date,
+                'backgroundColor' => $isRegular ? '#3b82f6' : '#f97316',
+                'borderColor' => $isRegular ? '#2563eb' : '#ea580c',
+                'textColor' => '#ffffff',
+                'allDay' => true,
+                'extendedProps' => ['type' => 'custom_holiday', 'holiday_id' => $holiday->id]
+            ];
+        }
+
+        // 2. Corporate Leaves (FIXED: Filters by Division if the user is an employee)
+        $user = Auth::user();
+        
+        // Start building the filtered base query builder
+        $leaveQuery = LeaveRequest::with(['employee', 'details'])
+            ->whereIn('status', ['pending', 'approved', 'PENDING', 'APPROVED']);
+
+        // If the user is NOT an admin, lock them down to their division
+        if ($user->role !== 'admin') { 
+            // Defensive check to ensure the user has an employee record assigned
+            $userDivisionId = $user->employee ? $user->employee->division_id : null;
+
+            if ($userDivisionId) {
+                // Only fetch leaves where the related employee belongs to the same division
+                $leaveQuery->whereHas('employee', function ($query) use ($userDivisionId) {
+                    $query->where('division_id', $userDivisionId);
+                });
+            }
+        }
+        // Get the logged-in user's employee ID before the loop starts
+        $myEmployeeId = $user->employee ? $user->employee->id : null;
+
+        // FIXED: Call ->get() on your configured builder instead of re-instantiating a clean one
+        $allLeaves = $leaveQuery->get();
+
+       foreach ($allLeaves as $leave) {
+            $isPending = in_array($leave->status, ['pending', 'PENDING']);
+            $isMyLeave = ($leave->employee_id === $myEmployeeId);
+
+            // Color Logic: Separate "Mine" vs "Others"
+            if ($isMyLeave) {
+                // MY LEAVES: Vibrant colors so they stand out
+                $bgColor = $isPending ? '#eab308' : '#22c55e'; // Tailwind Yellow-500 / Green-500
+                $bdColor = $isPending ? '#ca8a04' : '#16a34a'; // Tailwind Yellow-600 / Green-600
+            } else {
+                // OTHERS' LEAVES: Muted Slate/Gray colors so they fade into the background
+                $bgColor = $isPending ? '#94a3b8' : '#64748b'; // Tailwind Slate-400 / Slate-500
+                $bdColor = $isPending ? '#64748b' : '#475569'; // Tailwind Slate-500 / Slate-600
+            }
+
+        $employeeName = $leave->employee ? $leave->employee->first_name : 'Employee';
+
+            // Loop over each explicit date row inside your leave_request_details table
+            foreach ($leave->details as $detail) {
+                $calendarEvents[] = [
+                    'title' => $employeeName . ' (' . $leave->leave_type . ')',
+                    'start' => $detail->leave_date->format('Y-m-d'), 
+                    'backgroundColor' => $bgColor,
+                    'borderColor' => $bdColor,
+                    'textColor' => '#ffffff',
+                    'allDay' => true,
+                    'extendedProps' => [
+                        'type' => $isPending ? 'pending_leave' : 'approved_leave',
+                        'leave_id' => $leave->id,
+                        'detail_id' => $detail->id 
+                    ]
+                ];
+            }
+        }
 
         return view('leave_requests.index', compact('employee', 'leaveRequests', 'calendarEvents'));
     }
@@ -142,41 +220,118 @@ class LeaveRequestController extends Controller
     {
         $admin = auth()->user();
         
-        // 1. Initialize query with eager loading for optimization
-        $query = LeaveRequest::with('employee.department')->orderBy('created_at', 'desc');
+        $query = LeaveRequest::with('employee.department', 'employee.division', 'details')
+            ->orderBy('created_at', 'desc');
 
-        // 2. KEEP EXISTING PROTECTION: Enforce department boundaries for standard admins
-        if ($admin->is_admin !== User::ROLE_SUPER_ADMIN) {
+        // --- 1. ROLE-BASED ACCESS & SYSTEM-ADMIN EXCLUSION ---
+        if ($admin->is_admin === \App\Models\User::ROLE_SUPER_ADMIN) {
+            // Super Admin: Hide SYSTEM-ADMIN department leaves
+            $query->whereHas('employee.department', function($q) {
+                $q->where('code', '!=', 'SYSTEM-ADMIN');
+            });
+            
+            // FIX: Get valid department IDs first to avoid the missing relationship error on Division
+            $validDeptIds = \App\Models\Department::where('code', '!=', 'SYSTEM-ADMIN')->pluck('id');
+            $divisions = \App\Models\Division::whereIn('department_id', $validDeptIds)->get();
+            
+        } else {
+            // Department Admin: Get only their department
             $deptId = $admin->employee ? $admin->employee->department_id : null;
-            $query->whereHas('employee', fn($q) => $q->where('department_id', $deptId));
+            
+            $query->whereHas('employee', function($q) use ($deptId) {
+                $q->where('department_id', $deptId);
+            });
+            
+            // Get only divisions for their specific department
+            $divisions = \App\Models\Division::where('department_id', $deptId)->get();
         }
 
-        // 3. NEW: Multi-Parameter Live Search Handler (Name, ID, or Leave Type)
+        // --- 2. APPLY USER FILTERS ---
         if ($request->filled('search')) {
             $search = $request->input('search');
-
-            // We nest this inside a where closure to prevent breaking the department scope above
             $query->where(function ($q) use ($search) {
                 $q->where('leave_type', 'like', "%{$search}%")
-                ->orWhere('leave_type_others', 'like', "%{$search}%")
                 ->orWhereHas('employee', function ($empQ) use ($search) {
-                    $empQ->where('first_name', 'like', "%{$search}%")
-                        ->orWhere('last_name', 'like', "%{$search}%")
-                        ->orWhere('employee_id_number', 'like', "%{$search}%")
-                        // Optional premium touch: handles searching full names "First Last" combined
-                        ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$search}%"]);
+                    $empQ->whereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$search}%"]);
                 });
             });
         }
 
-        // 4. NEW: Status Dropdown Filter Handler
         if ($request->filled('status')) {
             $query->where('status', $request->input('status'));
         }
 
-        // 5. Render view with dynamic matches array
+        if ($request->filled('division')) {
+            $query->whereHas('employee', function($q) use ($request) {
+                $q->where('division_id', $request->input('division'));
+            });
+        }
+
+        // --- 3. CALENDAR EVENTS ---
+        $calendarEvents = [];
+        $this->ensureRegularHolidaysExist(date('Y'));
+        $this->ensureRegularHolidaysExist(date('Y') + 1);
+        $this->ensureRegularHolidaysExist(2026);
+
+        $holidays = \App\Models\CustomHoliday::all(); 
+        foreach ($holidays as $holiday) {
+            $isRegular = ($holiday->type === 'regular'); 
+            $calendarEvents[] = [
+                'id' => 'custom_'.$holiday->id,
+                'title' => $holiday->name . ($holiday->is_half_day ? ' (Half-Day)' : ''),
+                'start' => $holiday->date,
+                'backgroundColor' => $isRegular ? '#3b82f6' : '#f97316',
+                'borderColor' => $isRegular ? '#2563eb' : '#ea580c',
+                'textColor' => '#ffffff',
+                'allDay' => true,
+                'extendedProps' => ['type' => 'custom_holiday', 'holiday_id' => $holiday->id]
+            ];
+        }
+
+        // Get the logged-in admin's employee ID before the loop starts
+        $myEmployeeId = $admin->employee ? $admin->employee->id : null;
+
+        $allLeaves = $query->get(); 
+        
+        foreach ($allLeaves as $leave) {
+            // Standardize status to lowercase just to be safe
+            $status = strtolower($leave->status);
+
+            // Admin Color Logic: Strictly Status-Based
+            if ($status === 'pending') {
+                $bgColor = '#fff2cb'; // Tailwind Yellow-500
+                $bdColor = '#ca8a04'; // Tailwind Yellow-600
+            } elseif ($status === 'approved') {
+                $bgColor = '#c1f7d5'; // Tailwind Green-500
+                $bdColor = '#16a34a'; // Tailwind Green-600
+            } else {
+                // Fallback for Disapproved (Red)
+                $bgColor = '#ef4444'; // Tailwind Red-500
+                $bdColor = '#dc2626'; // Tailwind Red-600
+            }
+
+            foreach ($leave->details as $detail) {
+                $calendarEvents[] = [
+                    'title' => ($leave->employee->first_name ?? 'N/A') . ' - ' . $leave->leave_type,
+                    'start' => $detail->leave_date->format('Y-m-d'),
+                    'backgroundColor' => $bgColor,
+                    'borderColor' => $bdColor,
+                    'textColor' => '#1a8026',
+                    'allDay' => true, 
+                    'extendedProps' => [ 
+                        'type' => 'leave_request', 
+                        'leave_id' => $leave->id,
+                        'status' => $leave->status 
+                    ]
+                ];
+            }
+        
+        }
+
         return view('leave_requests.admin_index', [
-            'leaveRequests' => $query->get()
+            'leaveRequests' => $query->paginate(10),
+            'calendarEvents' => $calendarEvents,
+            'divisions' => $divisions 
         ]);
     }
 
@@ -293,5 +448,51 @@ class LeaveRequestController extends Controller
         $leaveRequests = $query->paginate(15)->withQueryString();
 
         return view('leave_requests.history', compact('leaveRequests'));
+    }
+
+    /**
+     * Generates standard PH holidays into the database if they don't exist yet.
+     */
+    private function ensureRegularHolidaysExist($year)
+    {
+        $easterDays = easter_days($year);
+        $easter = new \DateTime("$year-03-21");
+        $easter->modify("+$easterDays days");
+
+        $maundyThursday = clone $easter;
+        $maundyThursday->modify('-3 days');
+
+        $goodFriday = clone $easter;
+        $goodFriday->modify('-2 days');
+
+        $nationalHeroesDay = new \DateTime("last monday of august $year");
+
+        $regularHolidays = [
+            ['name' => "New Year's Day", 'date' => "$year-01-01"],
+            ['name' => "Araw ng Kagitingan", 'date' => "$year-04-09"],
+            ['name' => "Maundy Thursday", 'date' => $maundyThursday->format('Y-m-d')],
+            ['name' => "Good Friday", 'date' => $goodFriday->format('Y-m-d')],
+            ['name' => "Labor Day", 'date' => "$year-05-01"],
+            ['name' => "Independence Day", 'date' => "$year-06-12"],
+            ['name' => "National Heroes Day", 'date' => $nationalHeroesDay->format('Y-m-d')],
+            ['name' => "Bonifacio Day", 'date' => "$year-11-30"],
+            ['name' => "Christmas Day", 'date' => "$year-12-25"],
+            ['name' => "Rizal Day", 'date' => "$year-12-30"],
+        ];
+
+        foreach ($regularHolidays as $holiday) {
+            $exists = CustomHoliday::where('name', $holiday['name'])
+                                   ->whereYear('date', $year)
+                                   ->exists();
+
+            if (!$exists) {
+                CustomHoliday::create([
+                    'date' => $holiday['date'], 
+                    'name' => $holiday['name'], 
+                    'type' => 'regular', 
+                    'is_half_day' => false
+                ]);
+            }
+        }
     }
 }

@@ -5,6 +5,22 @@
         </h2>
     </x-slot>
 
+    <style>
+        .fc { font-family: inherit; }
+        .fc-theme-standard td, .fc-theme-standard th { border-color: #f3f4f6 !important; }
+        .fc-scrollgrid { border-radius: 1rem; overflow: hidden; border-color: #f3f4f6 !important; }
+        .fc .fc-button-primary { background-color: #1f2937 !important; border-color: transparent !important; text-transform: uppercase; font-weight: 800; font-size: 0.65rem; letter-spacing: 0.05em; padding: 0.5rem 1rem; border-radius: 0.75rem !important; transition: all 0.2s ease; }
+        .fc .fc-button-primary:not(:disabled):hover { background-color: #111827 !important; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+        .fc .fc-button-primary:not(:disabled):active { transform: scale(0.98); }
+        .fc .fc-toolbar-title { font-size: 1.25rem !important; font-weight: 900 !important; color: #1f2937; letter-spacing: -0.025em; }
+        .fc-col-header-cell-cushion { font-size: 0.7rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em; color: #6b7280; padding: 0.75rem 0 !important; }
+        .fc-daygrid-day-number { font-size: 0.875rem; font-weight: 600; color: #374151; padding: 0.5rem !important; }
+        .fc-day-today { background-color: #fffbeb !important; }
+        .fc-event { border: none !important; border-radius: 0.5rem !important; padding: 0.15rem 0.25rem; font-size: 0.7rem; font-weight: 700; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+
     <div class="py-12 bg-gray-50/50 min-h-screen">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
             
@@ -21,18 +37,16 @@
                 </div>
             @endif
 
-            <!--  NEW: Dynamic Search & Filter Controls Panel -->
+            {{-- --- 1. SEARCH & FILTER CARD (NOW AT THE VERY TOP) --- --}}
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                <!-- Using a default dynamic fallback action to current window URL route -->
                 <form id="admin-filter-form" method="GET" action="{{ url()->current() }}" onsubmit="event.preventDefault();" class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     
-                    <!-- Unified Search bar (Handles Name, ID, or Leave Type) -->
-                    <div class="md:col-span-2">
+                    {{-- Search Field --}}
+                    <div>
                         <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">Search Applications</label>
                         <div class="relative">
-                            <input type="text" id="admin-search-input" name="search" value="{{ request('search') }}" placeholder="Search employee name, ID number, or type of leave..." class="w-full bg-gray-50 border border-gray-200 text-sm rounded-xl px-4 py-2 focus:bg-white focus:border-indigo-400 focus:ring-0 transition-colors">
+                            <input type="text" id="admin-search-input" name="search" value="{{ request('search') }}" placeholder="Search name, ID number, or type..." class="w-full bg-gray-50 border border-gray-200 text-sm rounded-xl px-4 py-2 focus:bg-white focus:border-indigo-400 focus:ring-0 transition-colors">
                             
-                            <!-- Search Field Loading Spinner -->
                             <div id="admin-table-spinner" class="hidden absolute right-3 top-2.5">
                                 <svg class="animate-spin h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -42,7 +56,22 @@
                         </div>
                     </div>
 
-                    <!-- Status Filter Dropdown -->
+                    {{-- Division Selector (Moved Here) --}}
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">Filter by Division</label>
+                        <select id="admin-division-select" name="division" class="w-full bg-gray-50 border border-gray-200 text-sm font-semibold text-gray-600 rounded-xl px-4 py-2 focus:bg-white focus:border-indigo-400 focus:ring-0 transition-colors">
+                            <option value="">All Divisions</option>
+                            @if(isset($divisions) && $divisions->count() > 0)
+                                @foreach($divisions as $division)
+                                    <option value="{{ $division->id }}" {{ request('division') == $division->id ? 'selected' : '' }}>
+                                        {{ $division->division_name }}
+                                    </option>
+                                @endforeach
+                            @endif
+                        </select>
+                    </div>
+
+                    {{-- Status Dropdown --}}
                     <div>
                         <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">Review Status State</label>
                         <select id="admin-status-select" name="status" class="w-full bg-gray-50 border border-gray-200 text-sm rounded-xl px-4 py-2 focus:bg-white focus:border-indigo-400 focus:ring-0 transition-colors">
@@ -55,7 +84,19 @@
                 </form>
             </div>
 
-            <!-- Dynamic Table Container Block Wrapper -->
+            {{-- --- 2. CALENDAR SCHEDULE SECTION --- --}}
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <div class="mb-4">
+                    <h3 class="text-lg font-bold text-gray-800">Global Leave Schedule</h3>
+                    <p class="text-xs text-gray-500">Overview of all corporate leaves across divisions.</p>
+                </div>
+
+                <div id="admin-calendar" class="min-h-[500px]"></div>
+            </div>
+
+            <div id="calendar-data-store" class="hidden" data-events="{{ json_encode($calendarEvents ?? []) }}"></div>
+
+            {{-- --- 3. DATATABLE RECORD LIST --- --}}
             <div id="admin-table-container" class="bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100/60 overflow-hidden transition-all duration-300">
                 <div class="p-6 md:p-8 border-b border-gray-100/60 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white">
                     <div>
@@ -154,7 +195,6 @@
                     </table>
                 </div>
 
-                <!-- Pagination Links Wrapper (Kept safe inside dynamic zone) -->
                 @if(method_exists($leaveRequests, 'links') && $leaveRequests->hasPages())
                     <div class="px-6 py-4 bg-gray-50/50 border-t border-gray-100/60">
                         {{ $leaveRequests->links() }}
@@ -164,19 +204,50 @@
         </div>
     </div>
 
-    <!-- ⚙️ JavaScript Engine Block -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            
+            let calendar;
+
+            // --- 1. FULLCALENDAR INITIALIZATION ---
+            const calendarEl = document.getElementById('admin-calendar');
+            let calendarEvents = @json($calendarEvents ?? []); 
+
+            if (calendarEl) {
+                calendar = new FullCalendar.Calendar(calendarEl, {
+                    initialView: 'dayGridMonth',
+                    headerToolbar: {
+                        left: 'prev,next today',
+                        center: 'title',
+                        right: 'dayGridMonth,dayGridWeek'
+                    },
+                    buttonText: { today: 'Today', month: 'Month', week: 'Week' },
+                    events: calendarEvents,
+                    height: 'auto',
+                    eventContent: function(arg) {
+                        return {
+                            html: `
+                                <div style="display: flex; align-items: center; width: 100%; overflow: hidden; padding: 0 4px;">
+                                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: ${arg.event.textColor || '#ffffff'};">${arg.event.title}</span>
+                                </div>
+                            `
+                        };
+                    }
+                });
+                calendar.render();
+            }
+
+            // --- 2. DYNAMIC SEARCH ENGINE ---
             const form = document.getElementById('admin-filter-form');
             const searchInput = document.getElementById('admin-search-input');
             const statusSelect = document.getElementById('admin-status-select');
+            const divisionSelect = document.getElementById('admin-division-select');
             const tableContainer = document.getElementById('admin-table-container');
             const spinner = document.getElementById('admin-table-spinner');
 
             let debounceTimeout;
 
             function fetchFilteredData() {
-                // Activate processing visibility layers
                 spinner.classList.remove('hidden');
                 tableContainer.classList.add('opacity-60');
 
@@ -191,31 +262,37 @@
                 .then(htmlString => {
                     const parser = new DOMParser();
                     const freshDocument = parser.parseFromString(htmlString, 'text/html');
+                    
                     const freshTableContent = freshDocument.getElementById('admin-table-container');
-
                     if (freshTableContent) {
                         tableContainer.innerHTML = freshTableContent.innerHTML;
                     }
                     
-                    // Sync user navigation state parameter paths safely
+                    const freshDataStore = freshDocument.getElementById('calendar-data-store');
+                    if (freshDataStore && calendar) {
+                        const newEvents = JSON.parse(freshDataStore.dataset.events);
+                        calendar.removeAllEvents();
+                        calendar.addEventSource(newEvents);
+                    }
+                    
                     window.history.pushState({}, '', fetchUrl);
                 })
-                .catch(error => console.error('Error handling administrative masterlist dataset filtration request:', error))
+                .catch(error => console.error('Error handling filtering:', error))
                 .finally(() => {
-                    // Normalize active visibility layouts
                     spinner.classList.add('hidden');
                     tableContainer.classList.remove('opacity-60');
                 });
             }
 
-            // 300ms Debounce setup to capture input cycles gently
             searchInput.addEventListener('input', function() {
                 clearTimeout(debounceTimeout);
                 debounceTimeout = setTimeout(fetchFilteredData, 300);
             });
 
-            // Trigger instantly on drop-down update actions
             statusSelect.addEventListener('change', fetchFilteredData);
+            if(divisionSelect) {
+                divisionSelect.addEventListener('change', fetchFilteredData);
+            }
         });
     </script>
 </x-app-layout>

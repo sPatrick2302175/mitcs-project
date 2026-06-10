@@ -5,7 +5,8 @@ use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DivisionController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\LeaveRequestController; 
-use App\Http\Controllers\UserController; // Ensure this is imported
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\CustomHolidayController;
 use App\Http\Middleware\IsAdmin;
 use App\Http\Middleware\IsSuperAdmin;
 use App\Models\User;
@@ -52,6 +53,9 @@ Route::middleware(['auth', IsAdmin::class])->group(function () {
         Route::get('/leave-requests', [LeaveRequestController::class, 'adminIndex'])->name('leave-requests.index');
         Route::get('/leave-requests/{id}/review', [LeaveRequestController::class, 'review'])->name('leave-requests.review');
         Route::post('/leave-requests/{id}/action', [LeaveRequestController::class, 'action'])->name('leave-requests.action');
+        
+        // Custom Holidays Management
+        Route::resource('custom-holidays', CustomHolidayController::class)->except(['show']);
     });
 });
 

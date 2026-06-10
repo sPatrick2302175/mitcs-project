@@ -192,26 +192,35 @@
     </div>
 
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            var calendarEl = document.getElementById('calendar');
-            var calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridMonth',
-                height: 'auto',
-                contentHeight: 'auto',
-                headerToolbar: {
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'dayGridMonth,dayGridWeek'
-                },
-                buttonText: {
-                    today: 'Today',
-                    month: 'Month',
-                    week: 'Week'
-                },
-                events: @json($calendarEvents ?? []),
-            });
-            calendar.render();
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        
+        // 1. Store the PHP array in a JavaScript variable
+        const eventsData = @json($calendarEvents ?? []);
+        
+        // 2. Console log it so you can inspect the structure
+        console.log('Events from Controller:', eventsData);
+
+        var calendarEl = document.getElementById('calendar');
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            height: 'auto',
+            contentHeight: 'auto',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,dayGridWeek'
+            },
+            buttonText: {
+                today: 'Today',
+                month: 'Month',
+                week: 'Week'
+            },
+            // 3. Pass that variable directly into FullCalendar
+            events: eventsData,
         });
-    </script>
+        
+        calendar.render();
+    });
+</script>
 </x-app-layout>
