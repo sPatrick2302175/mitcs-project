@@ -182,20 +182,30 @@ class LeaveFormService
         $endDate = Carbon::parse($leaveRequest->end_date);
         
         // Calculate total calendar duration
+        // Calculate total calendar duration
         $calendarDaysSpan = $startDate->diffInDays($endDate) + 1;
         $daysApplied = (float)$leaveRequest->working_days_applied;
+
+        // Count how many weekend days exist in this calendar span
+        $weekendDays = 0;
+        $tempDate = $startDate->copy();
+        while ($tempDate->lte($endDate)) {
+            if ($tempDate->isWeekend()) {
+                $weekendDays++;
+            }
+            $tempDate->addDay();
+        }
 
         // Scenario 1: Single day leave
         if ($calendarDaysSpan === 1 || $daysApplied === 1.0) {
             $dates = $startDate->format('M d, Y'); 
         } 
-        // Scenario 2: Continuous ordered range (e.g., Aug 1 to Aug 5)
-        elseif ($daysApplied === (float)$calendarDaysSpan) {
+        // Scenario 2: Continuous range (includes perfect working weeks skipping weekends)
+        elseif ($daysApplied === (float)($calendarDaysSpan - $weekendDays)) {
             $dates = $startDate->format('M d, Y') . ' - ' . $endDate->format('M d, Y');
         } 
-        // Scenario 3: Staggered/Skipped days (Plucking individual dates from relation)
+        // Scenario 3: Truly staggered/Skipped working days (e.g., random Tuesdays)
         else {
-            // Fetch and sort every separate selected date from your LeaveRequestDetail relationship
             $formattedDates = $leaveRequest->details()
                 ->orderBy('leave_date', 'asc')
                 ->pluck('leave_date')
@@ -203,14 +213,11 @@ class LeaveFormService
                 ->toArray();
 
             $totalDatesCount = count($formattedDates);
-
             if ($totalDatesCount === 1) {
                 $dates = $formattedDates[0];
             } elseif ($totalDatesCount === 2) {
-                // Example: "Aug 01, 2026 & Aug 08, 2026"
                 $dates = implode(' & ', $formattedDates);
             } else {
-                // Example: "Aug 01, 2026, Aug 08, 2026, & Sep 01, 2026"
                 $lastDate = array_pop($formattedDates);
                 $dates = implode(', ', $formattedDates) . ', & ' . $lastDate;
             }

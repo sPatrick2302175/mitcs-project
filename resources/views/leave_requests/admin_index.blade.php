@@ -88,7 +88,7 @@
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                 <div class="mb-4">
                     <h3 class="text-lg font-bold text-gray-800">Global Leave Schedule</h3>
-                    <p class="text-xs text-gray-500">Overview of all corporate leaves across divisions.</p>
+                    <p class="text-xs text-gray-500">Overview of all employee leaves across divisions.</p>
                 </div>
 
                 <div id="admin-calendar" class="min-h-[500px]"></div>
