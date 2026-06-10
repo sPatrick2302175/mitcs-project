@@ -15,8 +15,10 @@ return new class extends Migration
             $table->id();
             $table->string('name'); // e.g., "MassKara Festival"
             $table->string('type')->default('custom'); 
+            $table->boolean('is_regular')->default(false); // New: Tracks annual recurrence
             $table->boolean('is_half_day')->default(false);
-            $table->date('date')->unique(); 
+            $table->boolean('is_active')->default(true);   // New: Tracks admin show/hide toggle
+            $table->date('date');                          // Changed: Removed ->unique()
             $table->timestamps();
         });
     }

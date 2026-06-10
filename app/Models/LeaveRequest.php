@@ -90,4 +90,38 @@ class LeaveRequest extends Model
     {
         return $this->hasMany(LeaveRequestDetail::class);
     }
+
+    /**
+     * Scope a query to search by leave type, specifics, or employee name.
+     */
+    public function scopeSearch($query, $search)
+    {
+        return $query->when($search, function ($q, $search) {
+            $q->where(function ($subQ) use ($search) {
+                $subQ->where('leave_type', 'like', "%{$search}%")
+                     ->orWhere('leave_type_others', 'like', "%{$search}%")
+                     ->orWhere('leave_detail_category', 'like', "%{$search}%")
+                     ->orWhere('leave_detail_specifics', 'like', "%{$search}%")
+                     ->orWhereHas('employee', function ($empQ) use ($search) {
+                         $empQ->whereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$search}%"]);
+                     });
+            });
+        });
+    }
+
+    /**
+     * Scope a query to filter by timeframe.
+     */
+    public function scopeWithinTimeframe($query, $timeframe)
+    {
+        return $query->when($timeframe, function ($q, $timeframe) {
+            match ($timeframe) {
+                'this_month' => $q->whereMonth('date_of_filing', now()->month)
+                                  ->whereYear('date_of_filing', now()->year),
+                'last_3_months' => $q->where('date_of_filing', '>=', now()->subMonths(3)),
+                'this_year' => $q->whereYear('date_of_filing', now()->year),
+                default => $q
+            };
+        });
+    }
 }

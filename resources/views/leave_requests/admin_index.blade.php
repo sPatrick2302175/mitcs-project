@@ -16,7 +16,26 @@
         .fc-col-header-cell-cushion { font-size: 0.7rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em; color: #6b7280; padding: 0.75rem 0 !important; }
         .fc-daygrid-day-number { font-size: 0.875rem; font-weight: 600; color: #374151; padding: 0.5rem !important; }
         .fc-day-today { background-color: #fffbeb !important; }
-        .fc-event { border: none !important; border-radius: 0.5rem !important; padding: 0.15rem 0.25rem; font-size: 0.7rem; font-weight: 700; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+        
+        /* UPDATED: Added clickable indicators & transitions */
+        .fc-event { 
+            border: none !important; 
+            border-radius: 0.5rem !important; 
+            padding: 0.15rem 0.25rem; 
+            font-size: 0.7rem; 
+            font-weight: 700; 
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); 
+            transition: transform 0.15s ease, opacity 0.15s ease;
+        }
+
+        /* NEW: Apply pointer and hover animations ONLY to leave events */
+        .clickable-leave-event {
+            cursor: pointer;
+        }
+        .clickable-leave-event:hover {
+            opacity: 0.9;
+            transform: scale(1.01);
+        }
     </style>
 
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
@@ -37,7 +56,7 @@
                 </div>
             @endif
 
-            {{-- --- 1. SEARCH & FILTER CARD (NOW AT THE VERY TOP) --- --}}
+            {{-- --- 1. SEARCH & FILTER CARD --- --}}
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                 <form id="admin-filter-form" method="GET" action="{{ url()->current() }}" onsubmit="event.preventDefault();" class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     
@@ -56,7 +75,7 @@
                         </div>
                     </div>
 
-                    {{-- Division Selector (Moved Here) --}}
+                    {{-- Division Selector --}}
                     <div>
                         <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">Filter by Division</label>
                         <select id="admin-division-select" name="division" class="w-full bg-gray-50 border border-gray-200 text-sm font-semibold text-gray-600 rounded-xl px-4 py-2 focus:bg-white focus:border-indigo-400 focus:ring-0 transition-colors">
@@ -86,9 +105,20 @@
 
             {{-- --- 2. CALENDAR SCHEDULE SECTION --- --}}
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                <div class="mb-4">
-                    <h3 class="text-lg font-bold text-gray-800">Global Leave Schedule</h3>
-                    <p class="text-xs text-gray-500">Overview of all employee leaves across divisions.</p>
+                <div class="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-800">Global Leave Schedule</h3>
+                        <p class="text-xs text-gray-500">Overview of all employee leaves across divisions.</p>
+                    </div>
+                    <div>
+                        <a href="{{ route('admin.custom-holidays.index') }}" 
+                        class="inline-flex items-center px-4 py-2.5 bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all duration-200 shadow-md shadow-gray-900/10 active:scale-[0.98]">
+                            <svg class="w-4 h-4 mr-1.5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            Manage Corporate Holidays
+                        </a>
+                    </div>
                 </div>
 
                 <div id="admin-calendar" class="min-h-[500px]"></div>
@@ -224,6 +254,29 @@
                     buttonText: { today: 'Today', month: 'Month', week: 'Week' },
                     events: calendarEvents,
                     height: 'auto',
+
+                    // NEW: Inject the hover CSS class ONLY if it's a leave request
+                    eventDidMount: function(info) {
+                        if (info.event.extendedProps && info.event.extendedProps.leave_id) {
+                            info.el.classList.add('clickable-leave-event');
+                        }
+                    },
+                    
+                    // UPDATED: Only trigger the redirect if the event has a leave_id
+                    eventClick: function(info) {
+                        if (info.event.url) { return; }
+
+                        const props = info.event.extendedProps;
+                        
+                        // If 'leave_id' exists, it's a leave request. If not, it's a holiday!
+                        if (props && props.leave_id) {
+                            const leaveRequestId = info.event.id;
+                            const reviewRouteTemplate = "{{ route('admin.leave-requests.review', ':id') }}";
+                            window.location.href = reviewRouteTemplate.replace(':id', leaveRequestId);
+                            info.jsEvent.preventDefault();
+                        }
+                    },
+                    
                     eventContent: function(arg) {
                         return {
                             html: `

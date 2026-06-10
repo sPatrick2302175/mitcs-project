@@ -13,11 +13,16 @@ class CustomHoliday extends Model
         'name',
         'date',
         'type',
-        'is_half_day', // Added to allow mass assignment
+        'is_half_day',
+        'is_regular',
+        'is_active',
     ];
 
     // Ensures Laravel treats this strictly as true/false
     protected $casts = [
         'is_half_day' => 'boolean',
+        'is_regular'  => 'boolean',
+        'is_active'   => 'boolean',
+        'date'        => 'date',
     ];
 }

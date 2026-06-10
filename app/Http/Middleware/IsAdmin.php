@@ -17,7 +17,7 @@ class IsAdmin
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // 🧠 Math magic: 1, 2, and 3 are all >= 1. 
+        // Math magic: 1, 2, and 3 are all >= 1. 
         // This lets Admin Officers, Super Admins, and Dept Heads use all shared admin features seamlessly!
         if (Auth::check() && Auth::user()->is_admin >= User::ROLE_ADMIN_OFFICER) {
             return $next($request);

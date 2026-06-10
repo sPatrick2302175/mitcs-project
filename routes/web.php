@@ -56,6 +56,7 @@ Route::middleware(['auth', IsAdmin::class])->group(function () {
         
         // Custom Holidays Management
         Route::resource('custom-holidays', CustomHolidayController::class)->except(['show']);
+        Route::patch('/custom-holidays/{customHoliday}/toggle', [CustomHolidayController::class, 'toggleStatus'])->name('custom-holidays.toggle');
     });
 });
 
