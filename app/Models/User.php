@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password'])]
+#[Fillable(['name', 'email', 'password', 'employee_id', 'is_admin', 'department_id'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -21,7 +21,42 @@ class User extends Authenticatable
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
+     * 
      */
+    
+    // USER ROLES
+    
+    const ROLE_EMPLOYEE = 0;
+    const ROLE_ADMIN_OFFICER = 1; 
+    const ROLE_SUPER_ADMIN = 2;   
+    const ROLE_DEPT_HEAD = 3;
+
+    protected $fillable = [
+        'name',
+        'email',
+        'password',
+        'employee_id', 
+        'is_admin',  // user role identifier  
+        'department_id',   
+    ];
+
+   public function department()
+    {
+        return $this->hasOneThrough(
+            Department::class, 
+            Employee::class, 
+            'id',             // Foreign key on employees table 
+            'id',             // Foreign key on departments table
+            'employee_id',    // Local key on users table
+            'department_id'   // Local key on employees table
+        );
+    }
+
+    public function employee()
+    {
+        return $this->belongsTo(Employee::class);
+    }
+
     protected function casts(): array
     {
         return [

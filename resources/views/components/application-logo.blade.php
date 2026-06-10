@@ -1,0 +1,1 @@
+<img src="{{ asset('images/ngc_logo.png') }}" {{ $attributes }} alt="Application Logo">

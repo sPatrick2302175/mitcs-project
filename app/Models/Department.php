@@ -3,12 +3,18 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Department extends Model
 {
-    public function division()
+    protected $fillable = [
+        'department_name',
+        'code'
+    ];
+    
+    public function divisions()
     {
-        return $this->belongsTo(Division::class);
+        return $this->hasMany(Division::class);
     }
 
     public function employees()
