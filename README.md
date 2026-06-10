@@ -9,7 +9,6 @@ A web-based Internal Leave Application System specifically intended for the MITC
 The following dependencies are required to run the system:
 - [PHP 8.5.2+, Laravel Framework 12.48.1+, Composer 2.9.4+](https://php.new)
 - Local Server Environment (preferably [Laragon](https://laragon.org/download))
-- [Commitizen](https://github.com/commitizen/cz-cli)
 - [NodeJS](https://nodejs.org/en/download) & [NPM](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
 - [GitHub CLI](https://cli.github.com/)
 
