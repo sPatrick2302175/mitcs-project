@@ -9,14 +9,158 @@
         .fc { font-family: inherit; }
         .fc-theme-standard td, .fc-theme-standard th { border-color: #f3f4f6 !important; }
         .fc-scrollgrid { border-radius: 1rem; overflow: hidden; border-color: #f3f4f6 !important; }
-        .fc .fc-button-primary { background-color: #1f2937 !important; border-color: transparent !important; text-transform: uppercase; font-weight: 800; font-size: 0.65rem; letter-spacing: 0.05em; padding: 0.5rem 1rem; border-radius: 0.75rem !important; transition: all 0.2s ease; }
-        .fc .fc-button-primary:not(:disabled):hover { background-color: #111827 !important; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+        
+        /* Brand-themed primary action layout elements for FullCalendar control layer */
+        .fc .fc-button-primary { 
+            background-color: #1f2937 !important; 
+            border-color: transparent !important; 
+            text-transform: uppercase; 
+            font-weight: 800; 
+            font-size: 0.65rem; 
+            letter-spacing: 0.05em; 
+            padding: 0.5rem 1rem; 
+            border-radius: 0.75rem !important; 
+            transition: all 0.2s ease; 
+        }
+        .fc .fc-button-primary:not(:disabled):hover { 
+            background-color: #111827 !important; 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); 
+        }
         .fc .fc-button-primary:not(:disabled):active { transform: scale(0.98); }
+        .fc .fc-button-active { background-color: #F2A455 !important; color: white !important; }
+        
         .fc .fc-toolbar-title { font-size: 1.25rem !important; font-weight: 900 !important; color: #1f2937; letter-spacing: -0.025em; }
         .fc-col-header-cell-cushion { font-size: 0.7rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em; color: #6b7280; padding: 0.75rem 0 !important; }
         .fc-daygrid-day-number { font-size: 0.875rem; font-weight: 600; color: #374151; padding: 0.5rem !important; }
-        .fc-day-today { background-color: #fffbeb !important; }
-        .fc-event { border: none !important; border-radius: 0.5rem !important; padding: 0.15rem 0.25rem; font-size: 0.7rem; font-weight: 700; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+        
+        /* Updated: Brand consistent light backdrop hue highlighting for today's grid index */
+        .fc-day-today { background-color: rgba(242, 164, 85, 0.08) !important; }
+
+        /* Updated Base Event Style */
+        .fc-event {
+            display: flex !important;
+            align-items: center !important;
+            padding: 0.25rem 0.625rem !important;
+            font-size: 10px !important;
+            font-weight: 700 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.05em !important;
+            border-radius: 0.5rem !important;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+            border-width: 1px !important;
+            border-style: solid !important;
+            /*cursor: pointer;*/
+        }
+
+        .fc-event .fc-event-main {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            color: inherit;
+        }
+
+        /* PENDING STATUS */
+        .status-pending {
+            background-color: #fffbeb !important;
+            color: #d97706 !important;
+            border-color: rgba(254, 243, 199, 0.6) !important;
+        }
+        .status-pending .fc-event-main::before {
+            content: '';
+            display: inline-block;
+            flex-shrink: 0;
+            width: 6px; height: 6px;
+            border-radius: 9999px;
+            background-color: #f59e0b;
+            margin-right: 6px;
+            animation: event-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        /* APPROVED STATUS */
+        .status-approved {
+            background-color: #ecfdf5 !important;
+            color: #059669 !important;
+            border-color: rgba(209, 250, 229, 0.6) !important;
+        }
+        .status-approved .fc-event-main::before {
+            content: '';
+            display: inline-block;
+            flex-shrink: 0;
+            width: 12px; height: 12px;
+            margin-right: 4px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23059669' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M5 13l4 4L19 7'/%3E%3C/svg%3E");
+            background-size: cover;
+        }
+
+    
+        /* Pulsing Animation */
+        @keyframes event-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+
+        /* -------------------------------------
+        CO-WORKER: APPROVED
+        -------------------------------------- */
+        .status-coworker-approved {
+            background-color: #ffffff !important; /* bg-white */
+            color: #94a3b8 !important; /* text-slate-400 */
+            border-color: #cbd5e1 !important; /* border-slate-300 */
+            border-style: dashed !important; /* Dashed border for unconfirmed */
+        }
+        
+        /* Gray Checkmark SVG */
+        .status-coworker-approved .fc-event-main::before {
+            content: '';
+            display: inline-block;
+            flex-shrink: 0;
+            width: 12px; height: 12px;
+            margin-right: 4px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%2364748b' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M5 13l4 4L19 7'/%3E%3C/svg%3E");
+            background-size: cover;
+        }
+
+        /* -------------------------------------
+        CO-WORKER: PENDING
+        -------------------------------------- */
+        .status-coworker-pending {
+            background-color: #ffffff !important; /* bg-white */
+            color: #94a3b8 !important; /* text-slate-400 */
+            border-color: #cbd5e1 !important; /* border-slate-300 */
+            border-style: dashed !important; /* Dashed border for unconfirmed */
+        }
+        
+        /* Hollow Gray Circle (Static) */
+        .status-coworker-pending .fc-event-main::before {
+            content: '';
+            display: inline-block;
+            flex-shrink: 0;
+            width: 8px; height: 8px;
+            border-radius: 9999px;
+            border: 2px solid #cbd5e1; /* border-slate-300 */
+            margin-right: 6px;
+            background-color: transparent;
+        }
+
+        /* -------------------------------------
+        CO-WORKER: DISAPPROVED (Fallback)
+        -------------------------------------- */
+        .status-coworker-disapproved {
+            background-color: #f8fafc !important; 
+            color: #94a3b8 !important; 
+            border-color: #e2e8f0 !important; 
+        }
+        
+        /* Gray X SVG */
+        .status-coworker-disapproved .fc-event-main::before {
+            content: '';
+            display: inline-block;
+            flex-shrink: 0;
+            width: 12px; height: 12px;
+            margin-right: 4px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%2394a3b8' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M6 18L18 6M6 6l12 12'/%3E%3C/svg%3E");
+            background-size: cover;
+        }
     </style>
 
     <div class="py-12 bg-gray-50/50 min-h-screen">
@@ -182,45 +326,52 @@
 
             <div class="bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100/60 overflow-hidden p-6 md:p-8">
                 <div class="mb-6">
-                    <h3 class="text-xl font-black text-gray-800 tracking-tight">Company Calendar & Holidays</h3>
+                    <h3 class="text-xl font-black text-gray-800 tracking-tight">NGC Calendar & Holidays</h3>
                     <p class="text-xs font-bold uppercase tracking-wider text-gray-400 mt-1">Global view of scheduled events and corporate leaves</p>
                 </div>
                 <div id="calendar" class="min-h-[500px]"></div>
+                <div class="mt-5 flex flex-wrap gap-x-5 gap-y-2.5 items-center text-[10px] font-black text-gray-400 uppercase tracking-wider bg-gray-50/60 border border-gray-100 p-3 rounded-xl shadow-inner">
+                    <span class="text-gray-500">Schedule Legend:</span>
+                    <span class="inline-flex items-center gap-1.5 text-emerald-700"><span class="w-3 h-3 rounded bg-emerald-50 border border-emerald-200"></span> Approved Leaves</span>
+                    <span class="inline-flex items-center gap-1.5 text-amber-700"><span class="w-3 h-3 rounded bg-amber-50 border border-amber-200"></span> Pending Requests</span>
+                    <span class="inline-flex items-center gap-1.5 text-gray-600"><span class="w-3 h-3 rounded bg-orange-500"></span> None Regular Holidays</span>
+                    <span class="inline-flex items-center gap-1.5 text-blue-600"><span class="w-3 h-3 rounded bg-blue-500"></span> Regular Holidays</span>
+                </div>
             </div>
             
         </div>
     </div>
 
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        
-        // 1. Store the PHP array in a JavaScript variable
-        const eventsData = @json($calendarEvents ?? []);
-        
-        // 2. Console log it so you can inspect the structure
-        console.log('Events from Controller:', eventsData);
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            // 1. Store the PHP array in a JavaScript variable
+            const eventsData = @json($calendarEvents ?? []);
+            
+            // 2. Console log it so you can inspect the structure
+            console.log('Events from Controller:', eventsData);
 
-        var calendarEl = document.getElementById('calendar');
-        var calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'dayGridMonth',
-            height: 'auto',
-            contentHeight: 'auto',
-            headerToolbar: {
-                left: 'prev,next today',
-                center: 'title',
-                right: 'dayGridMonth,dayGridWeek'
-            },
-            buttonText: {
-                today: 'Today',
-                month: 'Month',
-                week: 'Week'
-            },
-            // 3. Pass that variable directly into FullCalendar
-            events: eventsData,
+            var calendarEl = document.getElementById('calendar');
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                height: 'auto',
+                contentHeight: 'auto',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,dayGridWeek'
+                },
+                buttonText: {
+                    today: 'Today',
+                    month: 'Month',
+                    week: 'Week'
+                },
+                // 3. Pass that variable directly into FullCalendar
+                events: eventsData,
+            });
+            
+            calendar.render();
         });
-        
-        calendar.render();
-    });
-</script>
+    </script>
 </x-app-layout>

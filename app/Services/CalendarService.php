@@ -10,9 +10,6 @@ class CalendarService
     /**
      * Format custom holidays into FullCalendar events.
      */
-    /**
-     * Format custom holidays into FullCalendar events.
-     */
     public function getHolidayEvents(): array
     {
         return CustomHoliday::all()->flatMap(function ($holiday) {
@@ -24,7 +21,7 @@ class CalendarService
             // If the user checked "Repeats Annually"
             if ($holiday->is_regular) {
                 // Loop to create the event for the past 2 years and future 5 years
-                for ($i = -2; $i <= 5; $i++) {
+                for ($i = -2; $i <= 10; $i++) {
                     $events[] = [
                         // Append the year offset so FullCalendar doesn't complain about duplicate IDs
                         'id' => 'custom_' . $holiday->id . '_offset_' . $i, 
@@ -65,40 +62,45 @@ class CalendarService
         foreach ($leaves as $leave) {
             $status = strtolower($leave->status);
 
-            if ($status === 'disapproved' || $status === 'rejected') {
-                continue; 
+            if ($status === 'disapproved') {
+                continue;
             }
 
-            $isPending = $status === 'pending';
-            
-            if ($isAdminView) {
-                $bgColor = $isPending ? '#fff2cb' : ($status === 'approved' ? '#c1f7d5' : '#ffffff');
-                $bdColor = $isPending ? '#ca8a04' : ($status === 'approved' ? '#16a34a' : '#dc2626');
-                $textColor = '#6e6e6e'; 
+            $isMyLeave = ($leave->employee_id === $myEmployeeId);
+            $cssClass = '';
+
+            // Determine the correct CSS class based on user role and ownership
+            if ($isAdminView || $isMyLeave) {
+                // You or Admin: Bright Tailwind colors
+                if ($status === 'pending') {
+                    $cssClass = 'status-pending';
+                } elseif ($status === 'approved') {
+                    $cssClass = 'status-approved';
+                } 
             } else {
-                $isMyLeave = ($leave->employee_id === $myEmployeeId);
-                $bgColor = $isMyLeave ? ($isPending ? '#eab308' : '#22c55e') : ($isPending ? '#94a3b8' : '#64748b');
-                $bdColor = $isMyLeave ? ($isPending ? '#ca8a04' : '#16a34a') : ($isPending ? '#64748b' : '#475569');
-                $textColor = '#ffffff';
+                // Coworker: Muted Slate colors
+                if ($status === 'pending') {
+                    $cssClass = 'status-coworker-pending';
+                } elseif ($status === 'approved') {
+                    $cssClass = 'status-coworker-approved';
+                }
             }
 
             $employeeName = $leave->employee->first_name ?? 'Employee';
-            $title = $isAdminView ? "$employeeName - {$leave->leave_type}" : "$employeeName ({$leave->leave_type})";
+            $title = "$employeeName ({$leave->leave_type})";
 
             foreach ($leave->details as $detail) {
                 $events[] = [
-                    'id'              => $leave->id,
-                    'title' => $title,
-                    'start' => Carbon::parse($detail->leave_date)->format('Y-m-d'), 
-                    'backgroundColor' => $bgColor,
-                    'borderColor' => $bdColor,
-                    'textColor' => $textColor,
-                    'allDay' => true,
+                    'id'            => $leave->id,
+                    'title'         => $title,
+                    'start'         => \Carbon\Carbon::parse($detail->leave_date)->format('Y-m-d'), 
+                    'allDay'        => true,
+                    'className'     => $cssClass,
                     'extendedProps' => [
-                        'type' => $isAdminView ? 'leave_request' : ($isPending ? 'pending_leave' : 'approved_leave'),
-                        'leave_id' => $leave->id,
+                        'type'      => $isAdminView ? 'leave_request' : ($status === 'pending' ? 'pending_leave' : 'approved_leave'),
+                        'leave_id'  => $leave->id,
                         'detail_id' => $detail->id ?? null,
-                        'status' => $status
+                        'status'    => $status
                     ]
                 ];
             }
@@ -106,4 +108,5 @@ class CalendarService
 
         return $events;
     }
+    
 }

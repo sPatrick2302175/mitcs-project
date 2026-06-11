@@ -182,6 +182,7 @@ class LeaveManagementService
      */
     public function getLeaveCalendarData(Employee $employee): array
     {
+        
         // 1. Fetch employee's own upcoming booked dates
         $myBookedDates = $this->getBookedDates(
             LeaveRequest::where('employee_id', $employee->id)->whereIn('status', ['pending', 'approved'])
@@ -200,7 +201,7 @@ class LeaveManagementService
         $currentYear = (int) date('Y');
         $holidayDates = [];
         
-        for ($year = $currentYear; $year <= $currentYear + 2; $year++) {
+        for ($year = $currentYear; $year <= $currentYear + 10; $year++) {
             $yearlyHolidays = array_column($this->getPhilippineHolidays($year), 'date');
             $holidayDates = array_merge($holidayDates, $yearlyHolidays);
         }
