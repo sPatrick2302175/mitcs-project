@@ -185,7 +185,7 @@
                         <div class="relative z-10">
                             <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400 block mb-1">Vacation Leave</span>
                             <div class="flex items-baseline space-x-1.5">
-                                <span class="text-3xl font-black text-gray-800">{{ number_format($employee->vacation_leave_balance, 2) }}</span>
+                                <span class="text-3xl font-black text-gray-800">{{ number_format($employee->leaveBalance?->vacation_leave_balance, 2) }}</span>
                                 <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Days</span>
                             </div>
                         </div>
@@ -196,7 +196,7 @@
                         <div class="relative z-10">
                             <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400 block mb-1">Sick Leave</span>
                             <div class="flex items-baseline space-x-1.5">
-                                <span class="text-3xl font-black text-gray-800">{{ number_format($employee->sick_leave_balance, 2) }}</span>
+                                <span class="text-3xl font-black text-gray-800">{{ number_format($employee->leaveBalance?->sick_leave_balance, 2) }}</span>
                                 <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Days</span>
                             </div>
                         </div>
@@ -207,7 +207,7 @@
                         <div class="relative z-10">
                             <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400 block mb-1">Mandatory Leave</span>
                             <div class="flex items-baseline space-x-1.5">
-                                <span class="text-3xl font-black text-gray-800">{{ number_format($employee->mandatory_leave_balance, 2) }}</span>
+                                <span class="text-3xl font-black text-gray-800">{{ number_format($employee->leaveBalance?->mandatory_leave_balance, 2) }}</span>
                                 <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Days</span>
                             </div>
                         </div>
@@ -218,7 +218,7 @@
                         <div class="relative z-10">
                             <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400 block mb-1">Special Privilege</span>
                             <div class="flex items-baseline space-x-1.5">
-                                <span class="text-3xl font-black text-gray-800">{{ number_format($employee->special_privilege_leave_balance, 2) }}</span>
+                                <span class="text-3xl font-black text-gray-800">{{ number_format($employee->leaveBalance?->special_privilege_leave_balance, 2) }}</span>
                                 <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Days</span>
                             </div>
                         </div>

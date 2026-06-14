@@ -21,10 +21,9 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-
-            //admin check
-            $table->boolean('is_admin')->default(false);
-
+            $table->integer('is_admin')->default(0);
+            // fk, link Department Admins to their specific department
+            $table->foreignId('department_id')->nullable()->constrained()->onDelete('set null');
             $table->rememberToken();
             $table->timestamps();
         });

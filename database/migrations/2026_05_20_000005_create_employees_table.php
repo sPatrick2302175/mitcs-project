@@ -21,17 +21,6 @@ return new class extends Migration
             $table->string('middle_initial', 5)->nullable();
             $table->string('position');
             $table->string('position_code')->nullable();
-            //position code
-            //$table->integer('leave_credits')->default(15);//temporary value, can be changed later
-            
-            // --- INTEGRATED FROM GROUPMATE's WORK ---
-            $table->decimal('vacation_leave_balance', 8, 2)->default(0);
-            $table->decimal('sick_leave_balance', 8, 2)->default(0);
-            $table->integer('mandatory_leave_balance')->default(5);
-            $table->integer('special_privilege_leave_balance')->default(3);
-            $table->integer('special_emergency_leave_balance')->default(5);
-            // ----------------------------------------
-            
             $table->timestamps();
         });
     }

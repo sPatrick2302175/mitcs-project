@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Employee;
+use App\Models\EmployeeLeaveBalance;
 use App\Models\Department;
 use App\Models\Division;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class EmployeeController extends Controller
 {
@@ -16,14 +18,14 @@ class EmployeeController extends Controller
 
         // Fetch employees based on role excluding super admin
         if ($loggedInAdmin->is_admin === User::ROLE_SUPER_ADMIN) {
-            $employeesQuery = Employee::with(['department', 'division', 'user'])
+            $employeesQuery = Employee::with(['department', 'division', 'user', 'leaveBalance'])
                 ->where('employee_id_number', '!=', '0000000')
                 ->get();
         } else {
             // Both Admin Officers (1) and Dept Heads (3) fall here and safely get only their department's team
             $departmentId = $loggedInAdmin->employee ? $loggedInAdmin->employee->department_id : null;
 
-            $employeesQuery = Employee::with(['department', 'division', 'user'])
+            $employeesQuery = Employee::with(['department', 'division', 'user', 'leaveBalance'])
                 ->where('department_id', $departmentId)
                 ->where('employee_id_number', '!=', '0000000')
                 ->get();
@@ -47,6 +49,7 @@ class EmployeeController extends Controller
 
     public function store(Request $request)
     {
+        // 1. Validate ALL incoming form data together
         $validatedData = $request->validate([
             'division_id' => 'required|exists:divisions,id',
             'department_id' => 'required|exists:departments,id',
@@ -64,19 +67,34 @@ class EmployeeController extends Controller
             'special_emergency_leave_balance' => 'required|numeric|min:0',
         ]);
 
-        Employee::create($validatedData);
+        // 2. Use a Database Transaction to make sure BOTH tables save successfully, or neither does.
+        DB::transaction(function () use ($validatedData) {
+            
+            // Create the main employee profile
+            $employee = Employee::create($validatedData);
+
+            // Create the linked leave balance using the relationship we defined earlier
+            $employee->leaveBalance()->create([
+                'vacation_leave_balance' => $validatedData['vacation_leave_balance'],
+                'sick_leave_balance' => $validatedData['sick_leave_balance'],
+                'mandatory_leave_balance' => $validatedData['mandatory_leave_balance'],
+                'special_privilege_leave_balance' => $validatedData['special_privilege_leave_balance'],
+                'special_emergency_leave_balance' => $validatedData['special_emergency_leave_balance'],
+            ]);
+        });
+
         return redirect()->route('employees.index')->with('success', 'Employee created successfully!');
     }
 
     public function show(string $id)
     {
-        $employee = Employee::with(['department', 'division', 'user'])->findOrFail($id);
+        $employee = Employee::with(['department', 'division', 'user', 'leaveBalance'])->findOrFail($id);
         return view('employees.show', compact('employee'));
     }
 
     public function edit(string $id)
     {
-        $employee = Employee::findOrFail($id);
+        $employee = Employee::with('leaveBalance')->findOrFail($id);
         $departments = Department::where('code', '!=', 'SYSTEM-ADMIN')->get();
         $divisions = Division::all();
 
@@ -103,7 +121,24 @@ class EmployeeController extends Controller
             'special_emergency_leave_balance' => 'required|numeric|min:0',
         ]);
 
-        $employee->update($validatedData);
+        // Update both tables inside a safe transaction
+        DB::transaction(function () use ($employee, $validatedData) {
+            // Update the employee table data
+            $employee->update($validatedData);
+
+            // Update or create the leave balance record associated with this employee
+            $employee->leaveBalance()->updateOrCreate(
+                ['employee_id' => $employee->id],
+                [
+                    'vacation_leave_balance' => $validatedData['vacation_leave_balance'],
+                    'sick_leave_balance' => $validatedData['sick_leave_balance'],
+                    'mandatory_leave_balance' => $validatedData['mandatory_leave_balance'],
+                    'special_privilege_leave_balance' => $validatedData['special_privilege_leave_balance'],
+                    'special_emergency_leave_balance' => $validatedData['special_emergency_leave_balance'],
+                ]
+            );
+        });
+
         return redirect()->route('employees.index')->with('success', 'Employee updated successfully!');
     }
 

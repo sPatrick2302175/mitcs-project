@@ -122,7 +122,7 @@
                                     <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2 group-focus-within:text-[#F2A455] transition-colors duration-200">
                                         Vacation Leave <span class="text-rose-500">*</span>
                                     </label>
-                                    <input type="number" step="0.01" min="0" name="vacation_leave_balance" value="{{ old('vacation_leave_balance', $employee->vacation_leave_balance) }}" required 
+                                    <input type="number" step="0.01" min="0" name="vacation_leave_balance" value="{{ old('vacation_leave_balance', $employee->leaveBalance?->vacation_leave_balance) }}" required 
                                         class="block w-full rounded-xl border-gray-200 bg-gray-50/40 px-4 py-3 text-gray-800 focus:border-[#F2A455] focus:ring focus:ring-[#F2A455]/10 focus:bg-white transition-all duration-200 sm:text-sm">
                                 </div>
 
@@ -130,7 +130,7 @@
                                     <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2 group-focus-within:text-[#F2A455] transition-colors duration-200">
                                         Sick Leave <span class="text-rose-500">*</span>
                                     </label>
-                                    <input type="number" step="0.01" min="0" name="sick_leave_balance" value="{{ old('sick_leave_balance', $employee->sick_leave_balance) }}" required 
+                                    <input type="number" step="0.01" min="0" name="sick_leave_balance" value="{{ old('sick_leave_balance', $employee->leaveBalance?->sick_leave_balance) }}" required 
                                         class="block w-full rounded-xl border-gray-200 bg-gray-50/40 px-4 py-3 text-gray-800 focus:border-[#F2A455] focus:ring focus:ring-[#F2A455]/10 focus:bg-white transition-all duration-200 sm:text-sm">
                                 </div>
 
@@ -138,7 +138,7 @@
                                     <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2 group-focus-within:text-[#F2A455] transition-colors duration-200">
                                         Mandatory Leave <span class="text-rose-500">*</span>
                                     </label>
-                                    <input type="number" step="0.01" min="0" name="mandatory_leave_balance" value="{{ old('mandatory_leave_balance', $employee->mandatory_leave_balance) }}" required 
+                                    <input type="number" step="0.01" min="0" name="mandatory_leave_balance" value="{{ old('mandatory_leave_balance', $employee->leaveBalance?->mandatory_leave_balance) }}" required 
                                         class="block w-full rounded-xl border-gray-200 bg-gray-50/40 px-4 py-3 text-gray-800 focus:border-[#F2A455] focus:ring focus:ring-[#F2A455]/10 focus:bg-white transition-all duration-200 sm:text-sm">
                                 </div>
 
@@ -146,7 +146,7 @@
                                     <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2 group-focus-within:text-[#F2A455] transition-colors duration-200">
                                         Special Privilege <span class="text-rose-500">*</span>
                                     </label>
-                                    <input type="number" step="0.01" min="0" name="special_privilege_leave_balance" value="{{ old('special_privilege_leave_balance', $employee->special_privilege_leave_balance) }}" required 
+                                    <input type="number" step="0.01" min="0" name="special_privilege_leave_balance" value="{{ old('special_privilege_leave_balance', $employee->leaveBalance?->special_privilege_leave_balance) }}" required 
                                         class="block w-full rounded-xl border-gray-200 bg-gray-50/40 px-4 py-3 text-gray-800 focus:border-[#F2A455] focus:ring focus:ring-[#F2A455]/10 focus:bg-white transition-all duration-200 sm:text-sm">
                                 </div>
 
@@ -154,7 +154,7 @@
                                     <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2 group-focus-within:text-[#F2A455] transition-colors duration-200">
                                         Special Emergency <span class="text-rose-500">*</span>
                                     </label>
-                                    <input type="number" step="0.01" min="0" name="special_emergency_leave_balance" value="{{ old('special_emergency_leave_balance', $employee->special_emergency_leave_balance) }}" required 
+                                    <input type="number" step="0.01" min="0" name="special_emergency_leave_balance" value="{{ old('special_emergency_leave_balance', $employee->leaveBalance?->special_emergency_leave_balance) }}" required 
                                         class="block w-full rounded-xl border-gray-200 bg-gray-50/40 px-4 py-3 text-gray-800 focus:border-[#F2A455] focus:ring focus:ring-[#F2A455]/10 focus:bg-white transition-all duration-200 sm:text-sm">
                                 </div>
 

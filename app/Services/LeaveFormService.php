@@ -269,8 +269,6 @@ class LeaveFormService
         $pdf->SetFont('CenturyGothic', '', 8);
 
         // --- COORDINATES & BOUNDING BOXES ---
-        // Note: These X coordinates now represent the LEFT EDGE of the invisible centering box.
-        // You may need to decrease 50 and 78 slightly so the box fits perfectly inside the table borders.
         $vlColumnX = 45;  
         $slColumnX = 73;  
         

@@ -101,19 +101,19 @@
                             <div class="grid grid-cols-2 gap-4">
                                 <div class="p-5 bg-white border border-gray-100/60 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300">
                                     <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400 block mb-1">Vacation Leave</span>
-                                    <span class="text-2xl font-black text-gray-800">{{ number_format($leaveRequest->employee->vacation_leave_balance ?? 0, 2) }}</span>
-                                </div>
+                                    <span class="text-2xl font-black text-gray-800">{{ number_format($leaveRequest->employee?->leaveBalance?->vacation_leave_balance ?? 0, 2) }}</span>
+                                </div>                                            
                                 <div class="p-5 bg-white border border-gray-100/60 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300">
                                     <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400 block mb-1">Sick Leave</span>
-                                    <span class="text-2xl font-black text-gray-800">{{ number_format($leaveRequest->employee->sick_leave_balance ?? 0, 2) }}</span>
+                                    <span class="text-2xl font-black text-gray-800">{{ number_format($leaveRequest->employee->leaveBalance?->sick_leave_balance ?? 0, 2) }}</span>
                                 </div>
                                 <div class="p-5 bg-white border border-gray-100/60 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300">
                                     <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400 block mb-1">Mandatory/Forced</span>
-                                    <span class="text-2xl font-black text-gray-800">{{ number_format($leaveRequest->employee->mandatory_leave_balance ?? 0, 2) }}</span>
+                                    <span class="text-2xl font-black text-gray-800">{{ number_format($leaveRequest->employee->leaveBalance?->mandatory_leave_balance ?? 0, 2) }}</span>
                                 </div>
                                 <div class="p-5 bg-white border border-gray-100/60 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300">
                                     <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400 block mb-1">Special Privilege</span>
-                                    <span class="text-2xl font-black text-gray-800">{{ number_format($leaveRequest->employee->special_privilege_leave_balance ?? 0, 2) }}</span>
+                                    <span class="text-2xl font-black text-gray-800">{{ number_format($leaveRequest->employee->leaveBalance?->special_privilege_leave_balance ?? 0, 2) }}</span>
                                 </div>
                             </div>
                         </div>

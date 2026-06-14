@@ -62,19 +62,15 @@ class LeaveRequest extends Model
         'working_days_applied' => 'decimal:1',
     ];
 
-    /**
-     * Get the employee who submitted the leave request.
-     */
     public function employee()
     {
+        //Get the employee who submitted the leave request.
         return $this->belongsTo(Employee::class);
     }
 
-    /**
-     * Get the officer who recommended the action (Section 7.B).
-     */
     public function recommendingOfficer()
     {
+        //Get the officer who recommended the action (Section 7.B).
         return $this->belongsTo(User::class, 'recommending_officer_id');
     }
 

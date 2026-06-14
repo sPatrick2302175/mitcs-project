@@ -6,11 +6,8 @@ use App\Models\Employee;
 use App\Models\CustomHoliday;
 use App\Models\LeaveRequest;
 use App\Models\LeaveRequestDetail;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
-//use Carbon\Carbon;
 use InvalidArgumentException;
 
 class LeaveManagementService
@@ -34,8 +31,13 @@ class LeaveManagementService
         }
 
         $balanceField = $this->getBalanceField($validated['leave_type']);
-        if ($balanceField && $employee->$balanceField < $validated['working_days_applied']) {
-            throw new InvalidArgumentException("Insufficient balance. You only have {$employee->$balanceField} days left.");
+        if ($balanceField) {
+            // FIXED: Safely fetch the balance using the relation
+            $currentBalance = $employee->leaveBalance?->{$balanceField} ?? 0;
+
+            if ($currentBalance < $validated['working_days_applied']) {
+                throw new InvalidArgumentException("Insufficient balance. You only have {$currentBalance} days left.");
+            }
         }
 
         // 3. Calculate Valid Working Days vs Holidays
@@ -72,23 +74,28 @@ class LeaveManagementService
         return $this->processLeaveTransaction($validated, $employee, $rawDates, $detailsToInsert);
     }
 
+    /**
+     * OPTIMIZED: Uses basic runtime caching to prevent hitting the database 11 times in a single loop execution
+     */
     public function getPhilippineHolidays(int $year): array
     {
-        // Fetch only ACTIVE holidays set by the admin
-        $allHolidays = CustomHoliday::where('is_active', true)->get();
+        static $allHolidays = null;
+
+        if ($allHolidays === null) {
+            $allHolidays = CustomHoliday::where('is_active', true)->get();
+        }
+
         $mappedHolidays = [];
 
         foreach ($allHolidays as $holiday) {
-            $holidayDate = $holiday->date; // Already a Carbon instance due to model casting
+            $holidayDate = $holiday->date; 
 
             if ($holiday->is_regular) {
-                // Recurrence: Override the calendar year to match the requested year
                 $mappedHolidays[] = [
                     'date' => sprintf('%04d-%02d-%02d', $year, $holidayDate->month, $holidayDate->day),
                     'name' => $holiday->name,
                 ];
             } else {
-                // One-time: Only include if the holiday's specific year matches the requested view year
                 if ($holidayDate->year === $year) {
                     $mappedHolidays[] = [
                         'date' => $holidayDate->format('Y-m-d'),
@@ -100,7 +107,6 @@ class LeaveManagementService
 
         return $mappedHolidays;
     }
-
 
     public function getBookedDates($queryBuilder): array
     {
@@ -168,12 +174,15 @@ class LeaveManagementService
         });
     }
 
+    /**
+     * FIXED: Interacts with the new employee_leave_balances table using relation and atomic decrement
+     */
     public function deductEmployeeBalance(Employee $employee, string $leaveType, float $daysToDeduct)
     {
         $balanceField = $this->getBalanceField($leaveType);
         if ($balanceField) {
-            $employee->$balanceField -= $daysToDeduct;
-            $employee->save();
+            $balanceRecord = $employee->leaveBalance()->firstOrCreate([]);
+            $balanceRecord->decrement($balanceField, $daysToDeduct);
         }
     }
 
@@ -182,31 +191,26 @@ class LeaveManagementService
      */
     public function getLeaveCalendarData(Employee $employee): array
     {
-        
-        // 1. Fetch employee's own upcoming booked dates
         $myBookedDates = $this->getBookedDates(
             LeaveRequest::where('employee_id', $employee->id)->whereIn('status', ['pending', 'approved'])
         );
 
-        // 2. Build base query for coworkers in the same division
         $divisionQuery = LeaveRequest::whereHas('employee', function($q) use ($employee) {
             $q->where('division_id', $employee->division_id)->where('id', '!=', $employee->id);
         });
 
-        // 3. Separate division leaves into approved vs pending
         $divisionApprovedDates = $this->getBookedDates((clone $divisionQuery)->where('status', 'approved'));
         $divisionPendingDates = $this->getBookedDates((clone $divisionQuery)->where('status', 'pending'));
         
-        // 4. UPDATED: Fetch public holidays for a multi-year window (Current Year + Next 2 Years)
         $currentYear = (int) date('Y');
         $holidayDates = [];
         
+        // This loop now runs blazing fast because getPhilippineHolidays utilizes runtime caching!
         for ($year = $currentYear; $year <= $currentYear + 10; $year++) {
             $yearlyHolidays = array_column($this->getPhilippineHolidays($year), 'date');
             $holidayDates = array_merge($holidayDates, $yearlyHolidays);
         }
         
-        // 5. Combine and deduplicate everything for the "disabled dates" master array
         $disabledDates = array_values(array_unique(array_merge(
             $myBookedDates, 
             $divisionApprovedDates, 

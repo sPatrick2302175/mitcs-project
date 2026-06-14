@@ -270,31 +270,31 @@
                         <li class="flex justify-between items-center bg-gray-50/50 p-3 rounded-xl border border-gray-100/40">
                             <span class="text-sm text-gray-600 font-semibold">Vacation Leave</span>
                             <span class="bg-orange-50 text-[#df9344] font-bold text-sm py-1 px-3 rounded-xl border border-orange-100/60">
-                                {{ number_format($employee->vacation_leave_balance, 2) }}
+                                {{ number_format($employee->leaveBalance?->vacation_leave_balance, 2) }}
                             </span>
                         </li>
                         <li class="flex justify-between items-center bg-gray-50/50 p-3 rounded-xl border border-gray-100/40">
                             <span class="text-sm text-gray-600 font-semibold">Sick Leave</span>
                             <span class="bg-orange-50 text-[#df9344] font-bold text-sm py-1 px-3 rounded-xl border border-orange-100/60">
-                                {{ number_format($employee->sick_leave_balance, 2) }}
+                                {{ number_format($employee->leaveBalance?->sick_leave_balance, 2) }}
                             </span>
                         </li>
                         <li class="flex justify-between items-center bg-gray-50/50 p-3 rounded-xl border border-gray-100/40">
                             <span class="text-sm text-gray-600 font-semibold">Mandatory Leave</span>
                             <span class="bg-gray-50 text-gray-700 font-bold text-sm py-1 px-3 rounded-xl border border-gray-200/40">
-                                {{ $employee->mandatory_leave_balance }}
+                                {{ $employee->leaveBalance?->mandatory_leave_balance }}
                             </span>
                         </li>
                         <li class="flex justify-between items-center bg-gray-50/50 p-3 rounded-xl border border-gray-100/40">
                             <span class="text-sm text-gray-600 font-semibold">Special Privilege</span>
                             <span class="bg-gray-50 text-gray-700 font-bold text-sm py-1 px-3 rounded-xl border border-gray-200/40">
-                                {{ $employee->special_privilege_leave_balance }}
+                                {{ $employee->leaveBalance?->special_privilege_leave_balance }}
                             </span>
                         </li>
                         <li class="flex justify-between items-center bg-gray-50/50 p-3 rounded-xl border border-gray-100/40">
                             <span class="text-sm text-gray-600 font-semibold">Special Emergency</span>
                             <span class="bg-gray-50 text-gray-700 font-bold text-sm py-1 px-3 rounded-xl border border-gray-200/40">
-                                {{ $employee->special_emergency_leave_balance }}
+                                {{ $employee->leaveBalance?->special_emergency_leave_balance }}
                             </span>
                         </li>
                     </ul>
