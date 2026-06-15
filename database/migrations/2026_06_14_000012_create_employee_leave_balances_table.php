@@ -13,8 +13,11 @@ return new class extends Migration
             $table->foreignId('employee_id')->constrained('employees')->cascadeOnDelete();
             $table->foreignId('leave_type_id')->constrained('leave_types')->restrictOnDelete();
             $table->decimal('balance', 8, 3)->default(0.000);
-            $table->integer('year')->nullable(); 
+            $table->integer('year')->nullable()->comment('Null for cumulative leaves (VL/SL), specific year for non-cumulative leaves (SPL)'); 
             $table->timestamps();
+
+            // ADDED: Prevent duplicate balance rows for an employee's specific leave type per year
+            $table->unique(['employee_id', 'leave_type_id', 'year'], 'emp_leave_year_unique');
         });
     }
 

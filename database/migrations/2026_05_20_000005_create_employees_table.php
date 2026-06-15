@@ -15,15 +15,13 @@ return new class extends Migration
             $table->id();
             // Changed to nullable to support onDelete('set null') per target schema
             $table->foreignId('division_id')->nullable()->constrained('divisions')->onDelete('set null');
-            
-            // REMOVED: department_id (Successfully normalized!)
-            
             $table->string('employee_id_number')->unique();
             $table->string('first_name');
             $table->string('last_name');
             $table->string('middle_initial', 5)->nullable();
             $table->string('position');
             $table->string('position_code')->nullable();
+            $table->decimal('salary', 12, 2)->nullable()->comment('Monthly gross salary for computing monetization');
             $table->timestamps();
         });
     }

@@ -10,13 +10,14 @@ class Employee extends Model
     use HasFactory;
 
     protected $fillable = [
-        'division_id', // Removed department_id
+        'division_id', 
         'employee_id_number',
         'first_name',
         'last_name',
         'middle_initial',
         'position',
         'position_code',
+        'salary', // ADDED: Must be fillable so we can save it to the database
     ];
 
     public function division()
@@ -27,7 +28,6 @@ class Employee extends Model
     /**
      * Traverse upstream: Employee -> Division -> Department
      */
-    // In Employee.php
     public function getDepartmentAttribute()
     {
         // This will allow you to call $employee->department safely
@@ -44,9 +44,6 @@ class Employee extends Model
         return $this->hasMany(LeaveRequest::class);
     }
 
-    /**
-     * Updated for the new dynamic structure (An employee now has many balance types)
-     */
     public function leaveBalances()
     {
         return $this->hasMany(EmployeeLeaveBalance::class);

@@ -51,15 +51,15 @@ class EmployeeController extends Controller
     {
         $departments = Department::where('code', '!=', 'SYSTEM-ADMIN')->get();
         $divisions = Division::all();
-        // Pass active leave types to the frontend so it can render input fields for each
-        $leaveTypes = \App\Models\LeaveType::all();
+        
+        // 🎯 FIX: Only send the 4 core leaves to the frontend creation form
+        $leaveTypes = \App\Models\LeaveType::whereIn('code', ['VL', 'SL', 'FL', 'SPL'])->get();
         
         return view('employees.create', compact('departments', 'divisions', 'leaveTypes'));
     }
 
     public function store(Request $request)
     {
-        // 1. Validate ALL incoming form data together
         $validatedData = $request->validate([
             'division_id' => 'required|exists:divisions,id',
             'employee_id_number' => 'required|string|unique:employees,employee_id_number|max:10',
@@ -69,14 +69,11 @@ class EmployeeController extends Controller
             'position' => 'required|string|max:255',
             'position_code' => 'required|string|max:20',
             
-            // Dynamic balances array (e.g., balances[1] = 15.0)
             'balances' => 'required|array',
             'balances.*' => 'numeric|min:0',
         ]);
 
-        // 2. Use a Database Transaction
         DB::transaction(function () use ($validatedData) {
-            // Create the main employee profile
             $employee = Employee::create([
                 'division_id' => $validatedData['division_id'],
                 'employee_id_number' => $validatedData['employee_id_number'],
@@ -87,10 +84,15 @@ class EmployeeController extends Controller
                 'position_code' => $validatedData['position_code'],
             ]);
 
-            // Create individual leave balance rows dynamically
-            foreach ($validatedData['balances'] as $leaveTypeId => $balanceAmount) {
+            // 🎯 FIX: Query ALL 13 system leaves from the database
+            $allLeaveTypes = \App\Models\LeaveType::all();
+
+            foreach ($allLeaveTypes as $type) {
+                // If it was submitted via the form, use that value. Otherwise, default to 0.00
+                $balanceAmount = $validatedData['balances'][$type->id] ?? 0.00;
+
                 $employee->leaveBalances()->create([
-                    'leave_type_id' => $leaveTypeId,
+                    'leave_type_id' => $type->id,
                     'balance' => $balanceAmount,
                     'year' => now()->year,
                 ]);
@@ -117,7 +119,9 @@ class EmployeeController extends Controller
         $employee = Employee::with('leaveBalances')->findOrFail($id);
         $departments = Department::where('code', '!=', 'SYSTEM-ADMIN')->get();
         $divisions = Division::all();
-        $leaveTypes = \App\Models\LeaveType::all();
+        
+        // 🎯 FIX: Only display the 4 core leaves on the editing screen
+        $leaveTypes = \App\Models\LeaveType::whereIn('code', ['VL', 'SL', 'FL', 'SPL'])->get();
 
         return view('employees.edit', compact('employee', 'departments', 'divisions', 'leaveTypes'));
     }
@@ -134,13 +138,11 @@ class EmployeeController extends Controller
             'position' => 'required|string|max:255',
             'position_code' => 'required|string|max:20',
 
-            // Dynamic balances array
             'balances' => 'required|array',
             'balances.*' => 'numeric|min:0',
         ]);
 
         DB::transaction(function () use ($employee, $validatedData) {
-            // Update the employee table data
             $employee->update([
                 'division_id' => $validatedData['division_id'],
                 'first_name' => $validatedData['first_name'],
@@ -150,7 +152,7 @@ class EmployeeController extends Controller
                 'position_code' => $validatedData['position_code'],
             ]);
 
-            // Loop through and update/create dynamic leave balances
+            // 🎯 FIX: Safely update only the 4 core leaves submitted by the form
             foreach ($validatedData['balances'] as $leaveTypeId => $balanceAmount) {
                 $employee->leaveBalances()->updateOrCreate(
                     ['leave_type_id' => $leaveTypeId],

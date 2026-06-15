@@ -19,6 +19,11 @@ class LeaveRequest extends Model
         'start_date',
         'end_date',
         'commutation_requested', 
+        
+        // ADDED: The historical balance snapshots for Section 7.A
+        'vl_balance_snapshot',
+        'sl_balance_snapshot',
+
         'status', 
         'recommendation_reason', 
         'recommending_officer_id', 
@@ -35,6 +40,8 @@ class LeaveRequest extends Model
         'end_date' => 'date',
         'commutation_requested' => 'boolean',
         'working_days_applied' => 'decimal:1',
+        'vl_balance_snapshot' => 'decimal:3',
+        'sl_balance_snapshot' => 'decimal:3',
     ];
 
     public function employee()
@@ -49,32 +56,33 @@ class LeaveRequest extends Model
 
     public function recommendingOfficer()
     {
-        // Now accurately points to the employees table
         return $this->belongsTo(Employee::class, 'recommending_officer_id');
     }
 
     public function approvingOfficial()
     {
-        // Now accurately points to the employees table
         return $this->belongsTo(Employee::class, 'approving_official_id');
     }
 
-    public function details()
+    public function ledgers()
     {
-        return $this->hasMany(LeaveRequestDetail::class);
+        // Polymorphic relationship mapping to reference_type and reference_id
+        return $this->morphMany(LeaveLedger::class, 'reference');
     }
-
+    /**
+     * A leave request can have multiple supporting documents attached.
+     */
     public function attachments()
     {
         return $this->hasMany(LeaveAttachment::class);
     }
-
-    // Add this inside your LeaveRequest model
-    public function ledgers()
+    /**
+     * Get the specific Form No. 6 details associated with this leave request.
+     */
+    public function details()
     {
-        // This tells Laravel: "Find all LeaveLedgers where reference_type is 'App\Models\LeaveRequest' 
-        // and reference_id is this request's ID."
-        return $this->morphMany(LeaveLedger::class, 'reference');
+        // Change 'LeaveRequestDetail::class' to whatever your details model is called
+        return $this->hasMany(LeaveRequestDetail::class); 
     }
 
     public function scopeSearch($query, $search)
@@ -84,7 +92,8 @@ class LeaveRequest extends Model
                 $subQ->where('leave_detail_category', 'like', "%{$search}%")
                      ->orWhere('leave_detail_specifics', 'like', "%{$search}%")
                      ->orWhereHas('leaveType', function ($typeQ) use ($search) {
-                         $typeQ->where('name', 'like', "%{$search}%")
+                         // UPDATED: Changed 'name' to 'leave_type_name'
+                         $typeQ->where('leave_type_name', 'like', "%{$search}%")
                                ->orWhere('code', 'like', "%{$search}%");
                      })
                      ->orWhereHas('employee', function ($empQ) use ($search) {
@@ -102,7 +111,7 @@ class LeaveRequest extends Model
                                   ->whereYear('date_of_filing', now()->year),
                 'last_3_months' => $q->where('date_of_filing', '>=', now()->subMonths(3)),
                 'this_year' => $q->whereYear('date_of_filing', now()->year),
-                default => $q
+                default => null
             };
         });
     }

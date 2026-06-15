@@ -87,7 +87,7 @@ class CalendarService
             }
 
             $employeeName = $leave->employee->first_name ?? 'Employee';
-            $leaveTypeName = $leave->leaveType->name ?? 'Leave';
+            $leaveTypeName = $leave->leaveType->leave_type_name ?? 'Leave';
             $title = "$employeeName ($leaveTypeName)";
 
             foreach ($leave->details as $detail) {

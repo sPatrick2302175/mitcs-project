@@ -37,9 +37,12 @@ class StoreLeaveRequest extends FormRequest
             if ($leaveTypeId) {
                 $leaveType = LeaveType::find($leaveTypeId);
                 
-                // If the dynamic leave type requires a file, ensure it was uploaded
+                // Fix: Changed $leaveType->name to $leaveType->leave_type_name
                 if ($leaveType && $leaveType->requires_attachment && !$this->hasFile('attachments')) {
-                    $validator->errors()->add('attachments', "An attachment (like a Medical Certificate) is strictly required for {$leaveType->name}.");
+                    $validator->errors()->add(
+                        'attachments', 
+                        "An attachment (like a Medical Certificate) is strictly required for {$leaveType->leave_type_name}."
+                    );
                 }
             }
         });

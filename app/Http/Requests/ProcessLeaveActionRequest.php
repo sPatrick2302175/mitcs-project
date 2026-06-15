@@ -16,10 +16,15 @@ class ProcessLeaveActionRequest extends FormRequest
     {
         return [
             'status' => 'required|in:approved,disapproved,recommended_for_approval,recommended_for_disapproval',
-            'recommendation_reason' => 'nullable|string',
+            
+            // Required only if the recommending officer chooses to recommend disapproval
+            'recommendation_reason' => 'required_if:status,recommended_for_disapproval|nullable|string',
+            
             'days_with_pay' => 'nullable|numeric|min:0',
             'days_without_pay' => 'nullable|numeric|min:0',
-            'disapproval_reason' => 'nullable|string',
+            
+            // Critical Fix: Strictly required if the final action is a disapproval
+            'disapproval_reason' => 'required_if:status,disapproved|nullable|string',
         ];
     }
 }

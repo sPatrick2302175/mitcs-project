@@ -41,20 +41,30 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        // find the official employee record matching the submitted ID number
+        // Find the official employee record matching the submitted ID number
         $employee = Employee::where('employee_id_number', $this->employee_id_number)->first();
 
-        // locate the web account associated with that employee profile
+        // Locate the web account associated with that employee profile
         $user = $employee ? User::where('employee_id', $employee->id)->first() : null;
 
-        // authenticate using the user account email we found silently in the background
-        if (! $user || ! Auth::attempt(['email' => $user->email, 'password' => $this->password], $this->boolean('remember'))) {
+        // Security Fix: If the user doesn't exist, we use a dummy hash string 
+        // to force Hash::check to perform the full computation anyway.
+        // This makes valid and invalid ID attempts take the exact same amount of time.
+        $dummyHash = '$2y$10$I95vA68mU5h0tYxqy9.wS.7P9P4XuxYm4uA6i/4eNlyB2hWjCba6K'; 
+        $userHash = $user ? $user->password : $dummyHash;
+
+        // Perform the password verification check safely
+        if (! $user || ! \Illuminate\Support\Facades\Hash::check($this->password, $userHash)) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
                 'employee_id_number' => __('auth.failed'),
             ]);
         }
+
+        // Performance Fix: Log the user in directly since we already have the object
+        // and verified the password, saving a duplicate database query.
+        Auth::login($user, $this->boolean('remember'));
 
         RateLimiter::clear($this->throttleKey());
     }

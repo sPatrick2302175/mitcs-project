@@ -123,23 +123,31 @@
                         <div class="space-y-4">
                             <h4 class="text-xs font-bold uppercase tracking-wider text-gray-400">Current Employee Leave Balances</h4>
                             
+                            @php
+                                // Index the employee's multiple balance rows by their Leave Type ID for instant lookup
+                                $indexedBalances = $leaveRequest->employee->leaveBalances->keyBy('leave_type_id');
+                                
+                                // Fetch all leave types to ensure we map names to IDs cleanly
+                                $allLeaveTypes = \App\Models\LeaveType::whereIn('code', ['VL', 'SL', 'FL', 'SPL'])->get();
+                            @php
+
                             <div class="grid grid-cols-2 gap-4">
-                                <div class="p-5 bg-white border border-gray-100/60 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300">
-                                    <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400 block mb-1">Vacation Leave</span>
-                                    <span class="text-2xl font-black text-gray-800">{{ number_format($leaveRequest->employee->leaveBalance?->vacation_leave_balance ?? 0, 2) }}</span>
-                                </div>
-                                <div class="p-5 bg-white border border-gray-100/60 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300">
-                                    <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400 block mb-1">Sick Leave</span>
-                                    <span class="text-2xl font-black text-gray-800">{{ number_format($leaveRequest->employee->leaveBalance?->sick_leave_balance ?? 0, 2) }}</span>
-                                </div>
-                                <div class="p-5 bg-white border border-gray-100/60 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300">
-                                    <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400 block mb-1">Mandatory/Forced</span>
-                                    <span class="text-2xl font-black text-gray-800">{{ number_format($leaveRequest->employee->leaveBalance?->mandatory_leave_balance ?? 0, 2) }}</span>
-                                </div>
-                                <div class="p-5 bg-white border border-gray-100/60 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300">
-                                    <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400 block mb-1">Special Privilege</span>
-                                    <span class="text-2xl font-black text-gray-800">{{ number_format($leaveRequest->employee->leaveBalance?->special_privilege_leave_balance ?? 0, 2) }}</span>
-                                </div>
+                                @foreach($allLeaveTypes as $type)
+                                    @php
+                                        // Pull the specific balance record for this leave type row
+                                        $balanceRecord = $indexedBalances->get($type->id);
+                                        $currentBalance = $balanceRecord ? $balanceRecord->balance : 0.00;
+                                    @endphp
+                                    
+                                    <div class="p-5 bg-white border border-gray-100/60 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300">
+                                        <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400 block mb-1">
+                                            {{ $type->leave_type_name }} ({{ $type->code }})
+                                        </span>
+                                        <span class="text-2xl font-black {{ $currentBalance <= 0 ? 'text-rose-600' : 'text-gray-800' }}">
+                                            {{ number_format($currentBalance, 2) }}
+                                        </span>
+                                    </div>
+                                @endforeach
                             </div>
                         </div>
                     </div>

@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Department extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'department_name',
         'code'
@@ -17,9 +19,12 @@ class Department extends Model
         return $this->hasMany(Division::class);
     }
 
+    /**
+     * Updated: Since employees are connected to divisions, not departments directly,
+     * we use hasManyThrough to get all employees in a department.
+     */
     public function employees()
     {
-        return $this->hasMany(Employee::class);
+        return $this->hasManyThrough(Employee::class, Division::class);
     }
-    //
 }

@@ -113,20 +113,55 @@
                         </div>
 
                         <div class="md:col-span-2 pt-4 mt-2 border-t border-gray-100/60">
-                            <h3 class="text-sm font-bold text-gray-700 mb-4 uppercase tracking-wider">Initial Leave Balances</h3>
-                            <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
+                            <div class="mb-6">
+                                <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wider">Initial Leave Balances</h3>
+                                <p class="text-xs text-gray-500 mt-1">Core leave allotments are pre-filled based on standard annual allocations. The remaining 9 event-driven leave lines will be automatically set to zero in the database.</p>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 @foreach($leaveTypes as $leaveType)
-                                    <div class="group">
-                                        <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2 group-focus-within:text-[#F2A455] transition-colors duration-200">
-                                            {{ $leaveType->name }} <span class="text-rose-500">*</span>
-                                        </label>
+                                    @php
+                                        // Pre-fill the standard values for core leaves on load
+                                        $defaultVal = 0;
+                                        if ($leaveType->code === 'VL' || $leaveType->code === 'SL') $defaultVal = 15;
+                                        if ($leaveType->code === 'FL') $defaultVal = 5;
+                                        if ($leaveType->code === 'SPL') $defaultVal = 3;
+                                    @endphp
+
+                                    <div class="group bg-white p-4 rounded-xl border border-gray-100 shadow-sm relative hover:border-[#F2A455]/30 transition-colors duration-200">
+                                        <div class="flex items-start justify-between mb-3">
+                                            <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 group-focus-within:text-[#F2A455] transition-colors duration-200">
+                                                {{ $leaveType->leave_type_name }} <span class="text-rose-500">*</span>
+                                            </label>
+
+                                            @if($leaveType->is_cumulative)
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                                    🔄 Cumulative
+                                                </span>
+                                            @else
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-100">
+                                                    📌 Fixed
+                                                </span>
+                                            @endif
+                                        </div>
+                                        
                                         <input type="number" 
                                             step="0.01" 
                                             min="0" 
                                             name="balances[{{ $leaveType->id }}]" 
-                                            value="{{ old('balances.' . $leaveType->id, 0) }}" 
+                                            value="{{ old('balances.' . $leaveType->id, $defaultVal) }}" 
                                             required 
                                             class="block w-full rounded-xl border-gray-200 bg-gray-50/40 px-4 py-3 text-gray-800 focus:border-[#F2A455] focus:ring focus:ring-[#F2A455]/10 focus:bg-white transition-all duration-200 sm:text-sm">
+                                        
+                                        <span class="block text-[10px] text-gray-400 mt-2 leading-relaxed">
+                                            @if($leaveType->code === 'VL' || $leaveType->code === 'SL')
+                                                Earns 1.25 days per month. Accumulates indefinitely.
+                                            @elseif($leaveType->code === 'FL')
+                                                Mandatory annual leave deducted from VL bank.
+                                            @else
+                                                Milestones & personal leave. Resets annually.
+                                            @endif
+                                        </span>
                                     </div>
                                 @endforeach
                             </div>

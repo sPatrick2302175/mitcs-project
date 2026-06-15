@@ -31,17 +31,22 @@ class LeaveManagementService
 
         // 1. Fetch the dynamic Leave Type
         $leaveType = LeaveType::findOrFail($validated['leave_type_id']);
+        $requestedDays = count($rawDates); // Assuming 1 date = 1 day for simplicity
 
-        // 2. Safely check the normalized balance if the leave type is paid
-        if ($leaveType->is_paid) {
+        // 2. Bypass balance check for Event-Driven leaves, but enforce the max cap limit
+        if ($leaveType->is_event_based) {
+            if ($leaveType->max_days_per_year && $requestedDays > $leaveType->max_days_per_year) {
+                throw new InvalidArgumentException("This request exceeds the maximum allowed {$leaveType->max_days_per_year} days for this event.");
+            }
+        } 
+        // 3. Normal balance check for VL, SL, SPL, Forced Leave
+        elseif ($leaveType->is_paid) {
             $balanceRecord = EmployeeLeaveBalance::where('employee_id', $employee->id)
                 ->where('leave_type_id', $leaveType->id)
                 ->first();
 
-            $currentBalance = $balanceRecord ? $balanceRecord->balance : 0;
-
-            if ($currentBalance < $validated['working_days_applied']) {
-                throw new InvalidArgumentException("Insufficient balance. You only have {$currentBalance} days left for {$leaveType->name}.");
+            if (!$balanceRecord || $balanceRecord->balance < $requestedDays) {
+                throw new InvalidArgumentException('Insufficient leave balance for this request.');
             }
         }
 
@@ -78,6 +83,23 @@ class LeaveManagementService
         $attachments = $validated['attachments'] ?? [];
         unset($validated['attachments']);
         unset($validated['selected_dates']);
+
+        // Find the VL and SL type IDs dynamically (Assuming codes are 'VL' and 'SL')
+        $vlType = LeaveType::where('code', 'VL')->first();
+        $slType = LeaveType::where('code', 'SL')->first();
+
+        // Get current balances (default to 0 if none exist yet)
+        $vlBalance = EmployeeLeaveBalance::where('employee_id', $employee->id)
+            ->where('leave_type_id', $vlType->id)
+            ->value('balance') ?? 0.000;
+
+        $slBalance = EmployeeLeaveBalance::where('employee_id', $employee->id)
+            ->where('leave_type_id', $slType->id)
+            ->value('balance') ?? 0.000;
+
+        // Append the snapshots to the validated array before passing it to the transaction
+        $validated['vl_balance_snapshot'] = $vlBalance;
+        $validated['sl_balance_snapshot'] = $slBalance;
 
         return $this->processLeaveTransaction($validated, $employee, $rawDates, $detailsToInsert, $attachments);
     }
@@ -182,41 +204,115 @@ class LeaveManagementService
     /**
      * Deduct balance and create a strict audit trail in the ledger.
      */
-    public function deductEmployeeBalance(Employee $employee, int $leaveTypeId, float $daysToDeduct, ?int $referenceId = null)
+    public function deductEmployeeBalance(Employee $employee, int $leaveTypeId, float $daysToDeduct, int $leaveRequestId): void
     {
-        DB::transaction(function () use ($employee, $leaveTypeId, $daysToDeduct, $referenceId) {
-            $balanceRecord = EmployeeLeaveBalance::firstOrCreate(
-                ['employee_id' => $employee->id, 'leave_type_id' => $leaveTypeId],
-                ['balance' => 0]
-            );
+        $leaveType = LeaveType::findOrFail($leaveTypeId);
 
-            // Before decrementing, lock the row for reading/writing
-            $balanceRecord = EmployeeLeaveBalance::where('employee_id', $employee->id)
-                ->where('leave_type_id', $leaveTypeId)
-                ->lockForUpdate() // Prevents concurrent modifications
-                ->firstOrCreate(['balance' => 0]);
-
-            if ($balanceRecord->balance < $daysToDeduct) {
-                throw new \Exception('Approval failed: Employee does not have enough remaining balance.');
-            }
-
-            $balanceRecord->decrement('balance', $daysToDeduct);
-
-            $runningBalance = $balanceRecord->fresh()->balance;
-
-            LeaveLedger::create([
-                'employee_id'     => $employee->id,
-                'leave_type_id'    => $leaveTypeId,
-                'type'             => 'deduction',
-                'amount'           => $daysToDeduct,
-                'running_balance'  => $runningBalance,
+        DB::transaction(function () use ($employee, $leaveType, $daysToDeduct, $leaveRequestId) {
+            
+            // 1. FOR NORMAL LEAVES (VL, SL, SPL, Forced)
+            if (!$leaveType->is_event_based) {
                 
-                // ✅ FIX: Supply polymorphic connection and accountability tracking
-                'reference_type'   => 'leave_request', 
-                'reference_id'     => $referenceId,
-                'created_by'       => auth()->id(), // Stores the ID of the officer who clicked 'Approve'
-                'remarks'          => 'Leave approved and deducted',
-            ]);
+                $balanceRecord = EmployeeLeaveBalance::where('employee_id', $employee->id)
+                    ->where('leave_type_id', $leaveType->id)
+                    ->first();
+
+                $newBalance = $balanceRecord ? ($balanceRecord->balance - $daysToDeduct) : 0.00;
+
+                if ($balanceRecord) {
+                    $balanceRecord->update(['balance' => $newBalance]);
+                }
+
+                // 🎯 FIX: Use polymorphic tracking for standard leaves
+                LeaveLedger::create([
+                    'employee_id' => $employee->id,
+                    'leave_type_id' => $leaveType->id,
+                    'type' => 'deduction',
+                    'amount' => $daysToDeduct,
+                    'running_balance' => $newBalance,
+                    'reference_type' => \App\Models\LeaveRequest::class,
+                    'reference_id' => $leaveRequestId,
+                    'created_by' => auth()->id(), // Logs WHICH admin approved it!
+                    'reason_code' => 'APPROVED_LEAVE',
+                    'remarks' => 'Approved ' . $leaveType->code . ' Request',
+                ]);
+
+            } 
+            // 2. FOR EVENT-BASED LEAVES (Maternity, Calamity, VAWC)
+            else {
+                // 🎯 FIX: Use polymorphic tracking for event-based leaves
+                LeaveLedger::create([
+                    'employee_id' => $employee->id,
+                    'leave_type_id' => $leaveType->id,
+                    'type' => 'deduction',
+                    'amount' => $daysToDeduct,
+                    'running_balance' => 0.00, // Balance remains unaffected
+                    'reference_type' => \App\Models\LeaveRequest::class,
+                    'reference_id' => $leaveRequestId,
+                    'created_by' => auth()->id(), 
+                    'reason_code' => 'EVENT_LEAVE_USED',
+                    'remarks' => 'Used Event Leave: ' . $leaveType->leave_type_name,
+                ]);
+            }
+        });
+    }
+
+    public function accrueMonthlyLeaveCredits(): void
+    {
+        $leaveTypes = LeaveType::whereIn('code', ['VL', 'SL'])->get();
+
+        if ($leaveTypes->isEmpty()) {
+            return;
+        }
+
+        $employees = Employee::all();
+
+        DB::transaction(function () use ($employees, $leaveTypes) {
+            $currentMonthYear = now()->format('F Y'); // e.g. "June 2026"
+            $remarksText = "Earned Leave Credit for {$currentMonthYear}";
+
+            foreach ($employees as $employee) {
+                foreach ($leaveTypes as $leaveType) {
+                    
+                    // 🛡️ SAFETY CHECK: Did we already give them credits this month?
+                    $alreadyAccrued = \App\Models\LeaveLedger::where('employee_id', $employee->id)
+                        ->where('leave_type_id', $leaveType->id)
+                        ->where('reason_code', 'MONTHLY_ACCRUAL')
+                        ->where('remarks', $remarksText)
+                        ->exists();
+
+                    if ($alreadyAccrued) {
+                        continue; // Skip to the next one, they already got paid!
+                    }
+
+                    // 1. Fetch or create balance
+                    $balanceRecord = \App\Models\EmployeeLeaveBalance::firstOrCreate(
+                        [
+                            'employee_id' => $employee->id,
+                            'leave_type_id' => $leaveType->id,
+                        ],
+                        ['balance' => 0.00]
+                    );
+
+                    // 2. Add 1.25 credits
+                    $newBalance = (float) $balanceRecord->balance + 1.25;
+                    $balanceRecord->update(['balance' => $newBalance]);
+
+                    // 3. Create the Ledger Receipt
+                    \App\Models\LeaveLedger::create([
+                        'employee_id' => $employee->id,
+                        'leave_type_id' => $leaveType->id,
+                        'type' => 'accrual',
+                        'amount' => 1.25,
+                        'running_balance' => $newBalance,
+                        'reference_type' => null, 
+                        'reference_id' => null,
+                        'created_by' => null,     
+                        'reason_code' => 'MONTHLY_ACCRUAL',
+                        'remarks' => $remarksText,
+                    ]);
+                }
+            }
         });
     }
 

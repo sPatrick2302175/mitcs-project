@@ -26,6 +26,11 @@ return new class extends Migration
             // 6.D COMMUTATION
             $table->boolean('commutation_requested')->default(false);
             
+            // 7.A CERTIFICATION OF LEAVE CREDITS (SNAPSHOTS)
+            // Added to freeze the balance history at the time of filing
+            $table->decimal('vl_balance_snapshot', 8, 3)->nullable()->comment('VL balance before this deduction');
+            $table->decimal('sl_balance_snapshot', 8, 3)->nullable()->comment('SL balance before this deduction');
+
             $table->enum('status', [
                 'pending', 
                 'recommended_for_approval', 
@@ -34,11 +39,11 @@ return new class extends Migration
                 'disapproved'
             ])->default('pending');
             
-            // 7.B RECOMMENDATION (Now points to employees table)
+            // 7.B RECOMMENDATION 
             $table->text('recommendation_reason')->nullable();
             $table->foreignId('recommending_officer_id')->nullable()->constrained('employees')->nullOnDelete();
             
-            // 7.C & 7.D FINAL ACTION (Now points to employees table)
+            // 7.C & 7.D FINAL ACTION (Can be Dept Head OR Admin Officer)
             $table->foreignId('approving_official_id')->nullable()->constrained('employees')->nullOnDelete();
             $table->string('approved_others')->nullable();
             $table->text('disapproval_reason')->nullable();

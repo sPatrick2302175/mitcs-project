@@ -66,7 +66,7 @@
                 <div class="flex-1 w-full bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100/60 p-8">
                 
                 <!-- Error Alert -->
-                @if ($errors->any())
+                @if ($errors->any() || session('error'))
                     <div class="mb-6 bg-rose-50/70 backdrop-blur-sm border border-rose-100 rounded-2xl p-5 shadow-sm transition-all duration-300 animate-fadeIn flex items-start">
                         <div class="shrink-0 bg-rose-100 p-2 rounded-xl">
                             <svg class="h-5 w-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -74,8 +74,12 @@
                             </svg>
                         </div>
                         <div class="ms-4 mt-0.5">
-                            <h3 class="text-sm font-extrabold text-rose-800 tracking-tight">Please fix the following errors before submitting:</h3>
+                            <h3 class="text-sm font-extrabold text-rose-800 tracking-tight">Please review the following errors:</h3>
                             <ul class="list-disc list-inside text-sm font-medium text-rose-700 mt-1.5 space-y-0.5">
+                                @if(session('error'))
+                                    <li>{{ session('error') }}</li>
+                                @endif
+                                
                                 @foreach ($errors->all() as $error)
                                     <li>{{ $error }}</li>
                                 @endforeach
@@ -109,11 +113,30 @@
                                     'Special Emergency Leave' => '(CSC MC No. 2, s. 2012, as amended)',
                                     'Adoption Leave' => '(R.A. No. 8552)'
                                 ];
+
+                                // 1. Fetch all actual leave types from the database
+                                $dbLeaveTypes = \App\Models\LeaveType::all();
                             @endphp
 
                             @foreach($leaveTypes as $type => $citation)
+                                @php
+                                    // 2. Match the UI string to the Database Record (fuzzy match to handle "Special Emergency (Calamity) Leave")
+                                    $dbType = $dbLeaveTypes->first(function($item) use ($type) {
+                                        $search = str_replace(' Leave', '', $type); // e.g. "Special Emergency"
+                                        return str_contains($item->leave_type_name, $search);
+                                    });
+                                    
+                                    $typeId = $dbType ? $dbType->id : '';
+                                @endphp
+
                                 <label class="flex items-start p-4 bg-white border border-gray-200/80 rounded-xl cursor-pointer hover:border-orange-300 hover:bg-orange-50/10 focus-within:ring-2 focus-within:ring-[#F2A455]/40 transition group">
-                                    <input type="radio" name="leave_type" value="{{ $type }}" @checked(old('leave_type') == $type) class="mt-1 w-4 h-4 text-[#F2A455] border-gray-300 focus:ring-[#F2A455] focus:ring-offset-0 bg-gray-50 transition" {{ $loop->first ? 'required' : '' }}>
+                                    <input type="radio" 
+                                        name="leave_type_id" 
+                                        value="{{ $typeId }}" 
+                                        data-name="{{ $type }}"
+                                        @checked(old('leave_type_id') == $typeId) 
+                                        class="mt-1 w-4 h-4 text-[#F2A455] border-gray-300 focus:ring-[#F2A455] focus:ring-offset-0 bg-gray-50 transition" 
+                                        {{ $loop->first ? 'required' : '' }}>
                                     <div class="ms-3">
                                         <span class="text-sm font-bold text-gray-700 group-hover:text-gray-900 transition-colors block">
                                             {{ $type }}
@@ -127,7 +150,7 @@
 
                             <div class="col-span-1 md:col-span-2 mt-2 p-4 rounded-xl bg-gray-50/50 border border-gray-200/60 shadow-inner">
                                 <label class="flex items-center space-x-3 cursor-pointer mb-2 group">
-                                    <input type="radio" name="leave_type" value="Others" @checked(old('leave_type') == 'Others') class="w-4 h-4 text-[#F2A455] border-gray-300 focus:ring-[#F2A455] focus:ring-offset-0 bg-gray-50 transition">
+                                    <input type="radio" name="leave_type_id" value="others" data-name="Others" @checked(old('leave_type_id') == 'others') class="w-4 h-4 text-[#F2A455] border-gray-300 focus:ring-[#F2A455] focus:ring-offset-0 bg-gray-50 transition">
                                     <span class="text-sm font-bold text-gray-700 group-hover:text-gray-900 transition-colors">Others:</span>
                                 </label>
                                 <input type="text" name="leave_type_others" value="{{ old('leave_type_others') }}" placeholder="Specify other leave type..." class="block w-full rounded-xl border-gray-200 bg-white shadow-sm focus:border-[#F2A455] focus:ring-[#F2A455] text-sm font-medium py-2.5 transition-all">
@@ -263,34 +286,55 @@
                 </form>
             </div> 
             @if($employee = auth()->user()->employee)
-            <div class="w-full lg:w-80 shrink-0 sticky top-8">
-                <div class="bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100/60 p-8">
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 border-b border-gray-100 pb-4 mb-6">Leave Balances</h3>
+                @php
+                    // 1. Index the balances by leave_type_id for instant lookup
+                    $indexedBalances = $employee->leaveBalances->keyBy('leave_type_id');
                     
-                    <ul class="space-y-4">
-                        @forelse($leaveTypes as $leaveType)
-                            @php
-                                // 1. Grab the current user's balance row for this leave type
-                                $balanceRecord = $employee->leaveBalances->firstWhere('leave_type_id', $leaveType->id);
-                                $balanceValue = $balanceRecord ? $balanceRecord->balance : 0;
+                    // 2. Define exactly which leaves we want to show in this sidebar, in this order
+                    $displayCodes = ['VL', 'SL', 'FL', 'SPL', 'SEL'];
+                    
+                    // 3. Fetch them from the database and keep our preferred order
+                    $leaveTypes = \App\Models\LeaveType::whereIn('code', $displayCodes)
+                        ->get()
+                        ->sortBy(function($model) use ($displayCodes) {
+                            return array_search($model->code, $displayCodes);
+                        });
+                @endphp
 
-            
-                            @endphp
-                            
-                            <li class="flex justify-between items-center bg-gray-50/50 p-3 rounded-xl border border-gray-100/40">
-                                <span class="text-sm text-gray-600 font-semibold">{{ $leaveType->name }}</span>
-                                <span class="{{ $badgeClasses }} font-bold text-sm py-1 px-3 rounded-xl border">
-                                    {{ number_format($balanceValue, 2) }}
-                                </span>
-                            </li>
-                        @empty
-                            <li class="text-center text-xs text-gray-400 italic py-2">
-                                No leave types configured.
-                            </li>
-                        @endforelse
-                    </ul>
+                <div class="w-full lg:w-80 shrink-0 sticky top-8">
+                    <div class="bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100/60 p-8">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 border-b border-gray-100 pb-4 mb-6">Leave Balances</h3>
+                        
+                        <ul class="space-y-4">
+                            @foreach($leaveTypes as $type)
+                                @php
+                                    // Safely get the balance or default to 0.00
+                                    $balanceRecord = $indexedBalances->get($type->id);
+                                    $balanceAmt = $balanceRecord ? (float)$balanceRecord->balance : 0.00;
+                                    
+                                    // Check if it should use the orange highlight (VL and SL) or gray (the rest)
+                                    $isPrimary = in_array($type->code, ['VL', 'SL']);
+                                @endphp
+                                
+                                <li class="flex justify-between items-center bg-gray-50/50 p-3 rounded-xl border border-gray-100/40">
+                                    <span class="text-sm text-gray-600 font-semibold">
+                                        {{ $type->code === 'SEL' ? 'Special Emergency' : str_replace(' Leave', '', $type->leave_type_name) }} Leave
+                                    </span>
+                                    
+                                    @if($isPrimary)
+                                        <span class="bg-orange-50 text-[#df9344] font-bold text-sm py-1 px-3 rounded-xl border border-orange-100/60">
+                                            {{ number_format($balanceAmt, 2) }}
+                                        </span>
+                                    @else
+                                        <span class="bg-gray-50 text-gray-700 font-bold text-sm py-1 px-3 rounded-xl border border-gray-200/40">
+                                            {{ number_format($balanceAmt, 2) }}
+                                        </span>
+                                    @endif
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
                 </div>
-            </div>
             @endif
 
             </div> 
@@ -303,7 +347,7 @@
             /* -------------------------------------------------------------
                 Dynamic Form 6.B Visibility Logic (Smooth Transition Mode)
             ------------------------------------------------------------- */
-            const typeRadios = document.querySelectorAll('input[name="leave_type"]');
+            const typeRadios = document.querySelectorAll('input[name="leave_type_id"]');
             const wrapper6B = document.getElementById('section_6b_wrapper');
             const detailsLayoutContainer = document.getElementById('details_layout_container');
             const subCategoriesLeftCol = document.getElementById('sub_categories_left_col');
@@ -331,7 +375,8 @@
             }
 
             function handleLeaveTypeChange() {
-                const selectedType = document.querySelector('input[name="leave_type"]:checked')?.value;
+                const checkedRadio = document.querySelector('input[name="leave_type_id"]:checked');
+                const selectedType = checkedRadio ? checkedRadio.dataset.name : null;
                 
                 // Reset layout structure modifications completely
                 subCategoriesLeftCol.classList.remove('hidden');

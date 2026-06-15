@@ -20,7 +20,7 @@ class User extends Authenticatable
         'email',
         'password',
         'employee_id', 
-        'is_admin', // Removed department_id
+        'is_admin', 
     ];
 
     protected $hidden = [

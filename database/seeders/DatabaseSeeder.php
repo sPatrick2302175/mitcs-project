@@ -41,19 +41,20 @@ class DatabaseSeeder extends Seeder
                 'last_name' => 'Administrator',
                 'middle_initial' => 'S',
                 'position' => 'Super Admin',
-                'division_id' => $division->id, // department_id removed!
+                'division_id' => $division->id,
+                'salary' => 0.00 // Super admin can have a baseline flat rate
             ]
         );
 
         // Super Admin User using the linked employee record
-        if (!User::where('email', 'admin@company.com')->exists()) {
-            User::create([
+        User::updateOrCreate(
+            ['email' => 'admin@company.com'],
+            [
                 'name' => 'System Administrator',
-                'email' => 'admin@company.com',
-                'password' => Hash::make('12345678'), // changeable
-                'is_admin' => 2, // Super Admin role
+                'password' => Hash::make('12345678'), // Changeable upon deployment
+                'is_admin' => 2, // Corresponds to ROLE_SUPER_ADMIN = 2
                 'employee_id' => $adminEmployee->id, 
-            ]);
-        }
+            ]
+        );
     }
 }

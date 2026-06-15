@@ -2,40 +2,34 @@
 
 namespace App\Http\Controllers;
 
- use App\Models\User;
- use App\Models\Department;
- use Illuminate\Http\Request;
+use App\Models\User;
+use App\Models\Department;
+use Illuminate\Http\Request;
 
- class UserController extends Controller
- {
+class UserController extends Controller
+{
     public function index()
     {
-        $users = User::with('department')->get();
+        $users = User::with('employee.division.department')->get();
         return view('users.index', compact('users'));
     }
 
     public function edit(User $user)
     {
-        $departments = Department::all();
-        return view('users.edit', compact('user', 'departments'));
+        return view('users.edit', compact('user'));
     }
 
     public function update(Request $request, User $user)
     {
         $request->validate([
-            'is_admin' => 'required|integer|in:0,1,2,3', // 👈 Updated to accept Department Head (3)
-            // Department field is required if the user is an Admin Officer (1) or Dept Head (3)
-            'department_id' => 'required_if:is_admin,1|required_if:is_admin,3|nullable|exists:departments,id',
+            // Only validate the role, since the department is tied to their employee profile!
+            'is_admin' => 'required|integer|in:0,1,2,3',
         ]);
-
-        // Retain department mapping details for both roles 1 and 3
-        $departmentId = in_array($request->is_admin, [User::ROLE_ADMIN_OFFICER, User::ROLE_DEPT_HEAD]) 
-            ? $request->department_id 
-            : null;
 
         $user->update([
             'is_admin' => $request->is_admin,
-            'department_id' => $departmentId,
+            // We NO LONGER update department_id here. 
+            // If they need to change departments, they must be transferred via EmployeeController!
         ]);
 
         return redirect()->route('users.index')->with('success', 'User role updated successfully.');

@@ -10,20 +10,19 @@ use Symfony\Component\HttpFoundation\Response;
 
 class IsAdmin
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  \Closure(Request): (Response)  $next
-     */
     public function handle(Request $request, Closure $next): Response
     {
         // Math magic: 1, 2, and 3 are all >= 1. 
-        // This lets Admin Officers, Super Admins, and Dept Heads use all shared admin features seamlessly!
         if (Auth::check() && Auth::user()->is_admin >= User::ROLE_ADMIN_OFFICER) {
             return $next($request);
         }
 
-        // Redirect to dashboard with an error message
+        // Fix: If the request is from JavaScript/Axios, return a proper 403 JSON response
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'Unauthorized action.'], 403);
+        }
+
+        // Otherwise, standard web redirect
         return redirect()->route('dashboard')->with('error', 'Unauthorized action.');
     }
 }

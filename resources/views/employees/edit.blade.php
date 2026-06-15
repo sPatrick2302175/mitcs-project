@@ -115,17 +115,34 @@
                         </div>
                         
                         <div class="md:col-span-2 pt-4 mt-2 border-t border-gray-100/60">
-                            <h3 class="text-sm font-bold text-gray-700 mb-4 uppercase tracking-wider">Manage Leave Balances</h3>
-                            <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
+                            <div class="mb-6">
+                                <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wider">Manage Leave Balances</h3>
+                                <p class="text-xs text-gray-500 mt-1">Adjust core available balances. Manual adjustments made here update the active balances directly.</p>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 @foreach($leaveTypes as $leaveType)
                                     @php
-                                        // Pull the matching balance record from the employee's loaded relationship collection
                                         $currentBalance = $employee->leaveBalances->firstWhere('leave_type_id', $leaveType->id)?->balance ?? 0;
                                     @endphp
-                                    <div class="group">
-                                        <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2 group-focus-within:text-[#F2A455] transition-colors duration-200">
-                                            {{ $leaveType->name }} <span class="text-rose-500">*</span>
-                                        </label>
+
+                                    <div class="group bg-white p-4 rounded-xl border border-gray-100 shadow-sm relative hover:border-[#F2A455]/30 transition-colors duration-200">
+                                        <div class="flex items-start justify-between mb-3">
+                                            <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 group-focus-within:text-[#F2A455] transition-colors duration-200">
+                                                {{ $leaveType->leave_type_name }} <span class="text-rose-500">*</span>
+                                            </label>
+
+                                            @if($leaveType->is_cumulative)
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                                    🔄 Cumulative
+                                                </span>
+                                            @else
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-100">
+                                                    📌 Fixed
+                                                </span>
+                                            @endif
+                                        </div>
+                                        
                                         <input type="number" 
                                             step="0.01" 
                                             min="0" 
