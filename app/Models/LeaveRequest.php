@@ -9,51 +9,26 @@ class LeaveRequest extends Model
 {
     use HasFactory;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
     protected $fillable = [
         'employee_id',
+        'leave_type_id',
         'date_of_filing',
-        
-        // 6.A TYPE OF LEAVE
-        'leave_type', 
-        'leave_type_others', 
-        
-        // 6.B DETAILS OF LEAVE
         'leave_detail_category', 
         'leave_detail_specifics', 
-        
-        // 6.C NUMBER OF WORKING DAYS APPLIED FOR
         'working_days_applied',
         'start_date',
         'end_date',
-        
-        // 6.D COMMUTATION
         'commutation_requested', 
-        
-        // 7. DETAILS OF ACTION ON APPLICATION
         'status', 
-        
-        // 7.B RECOMMENDATION
         'recommendation_reason', 
         'recommending_officer_id', 
-        
-        // 7.C & 7.D FINAL ACTION
-        'days_with_pay',
-        'days_without_pay',
+        'approving_official_id', 
         'approved_others', 
         'disapproval_reason', 
-        'approving_official_id', 
+        'days_with_pay',
+        'days_without_pay',
     ];
 
-    /**
-     * The attributes that should be cast to native types.
-     *
-     * @var array
-     */
     protected $casts = [
         'date_of_filing' => 'date',
         'start_date' => 'date',
@@ -64,22 +39,24 @@ class LeaveRequest extends Model
 
     public function employee()
     {
-        //Get the employee who submitted the leave request.
         return $this->belongsTo(Employee::class);
+    }
+
+    public function leaveType()
+    {
+        return $this->belongsTo(LeaveType::class);
     }
 
     public function recommendingOfficer()
     {
-        //Get the officer who recommended the action (Section 7.B).
-        return $this->belongsTo(User::class, 'recommending_officer_id');
+        // Now accurately points to the employees table
+        return $this->belongsTo(Employee::class, 'recommending_officer_id');
     }
 
-    /**
-     * Get the official who gave final approval/disapproval (Section 7.C / 7.D).
-     */
     public function approvingOfficial()
     {
-        return $this->belongsTo(User::class, 'approving_official_id');
+        // Now accurately points to the employees table
+        return $this->belongsTo(Employee::class, 'approving_official_id');
     }
 
     public function details()
@@ -87,17 +64,29 @@ class LeaveRequest extends Model
         return $this->hasMany(LeaveRequestDetail::class);
     }
 
-    /**
-     * Scope a query to search by leave type, specifics, or employee name.
-     */
+    public function attachments()
+    {
+        return $this->hasMany(LeaveAttachment::class);
+    }
+
+    // Add this inside your LeaveRequest model
+    public function ledgers()
+    {
+        // This tells Laravel: "Find all LeaveLedgers where reference_type is 'App\Models\LeaveRequest' 
+        // and reference_id is this request's ID."
+        return $this->morphMany(LeaveLedger::class, 'reference');
+    }
+
     public function scopeSearch($query, $search)
     {
         return $query->when($search, function ($q, $search) {
             $q->where(function ($subQ) use ($search) {
-                $subQ->where('leave_type', 'like', "%{$search}%")
-                     ->orWhere('leave_type_others', 'like', "%{$search}%")
-                     ->orWhere('leave_detail_category', 'like', "%{$search}%")
+                $subQ->where('leave_detail_category', 'like', "%{$search}%")
                      ->orWhere('leave_detail_specifics', 'like', "%{$search}%")
+                     ->orWhereHas('leaveType', function ($typeQ) use ($search) {
+                         $typeQ->where('name', 'like', "%{$search}%")
+                               ->orWhere('code', 'like', "%{$search}%");
+                     })
                      ->orWhereHas('employee', function ($empQ) use ($search) {
                          $empQ->whereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$search}%"]);
                      });
@@ -105,9 +94,6 @@ class LeaveRequest extends Model
         });
     }
 
-    /**
-     * Scope a query to filter by timeframe.
-     */
     public function scopeWithinTimeframe($query, $timeframe)
     {
         return $query->when($timeframe, function ($q, $timeframe) {

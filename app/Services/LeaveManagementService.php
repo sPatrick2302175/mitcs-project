@@ -6,22 +6,21 @@ use App\Models\Employee;
 use App\Models\CustomHoliday;
 use App\Models\LeaveRequest;
 use App\Models\LeaveRequestDetail;
+use App\Models\LeaveType;
+use App\Models\EmployeeLeaveBalance;
+use App\Models\LeaveLedger;
+use App\Models\LeaveAttachment;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
 use InvalidArgumentException;
 
 class LeaveManagementService
 {
-    /**
-     * Orchestrate the entire leave application process (Validation + Calculation + Insertion)
-     */
     public function createLeaveApplication(Employee $employee, array $validated): LeaveRequest
     {
-        // 1. Parse and sort the incoming dates
         $rawDates = array_map('trim', explode(',', $validated['selected_dates']));
         sort($rawDates);
 
-        // 2. Run Business Rule Validations
         if ($this->checkPersonalOverlap($employee, $rawDates)) {
             throw new InvalidArgumentException('You have already booked a leave request for one or more of these specific dates.');
         }
@@ -30,17 +29,22 @@ class LeaveManagementService
             throw new InvalidArgumentException('One or more selected dates are already taken by another employee whose leave is approved.');
         }
 
-        $balanceField = $this->getBalanceField($validated['leave_type']);
-        if ($balanceField) {
-            // FIXED: Safely fetch the balance using the relation
-            $currentBalance = $employee->leaveBalance?->{$balanceField} ?? 0;
+        // 1. Fetch the dynamic Leave Type
+        $leaveType = LeaveType::findOrFail($validated['leave_type_id']);
+
+        // 2. Safely check the normalized balance if the leave type is paid
+        if ($leaveType->is_paid) {
+            $balanceRecord = EmployeeLeaveBalance::where('employee_id', $employee->id)
+                ->where('leave_type_id', $leaveType->id)
+                ->first();
+
+            $currentBalance = $balanceRecord ? $balanceRecord->balance : 0;
 
             if ($currentBalance < $validated['working_days_applied']) {
-                throw new InvalidArgumentException("Insufficient balance. You only have {$currentBalance} days left.");
+                throw new InvalidArgumentException("Insufficient balance. You only have {$currentBalance} days left for {$leaveType->name}.");
             }
         }
 
-        // 3. Calculate Valid Working Days vs Holidays
         $startYear = Carbon::parse($rawDates[0])->year;
         $endYear = Carbon::parse(end($rawDates))->year;
         
@@ -59,7 +63,7 @@ class LeaveManagementService
                 $detailsToInsert[] = [
                     'leave_date' => $dateString, 
                     'day_fraction' => 1.00, 
-                    'is_with_pay' => true, 
+                    'is_with_pay' => $leaveType->is_paid, // Defaults based on leave type
                     'created_at' => now(), 
                     'updated_at' => now()
                 ];
@@ -70,13 +74,14 @@ class LeaveManagementService
             throw new InvalidArgumentException("Error: You applied for {$validated['working_days_applied']} days, but you only selected {$validWorkingDays} valid working days.");
         }
 
-        // 4. Process DB Transactions
-        return $this->processLeaveTransaction($validated, $employee, $rawDates, $detailsToInsert);
+        // 3. Extract attachments from validated data before DB insertion
+        $attachments = $validated['attachments'] ?? [];
+        unset($validated['attachments']);
+        unset($validated['selected_dates']);
+
+        return $this->processLeaveTransaction($validated, $employee, $rawDates, $detailsToInsert, $attachments);
     }
 
-    /**
-     * OPTIMIZED: Uses basic runtime caching to prevent hitting the database 11 times in a single loop execution
-     */
     public function getPhilippineHolidays(int $year): array
     {
         static $allHolidays = null;
@@ -122,7 +127,7 @@ class LeaveManagementService
         return LeaveRequestDetail::whereIn('leave_date', $rawDates)
             ->whereHas('leaveRequest', function ($query) use ($employee) {
                 $query->where('employee_id', $employee->id)
-                      ->whereIn('status', ['pending', 'approved', 'PENDING', 'APPROVED']);
+                      ->whereIn('status', ['pending', 'approved']);
             })->exists();
     }
 
@@ -130,7 +135,7 @@ class LeaveManagementService
     {
         return LeaveRequestDetail::whereIn('leave_date', $rawDates)
             ->whereHas('leaveRequest', function ($query) use ($employee) {
-                $query->whereIn('status', ['pending', 'approved', 'PENDING', 'APPROVED'])
+                $query->whereIn('status', ['pending', 'approved'])
                     ->whereHas('employee', function ($empQuery) use ($employee) {
                         $empQuery->where('division_id', $employee->division_id)
                                  ->where('id', '!=', $employee->id);
@@ -138,19 +143,7 @@ class LeaveManagementService
             })->exists();
     }
 
-    public function getBalanceField(string $leaveType): ?string
-    {
-        return match ($leaveType) {
-            'Vacation Leave'           => 'vacation_leave_balance',
-            'Sick Leave'               => 'sick_leave_balance',
-            'Mandatory/Forced Leave'   => 'mandatory_leave_balance',
-            'Special Privilege Leave'  => 'special_privilege_leave_balance',
-            'Special Emergency Leave'  => 'special_emergency_leave_balance',
-            default                    => null,
-        };
-    }
-
-    public function processLeaveTransaction(array $validated, Employee $employee, array $rawDates, array $detailsToInsert): LeaveRequest
+    public function processLeaveTransaction(array $validated, Employee $employee, array $rawDates, array $detailsToInsert, array $attachments): LeaveRequest
     {
         $validated['employee_id'] = $employee->id;
         $validated['date_of_filing'] = now();
@@ -158,8 +151,8 @@ class LeaveManagementService
         $validated['start_date'] = Carbon::parse($rawDates[0])->format('Y-m-d');
         $validated['end_date'] = Carbon::parse(end($rawDates))->format('Y-m-d');
 
-        return DB::transaction(function () use ($validated, $detailsToInsert) {
-            unset($validated['selected_dates']); 
+        return DB::transaction(function () use ($validated, $detailsToInsert, $attachments) {
+            
             $leaveRequest = LeaveRequest::create($validated);
 
             foreach ($detailsToInsert as &$detail) {
@@ -170,25 +163,63 @@ class LeaveManagementService
                 LeaveRequestDetail::insert($detailsToInsert);
             }
 
+            // 4. Handle file uploads securely if any attachments exist
+            if (!empty($attachments)) {
+                foreach ($attachments as $file) {
+                    $path = $file->store('leave_attachments', 'public');
+                    LeaveAttachment::create([
+                        'leave_request_id' => $leaveRequest->id,
+                        'file_path' => $path,
+                        'file_name' => $file->getClientOriginalName(),
+                    ]);
+                }
+            }
+
             return $leaveRequest;
         });
     }
 
     /**
-     * FIXED: Interacts with the new employee_leave_balances table using relation and atomic decrement
+     * Deduct balance and create a strict audit trail in the ledger.
      */
-    public function deductEmployeeBalance(Employee $employee, string $leaveType, float $daysToDeduct)
+    public function deductEmployeeBalance(Employee $employee, int $leaveTypeId, float $daysToDeduct, ?int $referenceId = null)
     {
-        $balanceField = $this->getBalanceField($leaveType);
-        if ($balanceField) {
-            $balanceRecord = $employee->leaveBalance()->firstOrCreate([]);
-            $balanceRecord->decrement($balanceField, $daysToDeduct);
-        }
+        DB::transaction(function () use ($employee, $leaveTypeId, $daysToDeduct, $referenceId) {
+            $balanceRecord = EmployeeLeaveBalance::firstOrCreate(
+                ['employee_id' => $employee->id, 'leave_type_id' => $leaveTypeId],
+                ['balance' => 0]
+            );
+
+            // Before decrementing, lock the row for reading/writing
+            $balanceRecord = EmployeeLeaveBalance::where('employee_id', $employee->id)
+                ->where('leave_type_id', $leaveTypeId)
+                ->lockForUpdate() // Prevents concurrent modifications
+                ->firstOrCreate(['balance' => 0]);
+
+            if ($balanceRecord->balance < $daysToDeduct) {
+                throw new \Exception('Approval failed: Employee does not have enough remaining balance.');
+            }
+
+            $balanceRecord->decrement('balance', $daysToDeduct);
+
+            $runningBalance = $balanceRecord->fresh()->balance;
+
+            LeaveLedger::create([
+                'employee_id'     => $employee->id,
+                'leave_type_id'    => $leaveTypeId,
+                'type'             => 'deduction',
+                'amount'           => $daysToDeduct,
+                'running_balance'  => $runningBalance,
+                
+                // ✅ FIX: Supply polymorphic connection and accountability tracking
+                'reference_type'   => 'leave_request', 
+                'reference_id'     => $referenceId,
+                'created_by'       => auth()->id(), // Stores the ID of the officer who clicked 'Approve'
+                'remarks'          => 'Leave approved and deducted',
+            ]);
+        });
     }
 
-    /**
-     * Compile all booked dates and holidays to determine disabled calendar days for an employee.
-     */
     public function getLeaveCalendarData(Employee $employee): array
     {
         $myBookedDates = $this->getBookedDates(
@@ -205,7 +236,6 @@ class LeaveManagementService
         $currentYear = (int) date('Y');
         $holidayDates = [];
         
-        // This loop now runs blazing fast because getPhilippineHolidays utilizes runtime caching!
         for ($year = $currentYear; $year <= $currentYear + 10; $year++) {
             $yearlyHolidays = array_column($this->getPhilippineHolidays($year), 'date');
             $holidayDates = array_merge($holidayDates, $yearlyHolidays);

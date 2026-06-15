@@ -7,10 +7,10 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Employee extends Model
 {
-    
+    use HasFactory;
+
     protected $fillable = [
-        'department_id',
-        'division_id',
+        'division_id', // Removed department_id
         'employee_id_number',
         'first_name',
         'last_name',
@@ -19,14 +19,19 @@ class Employee extends Model
         'position_code',
     ];
 
-    public function department()
-    {
-        return $this->belongsTo(Department::class);
-    }
-
     public function division()
     {
         return $this->belongsTo(Division::class);
+    }
+
+    /**
+     * Traverse upstream: Employee -> Division -> Department
+     */
+    // In Employee.php
+    public function getDepartmentAttribute()
+    {
+        // This will allow you to call $employee->department safely
+        return $this->division ? $this->division->department : null;
     }
 
     public function user()
@@ -36,12 +41,19 @@ class Employee extends Model
 
     public function leaveRequests()
     {
-        // allows an employee profile to access all their historical requests
         return $this->hasMany(LeaveRequest::class);
     }
 
-    public function leaveBalance()
+    /**
+     * Updated for the new dynamic structure (An employee now has many balance types)
+     */
+    public function leaveBalances()
     {
-        return $this->hasOne(EmployeeLeaveBalance::class);
+        return $this->hasMany(EmployeeLeaveBalance::class);
+    }
+
+    public function ledgers()
+    {
+        return $this->hasMany(LeaveLedger::class);
     }
 }

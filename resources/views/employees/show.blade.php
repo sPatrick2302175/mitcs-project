@@ -153,36 +153,23 @@
                     <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 border-b border-gray-100 pb-4 mb-6">Leave Balances</h3>
                     
                     <ul class="space-y-4">
-                        <li class="flex justify-between items-center bg-gray-50/50 p-3 rounded-xl border border-gray-100/40">
-                            <span class="text-sm text-gray-600 font-semibold">Vacation Leave</span>
-                            <span class="bg-orange-50 text-[#df9344] font-bold text-sm py-1 px-3 rounded-xl border border-orange-100/60">
-                                {{ number_format($employee->leaveBalance?->vacation_leave_balance ?? 0, 2) }}
-                            </span>
-                        </li>
-                        <li class="flex justify-between items-center bg-gray-50/50 p-3 rounded-xl border border-gray-100/40">
-                            <span class="text-sm text-gray-600 font-semibold">Sick Leave</span>
-                            <span class="bg-orange-50 text-[#df9344] font-bold text-sm py-1 px-3 rounded-xl border border-orange-100/60">
-                                {{ number_format($employee->leaveBalance?->sick_leave_balance ?? 0, 2) }}
-                            </span>
-                        </li>
-                        <li class="flex justify-between items-center bg-gray-50/50 p-3 rounded-xl border border-gray-100/40">
-                            <span class="text-sm text-gray-600 font-semibold">Mandatory Leave</span>
-                            <span class="bg-gray-50 text-gray-700 font-bold text-sm py-1 px-3 rounded-xl border border-gray-200/40">
-                                {{ $employee->leaveBalance?->mandatory_leave_balance ?? 0 }}
-                            </span>
-                        </li>
-                        <li class="flex justify-between items-center bg-gray-50/50 p-3 rounded-xl border border-gray-100/40">
-                            <span class="text-sm text-gray-600 font-semibold">Special Privilege</span>
-                            <span class="bg-gray-50 text-gray-700 font-bold text-sm py-1 px-3 rounded-xl border border-gray-200/40">
-                                {{ $employee->leaveBalance?->special_privilege_leave_balance ?? 0 }}
-                            </span>
-                        </li>
-                        <li class="flex justify-between items-center bg-gray-50/50 p-3 rounded-xl border border-gray-100/40">
-                            <span class="text-sm text-gray-600 font-semibold">Special Emergency</span>
-                            <span class="bg-gray-50 text-gray-700 font-bold text-sm py-1 px-3 rounded-xl border border-gray-200/40">
-                                {{ $employee->leaveBalance?->special_emergency_leave_balance ?? 0 }}
-                            </span>
-                        </li>
+                        @forelse($leaveTypes as $leaveType)
+                            @php
+                                // Look up this employee's balance from the preloaded collection relationship
+                                $balanceRecord = $employee->leaveBalances->firstWhere('leave_type_id', $leaveType->id);
+                                $balanceValue = $balanceRecord ? $balanceRecord->balance : 0;
+                            @endphp
+                            <li class="flex justify-between items-center bg-gray-50/50 p-3 rounded-xl border border-gray-100/40">
+                                <span class="text-sm text-gray-600 font-semibold">{{ $leaveType->name }}</span>
+                                <span class="bg-orange-50 text-[#df9344] font-bold text-sm py-1 px-3 rounded-xl border border-orange-100/60">
+                                    {{ number_format($balanceValue, 2) }}
+                                </span>
+                            </li>
+                        @empty
+                            <li class="text-center text-sm text-gray-400 py-4 italic">
+                                No leave types configured.
+                            </li>
+                        @endforelse
                     </ul>
                 </div>
 

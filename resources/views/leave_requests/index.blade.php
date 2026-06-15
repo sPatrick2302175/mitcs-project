@@ -180,49 +180,40 @@
 
             @if($employee)
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div class="bg-white border border-gray-100/60 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 p-6 relative overflow-hidden group">
-                        <div class="absolute -right-4 -top-4 w-24 h-24 bg-indigo-50 rounded-full blur-2xl opacity-50 group-hover:opacity-100 transition-opacity duration-500"></div>
-                        <div class="relative z-10">
-                            <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400 block mb-1">Vacation Leave</span>
-                            <div class="flex items-baseline space-x-1.5">
-                                <span class="text-3xl font-black text-gray-800">{{ number_format($employee->leaveBalance?->vacation_leave_balance, 2) }}</span>
-                                <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Days</span>
-                            </div>
-                        </div>
-                    </div>
+                    @forelse($leaveTypes as $index => $leaveType)
+                        @php
+                            // 1. Fetch balance from the preloaded relationship row
+                            $balanceRecord = $employee->leaveBalances->firstWhere('leave_type_id', $leaveType->id);
+                            $balanceValue = $balanceRecord ? $balanceRecord->balance : 0;
+                            
+                            // 2. Safely cycle through your original color highlights so Tailwind detects them
+                            $glowClasses = [
+                                'bg-indigo-50', 
+                                'bg-emerald-50', 
+                                'bg-amber-50', 
+                                'bg-purple-50', 
+                                'bg-blue-50', 
+                                'bg-rose-50'
+                            ];
+                            $currentGlow = $glowClasses[$index % count($glowClasses)];
+                        @endphp
 
-                    <div class="bg-white border border-gray-100/60 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 p-6 relative overflow-hidden group">
-                        <div class="absolute -right-4 -top-4 w-24 h-24 bg-emerald-50 rounded-full blur-2xl opacity-50 group-hover:opacity-100 transition-opacity duration-500"></div>
-                        <div class="relative z-10">
-                            <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400 block mb-1">Sick Leave</span>
-                            <div class="flex items-baseline space-x-1.5">
-                                <span class="text-3xl font-black text-gray-800">{{ number_format($employee->leaveBalance?->sick_leave_balance, 2) }}</span>
-                                <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Days</span>
+                        <div class="bg-white border border-gray-100/60 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 p-6 relative overflow-hidden group">
+                            <div class="absolute -right-4 -top-4 w-24 h-24 {{ $currentGlow }} rounded-full blur-2xl opacity-50 group-hover:opacity-100 transition-opacity duration-500"></div>
+                            <div class="relative z-10">
+                                <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400 block mb-1">{{ $leaveType->name }}</span>
+                                <div class="flex items-baseline space-x-1.5">
+                                    <span class="text-3xl font-black text-gray-800">{{ number_format($balanceValue, 2) }}</span>
+                                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Days</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    @empty
+                        <div class="col-span-full bg-white border border-gray-100/60 rounded-2xl p-6 text-center shadow-sm">
+                            <span class="text-sm font-bold text-gray-400">No leave types configured.</span>
+                        </div>
+                    @endforelse
 
-                    <div class="bg-white border border-gray-100/60 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 p-6 relative overflow-hidden group">
-                        <div class="absolute -right-4 -top-4 w-24 h-24 bg-amber-50 rounded-full blur-2xl opacity-50 group-hover:opacity-100 transition-opacity duration-500"></div>
-                        <div class="relative z-10">
-                            <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400 block mb-1">Mandatory Leave</span>
-                            <div class="flex items-baseline space-x-1.5">
-                                <span class="text-3xl font-black text-gray-800">{{ number_format($employee->leaveBalance?->mandatory_leave_balance, 2) }}</span>
-                                <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Days</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-white border border-gray-100/60 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 p-6 relative overflow-hidden group">
-                        <div class="absolute -right-4 -top-4 w-24 h-24 bg-purple-50 rounded-full blur-2xl opacity-50 group-hover:opacity-100 transition-opacity duration-500"></div>
-                        <div class="relative z-10">
-                            <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400 block mb-1">Special Privilege</span>
-                            <div class="flex items-baseline space-x-1.5">
-                                <span class="text-3xl font-black text-gray-800">{{ number_format($employee->leaveBalance?->special_privilege_leave_balance, 2) }}</span>
-                                <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Days</span>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 <div class="bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100/60 overflow-hidden transition-all duration-300">

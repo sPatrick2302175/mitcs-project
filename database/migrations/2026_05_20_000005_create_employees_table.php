@@ -13,8 +13,11 @@ return new class extends Migration
     {
         Schema::create('employees', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('division_id')->constrained('divisions')->onDelete('cascade');
-            $table->foreignId('department_id')->constrained('departments')->onDelete('cascade');
+            // Changed to nullable to support onDelete('set null') per target schema
+            $table->foreignId('division_id')->nullable()->constrained('divisions')->onDelete('set null');
+            
+            // REMOVED: department_id (Successfully normalized!)
+            
             $table->string('employee_id_number')->unique();
             $table->string('first_name');
             $table->string('last_name');

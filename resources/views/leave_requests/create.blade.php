@@ -261,42 +261,33 @@
                         </button>
                     </div>
                 </form>
-            </div> @if($employee = auth()->user()->employee)
+            </div> 
+            @if($employee = auth()->user()->employee)
             <div class="w-full lg:w-80 shrink-0 sticky top-8">
                 <div class="bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100/60 p-8">
                     <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 border-b border-gray-100 pb-4 mb-6">Leave Balances</h3>
                     
                     <ul class="space-y-4">
-                        <li class="flex justify-between items-center bg-gray-50/50 p-3 rounded-xl border border-gray-100/40">
-                            <span class="text-sm text-gray-600 font-semibold">Vacation Leave</span>
-                            <span class="bg-orange-50 text-[#df9344] font-bold text-sm py-1 px-3 rounded-xl border border-orange-100/60">
-                                {{ number_format($employee->leaveBalance?->vacation_leave_balance, 2) }}
-                            </span>
-                        </li>
-                        <li class="flex justify-between items-center bg-gray-50/50 p-3 rounded-xl border border-gray-100/40">
-                            <span class="text-sm text-gray-600 font-semibold">Sick Leave</span>
-                            <span class="bg-orange-50 text-[#df9344] font-bold text-sm py-1 px-3 rounded-xl border border-orange-100/60">
-                                {{ number_format($employee->leaveBalance?->sick_leave_balance, 2) }}
-                            </span>
-                        </li>
-                        <li class="flex justify-between items-center bg-gray-50/50 p-3 rounded-xl border border-gray-100/40">
-                            <span class="text-sm text-gray-600 font-semibold">Mandatory Leave</span>
-                            <span class="bg-gray-50 text-gray-700 font-bold text-sm py-1 px-3 rounded-xl border border-gray-200/40">
-                                {{ $employee->leaveBalance?->mandatory_leave_balance }}
-                            </span>
-                        </li>
-                        <li class="flex justify-between items-center bg-gray-50/50 p-3 rounded-xl border border-gray-100/40">
-                            <span class="text-sm text-gray-600 font-semibold">Special Privilege</span>
-                            <span class="bg-gray-50 text-gray-700 font-bold text-sm py-1 px-3 rounded-xl border border-gray-200/40">
-                                {{ $employee->leaveBalance?->special_privilege_leave_balance }}
-                            </span>
-                        </li>
-                        <li class="flex justify-between items-center bg-gray-50/50 p-3 rounded-xl border border-gray-100/40">
-                            <span class="text-sm text-gray-600 font-semibold">Special Emergency</span>
-                            <span class="bg-gray-50 text-gray-700 font-bold text-sm py-1 px-3 rounded-xl border border-gray-200/40">
-                                {{ $employee->leaveBalance?->special_emergency_leave_balance }}
-                            </span>
-                        </li>
+                        @forelse($leaveTypes as $leaveType)
+                            @php
+                                // 1. Grab the current user's balance row for this leave type
+                                $balanceRecord = $employee->leaveBalances->firstWhere('leave_type_id', $leaveType->id);
+                                $balanceValue = $balanceRecord ? $balanceRecord->balance : 0;
+
+            
+                            @endphp
+                            
+                            <li class="flex justify-between items-center bg-gray-50/50 p-3 rounded-xl border border-gray-100/40">
+                                <span class="text-sm text-gray-600 font-semibold">{{ $leaveType->name }}</span>
+                                <span class="{{ $badgeClasses }} font-bold text-sm py-1 px-3 rounded-xl border">
+                                    {{ number_format($balanceValue, 2) }}
+                                </span>
+                            </li>
+                        @empty
+                            <li class="text-center text-xs text-gray-400 italic py-2">
+                                No leave types configured.
+                            </li>
+                        @endforelse
                     </ul>
                 </div>
             </div>
