@@ -81,9 +81,20 @@ class LeaveRequestController extends Controller
         $employee->load('leaveBalances');
         
         $calendarData = $this->leaveService->getLeaveCalendarData($employee);
-        $leaveTypes = LeaveType::all(); 
+        $leaveTypes = \App\Models\LeaveType::all(); 
 
-        return view('leave_requests.create', array_merge($calendarData, ['leaveTypes' => $leaveTypes]));
+        // 1. Fetch upcoming holidays from the database
+        // We use pluck() to instantly format it as ['YYYY-MM-DD' => 'Holiday Name']
+        // Note: If your column is called 'title' instead of 'name', change 'name' to 'title' below!
+        $holidays = \App\Models\CustomHoliday::whereYear('date', '>=', now()->year)
+            ->pluck('name', 'date') 
+            ->toArray();
+
+        // 2. Inject the 'holidays' array into the view alongside your other data
+        return view('leave_requests.create', array_merge($calendarData, [
+            'leaveTypes' => $leaveTypes,
+            'holidays' => $holidays
+        ]));
     }
 
     public function store(StoreLeaveRequest $request)

@@ -22,29 +22,14 @@ class StoreLeaveRequest extends FormRequest
             'working_days_applied' => 'required|numeric|min:0.5',
             'selected_dates' => 'required|string',
             'commutation_requested' => 'required|boolean',
+
+            // Accept the manually typed salary
+            'salary' => 'required|numeric|min:1',
             
             // Attachment validation
             'attachments' => 'nullable|array',
-            'attachments.*' => 'file|mimes:pdf,jpg,jpeg,png|max:5120', // 5MB max per file
+            'attachments.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120', // 5MB max per file
         ];
     }
 
-    public function withValidator($validator)
-    {
-        $validator->after(function ($validator) {
-            $leaveTypeId = $this->input('leave_type_id');
-            
-            if ($leaveTypeId) {
-                $leaveType = LeaveType::find($leaveTypeId);
-                
-                // Fix: Changed $leaveType->name to $leaveType->leave_type_name
-                if ($leaveType && $leaveType->requires_attachment && !$this->hasFile('attachments')) {
-                    $validator->errors()->add(
-                        'attachments', 
-                        "An attachment (like a Medical Certificate) is strictly required for {$leaveType->leave_type_name}."
-                    );
-                }
-            }
-        });
-    }
 }

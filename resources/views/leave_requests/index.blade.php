@@ -179,29 +179,44 @@
             @endif
 
             @if($employee)
+                @php
+                    // 1. Define the 4 main leaves we want to display
+                    $displayCodes = ['VL', 'SL', 'FL', 'SPL'];
+                    
+                    // 2. Fetch ONLY those four leaves and sort them exactly as defined above
+                    $filteredLeaves = \App\Models\LeaveType::whereIn('code', $displayCodes)
+                        ->get()
+                        ->sortBy(function($model) use ($displayCodes) {
+                            return array_search($model->code, $displayCodes);
+                        });
+                @endphp
+
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    @forelse($leaveTypes as $index => $leaveType)
+                    @forelse($filteredLeaves as $index => $leaveType)
                         @php
-                            // 1. Fetch balance from the preloaded relationship row
+                            // Fetch balance from the preloaded relationship row securely
                             $balanceRecord = $employee->leaveBalances->firstWhere('leave_type_id', $leaveType->id);
-                            $balanceValue = $balanceRecord ? $balanceRecord->balance : 0;
+                            $balanceValue = $balanceRecord ? (float)$balanceRecord->balance : 0.00;
                             
-                            // 2. Safely cycle through your original color highlights so Tailwind detects them
+                            // Safely cycle through your original color highlights
                             $glowClasses = [
                                 'bg-indigo-50', 
                                 'bg-emerald-50', 
                                 'bg-amber-50', 
-                                'bg-purple-50', 
-                                'bg-blue-50', 
-                                'bg-rose-50'
+                                'bg-purple-50'
                             ];
                             $currentGlow = $glowClasses[$index % count($glowClasses)];
+                            
+                            // Clean up the name for a gorgeous UI (e.g. "Vacation" instead of "Vacation Leave")
+                            $leaveName = $leaveType->leave_type_name ?? $leaveType->name;
                         @endphp
 
                         <div class="bg-white border border-gray-100/60 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 p-6 relative overflow-hidden group">
                             <div class="absolute -right-4 -top-4 w-24 h-24 {{ $currentGlow }} rounded-full blur-2xl opacity-50 group-hover:opacity-100 transition-opacity duration-500"></div>
                             <div class="relative z-10">
-                                <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400 block mb-1">{{ $leaveType->name }}</span>
+                                <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400 block mb-1">
+                                    {{ str_replace(' Leave', '', $leaveName) }} Leave
+                                </span>
                                 <div class="flex items-baseline space-x-1.5">
                                     <span class="text-3xl font-black text-gray-800">{{ number_format($balanceValue, 2) }}</span>
                                     <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Days</span>
@@ -210,15 +225,27 @@
                         </div>
                     @empty
                         <div class="col-span-full bg-white border border-gray-100/60 rounded-2xl p-6 text-center shadow-sm">
-                            <span class="text-sm font-bold text-gray-400">No leave types configured.</span>
+                            <span class="text-sm font-bold text-gray-400">No core leave types configured.</span>
                         </div>
                     @endforelse
-
                 </div>
 
-                <div class="bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100/60 overflow-hidden transition-all duration-300">
+                @php
+                    $today = \Carbon\Carbon::now()->startOfDay();
+                    
+                    // 1. FILTER: Keep only leaves where the end_date is today or in the future
+                    // 2. SORT: Arrange them by start_date ascending (closest to today at the top)
+                    $upcomingRequests = $leaveRequests->filter(function($request) use ($today) {
+                        $endDate = \Carbon\Carbon::parse($request->end_date)->startOfDay();
+                        return $endDate->greaterThanOrEqualTo($today);
+                    })->sortBy(function($request) {
+                        return \Carbon\Carbon::parse($request->start_date)->timestamp;
+                    });
+                @endphp
+
+                <div class="bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100/60 overflow-hidden transition-all duration-300 mt-8">
                     <div class="p-6 md:p-8 border-b border-gray-100/60 flex flex-col md:flex-row justify-between items-center gap-4 bg-white">
-                        <h3 class="text-xl font-black text-gray-800 tracking-tight">Recent Leave Applications</h3>
+                        <h3 class="text-xl font-black text-gray-800 tracking-tight">Upcoming Leave Applications</h3>
                         <a href="{{ route('leave-requests.create') }}" class="inline-flex items-center px-5 py-2.5 bg-[#F2A455] hover:bg-[#df9344] text-white text-xs font-extrabold uppercase tracking-wider rounded-xl shadow-md shadow-orange-500/20 transition-all duration-200 active:scale-[0.98]">
                             <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                             Apply for Leave
@@ -238,13 +265,16 @@
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-50">
-                                @forelse($leaveRequests as $request)
+                                {{-- Loop through the strictly filtered UPCOMING requests --}}
+                                @forelse($upcomingRequests as $request)
                                     <tr class="hover:bg-gray-50/30 transition-colors duration-200">
                                         <td class="py-4 px-6 text-sm font-semibold text-gray-800 whitespace-nowrap">
                                             {{ \Carbon\Carbon::parse($request->date_of_filing)->format('M d, Y') }}
                                         </td>
                                         <td class="py-4 px-6">
-                                            <span class="text-sm font-bold text-gray-700 block">{{ $request->leave_type }}</span>
+                                            <span class="text-sm font-bold text-gray-700 block">
+                                                {{ $request->leaveType->leave_type_name ?? 'Standard Leave' }}
+                                            </span>
                                         </td>
                                         <td class="py-4 px-6 text-sm font-medium text-gray-600 whitespace-nowrap">
                                             {{ \Carbon\Carbon::parse($request->start_date)->format('M d') }} - {{ \Carbon\Carbon::parse($request->end_date)->format('M d, Y') }}
@@ -270,10 +300,8 @@
                                                 </span>
                                             @endif
                                         </td>
-                                        
                                         <td class="py-4 px-6 text-center whitespace-nowrap space-x-1.5">
                                             <a href="{{ route('leave-requests.show', $request->id) }}" class="inline-flex items-center justify-center px-3 py-1.5 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-800 font-bold text-[10px] uppercase tracking-wider rounded-lg border border-gray-200/60 shadow-sm transition-all duration-200 active:scale-[0.98]">
-                                                
                                                 View Record
                                             </a>
 
@@ -292,7 +320,7 @@
                                                 <div class="bg-gray-50 p-3 rounded-full">
                                                     <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                                                 </div>
-                                                <span class="text-sm font-medium text-gray-500">No leave applications found.</span>
+                                                <span class="text-sm font-medium text-gray-500">No upcoming leave applications found.</span>
                                             </div>
                                         </td>
                                     </tr>

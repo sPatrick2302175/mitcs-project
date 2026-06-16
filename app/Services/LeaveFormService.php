@@ -34,8 +34,8 @@ class LeaveFormService
         $pdf->SetFont('CenturyGothic', 'B', 8);
         $pdf->SetTextColor(0, 0, 0);
 
-        // Department & Profile Metadata (Updated to reach through division)
-        $department = $leaveRequest->employee->division->department->code ?? 'MITCS';
+        // Department & Profile Metadata
+        $department = $leaveRequest->employee->division->department->code ?? ' ';
         $pdf->SetXY(30, 40); $pdf->Write(0, $department);
         $pdf->SetXY(90, 40); $pdf->Write(0, mb_strtoupper($leaveRequest->employee->last_name, 'UTF-8'));
         $pdf->SetXY(120, 40); $pdf->Write(0, mb_strtoupper($leaveRequest->employee->first_name, 'UTF-8'));
@@ -47,7 +47,14 @@ class LeaveFormService
         $pdf->SetXY(37, 47); $pdf->Write(0, Carbon::parse($leaveRequest->date_of_filing)->format('M d, Y'));
         $pdf->SetXY(97, 47); $pdf->Write(0, mb_strtoupper($leaveRequest->employee->position_code, 'UTF-8'));
 
-        // Leave Types Checkboxes
+        // 2. DYNAMIC SALARY DISPLAY: Fetch from the globally updated Employee record
+        // Find this block around line 50:
+        if ($leaveRequest->employee->salary) {
+            $pdf->SetXY(156, 47); 
+            $pdf->Write(0, 'PhP ' . number_format($leaveRequest->employee->salary, 2));
+        }
+
+        // Leave Types Checkboxes (Exact Y-Coordinates on the PDF)
         $leaveYPositions = [
             'Vacation Leave'                   => 68.2,
             'Mandatory/Forced Leave'           => 73.4,
@@ -64,29 +71,41 @@ class LeaveFormService
             'Adoption Leave'                   => 130.2,
         ];
 
-        // Ensure we check the name of the dynamic leave type relation
-        $type = $leaveRequest->leaveType->name ?? 'Others';
+        // Fetch the proper database relationship strings
+        $leaveName = $leaveRequest->leaveType->leave_type_name ?? $leaveRequest->leaveType->name ?? 'Others';
+        $leaveCode = $leaveRequest->leaveType->code ?? 'OTHERS';
 
-        if ($type === 'Others') {
+        // 1. DYNAMIC FUZZY MATCHING: Find which checkbox to tick
+        $matchedCheckbox = 'Others';
+        foreach ($leaveYPositions as $key => $yPos) {
+            $search = str_replace(' Leave', '', $key); 
+            if (stripos($leaveName, $search) !== false) {
+                $matchedCheckbox = $key;
+                break;
+            }
+        }
+
+        // Print the checkbox or "Others" input
+        if (str_contains($leaveName, 'Others') || $matchedCheckbox === 'Others') {
             $pdf->SetFont('CenturyGothic', '', 8);
             $pdf->SetXY(10, 146);
-            $pdf->Write(0, $leaveRequest->leave_detail_category); // Adjusted to grab details
-        } elseif (array_key_exists($type, $leaveYPositions)) {
-            $pdf->SetXY(6, $leaveYPositions[$type]); 
+            $pdf->Write(0, $leaveRequest->leave_detail_category); 
+        } else {
+            $pdf->SetXY(6, $leaveYPositions[$matchedCheckbox]); 
             $pdf->SetFont('zapfdingbats', '', 8); $pdf->Write(0, '3'); 
             $pdf->SetFont('CenturyGothic', '', 10); 
         }
 
-        // Leave Specific Details (Word Wrap Logic unchanged)
+        // Leave Specific Details (Word Wrap Logic)
         $detailYPositions = [
-            'Within the Philippines' => 74,
-            'Abroad'                 => 79.2,
-            'In Hospital'            => 89.6,
-            'Out Patient'            => 94.8,
+            'Within the Philippines'         => 74,
+            'Abroad'                         => 79.2,
+            'In Hospital'                    => 89.6,
+            'Out Patient'                    => 94.8,
             'Completion of Master\'s Degree' => 125.5,
-            'BAR/Board Examination Review' => 130.7,
-            'Monetization of Leave Credits' => 140.6,
-            'Terminal Leave'           => 145.8,
+            'BAR/Board Examination Review'   => 130.7,
+            'Monetization of Leave Credits'  => 140.6,
+            'Terminal Leave'                 => 145.8,
         ];
 
         $category = $leaveRequest->leave_detail_category;
@@ -129,7 +148,7 @@ class LeaveFormService
                 $pdf->Write(0, trim($line2));
             }
         } 
-        elseif ($type === 'Special Leave Benefits for Women') {
+        elseif (stripos($leaveName, 'Women') !== false) {
             
             $pdf->SetFont('CenturyGothic', '', 6);
             $y = 110;          
@@ -215,25 +234,26 @@ class LeaveFormService
         $pdf->SetXY(45, 191); 
         $pdf->Write(0, $asOfDate);
 
-        // === FIXED BALANCE LOGIC ===
-        // Fetch specific dynamic leave types to identify ID bounds
-        $vlType = LeaveType::where('name', 'Vacation Leave')->first();
-        $slType = LeaveType::where('name', 'Sick Leave')->first();
+        // === 2. FIXED BALANCE LOGIC ===
+        // Fetch specific dynamic leave types securely using 'code' instead of explicit strings
+        $vlType = LeaveType::where('code', 'VL')->first();
+        $slType = LeaveType::where('code', 'SL')->first();
 
         // Safely retrieve the row records mapped to this employee
         $vlBalanceRecord = $leaveRequest->employee->leaveBalances()->where('leave_type_id', $vlType?->id)->first();
         $slBalanceRecord = $leaveRequest->employee->leaveBalances()->where('leave_type_id', $slType?->id)->first();
 
-        $vlBalance = floatval($vlBalanceRecord?->balance ?? 0);
-        $slBalance = floatval($slBalanceRecord?->balance ?? 0);
+        $vlBalance = (float)($vlBalanceRecord?->balance ?? 0);
+        $slBalance = (float)($slBalanceRecord?->balance ?? 0);
 
-        $daysApplied = floatval($leaveRequest->working_days_applied);
+        $daysApplied = (float)$leaveRequest->working_days_applied;
         $vlDeduction = 0;
         $slDeduction = 0;
 
-        if (in_array($type, ['Vacation Leave', 'Mandatory/Forced Leave'])) {
+        // 3. SECURE DEDUCTION CHECK: Uses strict Code matching (VL, FL, SL)
+        if (in_array($leaveCode, ['VL', 'FL'])) {
             $vlDeduction = $daysApplied;
-        } elseif ($type === 'Sick Leave') {
+        } elseif ($leaveCode === 'SL') {
             $slDeduction = $daysApplied;
         }
 

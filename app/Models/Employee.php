@@ -17,7 +17,7 @@ class Employee extends Model
         'middle_initial',
         'position',
         'position_code',
-        'salary', // ADDED: Must be fillable so we can save it to the database
+        'salary', 
     ];
 
     public function division()
