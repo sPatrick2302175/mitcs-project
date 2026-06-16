@@ -83,9 +83,14 @@
                             <div class="bg-gray-50/50 p-6 rounded-2xl border border-gray-100/60 space-y-4">
                                 <div>
                                     <label class="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">Type of Leave Requested</label>
-                                    <span class="font-extrabold text-gray-800 text-lg">{{ $leaveRequest->leave_type }}</span>
-                                    @if($leaveRequest->leave_type === 'Others' && $leaveRequest->leave_type_others)
-                                        <span class="block text-xs font-bold text-[#F2A455] uppercase tracking-wider mt-1">({{ $leaveRequest->leave_type_others }})</span>
+                                    <span class="font-extrabold text-gray-800 text-lg">
+                                        {{ $leaveRequest->leaveType->leave_type_name ?? 'Standard Leave' }}
+                                    </span>
+                                    
+                                    @if(str_contains($leaveRequest->leaveType->leave_type_name ?? '', 'Others') && $leaveRequest->leave_type_others)
+                                        <span class="block text-xs font-bold text-[#F2A455] uppercase tracking-wider mt-1">
+                                            ({{ $leaveRequest->leave_type_others }})
+                                        </span>
                                     @endif
                                 </div>
 
@@ -123,23 +128,31 @@
                         <div class="space-y-4">
                             <h4 class="text-xs font-bold uppercase tracking-wider text-gray-400">Current Employee Leave Balances</h4>
                             
+                            @php
+                                // Index the employee's multiple balance rows by their Leave Type ID for instant lookup
+                                $indexedBalances = $leaveRequest->employee->leaveBalances->keyBy('leave_type_id');
+                                
+                                // Fetch all leave types to ensure we map names to IDs cleanly
+                                $allLeaveTypes = \App\Models\LeaveType::whereIn('code', ['VL', 'SL', 'FL', 'SPL'])->get();
+                            @endphp
+
                             <div class="grid grid-cols-2 gap-4">
-                                <div class="p-5 bg-white border border-gray-100/60 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300">
-                                    <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400 block mb-1">Vacation Leave</span>
-                                    <span class="text-2xl font-black text-gray-800">{{ number_format($leaveRequest->employee->vacation_leave_balance ?? 0, 2) }}</span>
-                                </div>
-                                <div class="p-5 bg-white border border-gray-100/60 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300">
-                                    <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400 block mb-1">Sick Leave</span>
-                                    <span class="text-2xl font-black text-gray-800">{{ number_format($leaveRequest->employee->sick_leave_balance ?? 0, 2) }}</span>
-                                </div>
-                                <div class="p-5 bg-white border border-gray-100/60 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300">
-                                    <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400 block mb-1">Mandatory/Forced</span>
-                                    <span class="text-2xl font-black text-gray-800">{{ number_format($leaveRequest->employee->mandatory_leave_balance ?? 0, 2) }}</span>
-                                </div>
-                                <div class="p-5 bg-white border border-gray-100/60 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300">
-                                    <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400 block mb-1">Special Privilege</span>
-                                    <span class="text-2xl font-black text-gray-800">{{ number_format($leaveRequest->employee->special_privilege_leave_balance ?? 0, 2) }}</span>
-                                </div>
+                                @foreach($allLeaveTypes as $type)
+                                    @php
+                                        // Pull the specific balance record for this leave type row
+                                        $balanceRecord = $indexedBalances->get($type->id);
+                                        $currentBalance = $balanceRecord ? $balanceRecord->balance : 0.00;
+                                    @endphp
+                                    
+                                    <div class="p-5 bg-white border border-gray-100/60 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300">
+                                        <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400 block mb-1">
+                                            {{ $type->leave_type_name }} ({{ $type->code }})
+                                        </span>
+                                        <span class="text-2xl font-black {{ $currentBalance <= 0 ? 'text-rose-600' : 'text-gray-800' }}">
+                                            {{ number_format($currentBalance, 2) }}
+                                        </span>
+                                    </div>
+                                @endforeach
                             </div>
                         </div>
                     </div>
@@ -184,17 +197,28 @@
                                     <div id="approval-inputs-panel" class="bg-gray-50/50 p-6 md:p-8 rounded-2xl border border-gray-100/60 space-y-6 transition-all duration-300">
                                         <h5 class="text-[10px] font-bold uppercase tracking-wider text-gray-500">Approval Parameters Allocation</h5>
                                         
+                                        @php
+                                            // Safely calculate the recommended Paid vs Unpaid days based on the backend logic we built
+                                            $autoDaysWithPay = $leaveRequest->details 
+                                                ? $leaveRequest->details->where('is_with_pay', true)->sum('day_fraction') 
+                                                : $leaveRequest->working_days_applied;
+                                                
+                                            $autoDaysWithoutPay = $leaveRequest->details 
+                                                ? $leaveRequest->details->where('is_with_pay', false)->sum('day_fraction') 
+                                                : 0;
+                                        @endphp
+
                                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div>
                                                 <label class="text-xs font-bold text-gray-700 block mb-2" for="days_with_pay">Days With Pay</label>
                                                 <input type="number" step="0.5" min="0" name="days_with_pay" id="days_with_pay" 
-                                                       value="{{ old('days_with_pay', $leaveRequest->working_days_applied) }}"
+                                                       value="{{ old('days_with_pay', $autoDaysWithPay) }}"
                                                        class="w-full rounded-xl border-gray-200/80 text-sm font-semibold focus:border-gray-800 focus:ring-gray-800 shadow-sm transition-colors">
                                             </div>
                                             <div>
                                                 <label class="text-xs font-bold text-gray-700 block mb-2" for="days_without_pay">Days Without Pay</label>
                                                 <input type="number" step="0.5" min="0" name="days_without_pay" id="days_without_pay" 
-                                                       value="{{ old('days_without_pay', 0) }}"
+                                                       value="{{ old('days_without_pay', $autoDaysWithoutPay) }}"
                                                        class="w-full rounded-xl border-gray-200/80 text-sm font-semibold focus:border-gray-800 focus:ring-gray-800 shadow-sm transition-colors">
                                             </div>
                                         </div>
@@ -231,7 +255,7 @@
                                         </svg>
                                     </div>
                                     <h3 class="text-lg font-extrabold text-gray-800 tracking-tight">Application Processing Awaiting Review</h3>
-                                    <p class="text-sm font-medium text-gray-500 max-w-md mx-auto">This request has been locked against updates and is currently awaiting formalized evaluation by your Department Supervisor or HR approving officials.</p>
+                                    <p class="text-sm font-medium text-gray-500 max-w-md mx-auto">This request has been locked against updates and is currently awaiting formalized evaluation by your Department Head or approving officials.</p>
                                     <div class="pt-4 flex justify-center">
                                         <a href="{{ route('leave-requests.index') }}" class="inline-flex items-center px-6 py-2.5 bg-white border border-gray-200/80 hover:bg-gray-50 text-gray-700 font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all duration-200 shadow-sm active:scale-[0.98]">
                                             Return to Dashboard

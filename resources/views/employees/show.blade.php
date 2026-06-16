@@ -152,37 +152,55 @@
                 <div class="bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100/60 p-8 border-t-4 border-[#F2A455]">
                     <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 border-b border-gray-100 pb-4 mb-6">Leave Balances</h3>
                     
+                    @php
+                        // 1. The 4 main leaves we want to display, exactly in this order
+                        $displayCodes = ['VL', 'SL', 'FL', 'SPL'];
+                        
+                        // 2. Index the employee's balances by leave_type_id for fast, safe lookup
+                        $indexedBalances = $employee->leaveBalances->keyBy('leave_type_id');
+                        
+                        // 3. Fetch ONLY the four designated leave types from the database
+                        $filteredLeaves = \App\Models\LeaveType::whereIn('code', $displayCodes)
+                            ->get()
+                            ->sortBy(function($model) use ($displayCodes) {
+                                return array_search($model->code, $displayCodes);
+                            });
+                    @endphp
+
                     <ul class="space-y-4">
-                        <li class="flex justify-between items-center bg-gray-50/50 p-3 rounded-xl border border-gray-100/40">
-                            <span class="text-sm text-gray-600 font-semibold">Vacation Leave</span>
-                            <span class="bg-orange-50 text-[#df9344] font-bold text-sm py-1 px-3 rounded-xl border border-orange-100/60">
-                                {{ number_format($employee->vacation_leave_balance, 2) }}
-                            </span>
-                        </li>
-                        <li class="flex justify-between items-center bg-gray-50/50 p-3 rounded-xl border border-gray-100/40">
-                            <span class="text-sm text-gray-600 font-semibold">Sick Leave</span>
-                            <span class="bg-orange-50 text-[#df9344] font-bold text-sm py-1 px-3 rounded-xl border border-orange-100/60">
-                                {{ number_format($employee->sick_leave_balance, 2) }}
-                            </span>
-                        </li>
-                        <li class="flex justify-between items-center bg-gray-50/50 p-3 rounded-xl border border-gray-100/40">
-                            <span class="text-sm text-gray-600 font-semibold">Mandatory Leave</span>
-                            <span class="bg-gray-50 text-gray-700 font-bold text-sm py-1 px-3 rounded-xl border border-gray-200/40">
-                                {{ $employee->mandatory_leave_balance }}
-                            </span>
-                        </li>
-                        <li class="flex justify-between items-center bg-gray-50/50 p-3 rounded-xl border border-gray-100/40">
-                            <span class="text-sm text-gray-600 font-semibold">Special Privilege</span>
-                            <span class="bg-gray-50 text-gray-700 font-bold text-sm py-1 px-3 rounded-xl border border-gray-200/40">
-                                {{ $employee->special_privilege_leave_balance }}
-                            </span>
-                        </li>
-                        <li class="flex justify-between items-center bg-gray-50/50 p-3 rounded-xl border border-gray-100/40">
-                            <span class="text-sm text-gray-600 font-semibold">Special Emergency</span>
-                            <span class="bg-gray-50 text-gray-700 font-bold text-sm py-1 px-3 rounded-xl border border-gray-200/40">
-                                {{ $employee->special_emergency_leave_balance }}
-                            </span>
-                        </li>
+                        @forelse($filteredLeaves as $leaveType)
+                            @php
+                                // Safely get the balance amount or default to 0.00
+                                $balanceRecord = $indexedBalances->get($leaveType->id);
+                                $balanceAmt = $balanceRecord ? (float)$balanceRecord->balance : 0.00;
+                                
+                                // Keep the UI consistent: VL/SL are orange, FL/SPL are gray
+                                $isPrimary = in_array($leaveType->code, ['VL', 'SL']);
+                                
+                                // Safely handle the naming (using leave_type_name or fallback to name)
+                                $leaveName = $leaveType->leave_type_name ?? $leaveType->name;
+                            @endphp
+                            
+                            <li class="flex justify-between items-center bg-gray-50/50 p-3 rounded-xl border border-gray-100/40">
+                                <span class="text-sm text-gray-600 font-semibold">
+                                    {{ str_replace(' Leave', '', $leaveName) }} Leave
+                                </span>
+                                
+                                @if($isPrimary)
+                                    <span class="bg-orange-50 text-[#df9344] font-bold text-sm py-1 px-3 rounded-xl border border-orange-100/60">
+                                        {{ number_format($balanceAmt, 2) }}
+                                    </span>
+                                @else
+                                    <span class="bg-gray-50 text-gray-700 font-bold text-sm py-1 px-3 rounded-xl border border-gray-200/40">
+                                        {{ number_format($balanceAmt, 2) }}
+                                    </span>
+                                @endif
+                            </li>
+                        @empty
+                            <li class="text-center text-sm text-gray-400 py-4 italic">
+                                No main leave balances available.
+                            </li>
+                        @endforelse
                     </ul>
                 </div>
 

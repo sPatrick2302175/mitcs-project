@@ -7,45 +7,50 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Employee extends Model
 {
-    
+    use HasFactory;
+
     protected $fillable = [
+        'division_id', 
         'employee_id_number',
         'first_name',
         'last_name',
         'middle_initial',
         'position',
         'position_code',
-        'leave_credits',
-        'department_id',
-        'division_id',
-
-        // Integrated your groupmate's specific leave balance buckets
-        'vacation_leave_balance',
-        'sick_leave_balance',
-        'mandatory_leave_balance',
-        'special_privilege_leave_balance',
-        'special_emergency_leave_balance',
+        'salary', 
     ];
-
-    public function department()
-    {
-        return $this->belongsTo(Department::class);
-    }
 
     public function division()
     {
         return $this->belongsTo(Division::class);
     }
 
+    /**
+     * Traverse upstream: Employee -> Division -> Department
+     */
+    public function getDepartmentAttribute()
+    {
+        // This will allow you to call $employee->department safely
+        return $this->division ? $this->division->department : null;
+    }
+
     public function user()
     {
-        // An employee might have one user account linked to them
         return $this->hasOne(User::class);
     }
 
     public function leaveRequests()
     {
-        // INTEGRATED: Allows an employee profile to access all their historical requests
         return $this->hasMany(LeaveRequest::class);
+    }
+
+    public function leaveBalances()
+    {
+        return $this->hasMany(EmployeeLeaveBalance::class);
+    }
+
+    public function ledgers()
+    {
+        return $this->hasMany(LeaveLedger::class);
     }
 }

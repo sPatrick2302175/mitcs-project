@@ -12,12 +12,16 @@ class IsSuperAdmin
 {
     public function handle(Request $request, Closure $next): Response
     {
-        // Check if user is logged in AND is a Super Admin
+        // Check if user is logged in AND is specifically a Super Admin
         if (Auth::check() && Auth::user()->is_admin === User::ROLE_SUPER_ADMIN) {
             return $next($request);
         }
 
-        // Redirect to dashboard with an error message
-        return redirect()->route('dashboard')->with('error', 'Unauthorized action.');
+        // Fix: Handle background API/JS requests gracefully
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'Unauthorized action. Super Admin access required.'], 403);
+        }
+
+        return redirect()->route('dashboard')->with('error', 'Unauthorized action. Super Admin access required.');
     }
 }

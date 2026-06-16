@@ -11,14 +11,14 @@ class DivisionController extends Controller
     public function index()
     {
         $loggedInAdmin = auth()->user();
-        // Fetch departments and their divisions, and hide system-admin
+        
         if ($loggedInAdmin->is_admin === \App\Models\User::ROLE_SUPER_ADMIN) {
             $departments = Department::with('divisions')
                 ->where('code', '!=', 'SYSTEM-ADMIN')
                 ->get();
         } else {
-            // Department Admin gets only their department and its divisions
-            $departmentId = $loggedInAdmin->employee ? $loggedInAdmin->employee->department_id : null;
+            // FIX: Safely route through the division to get the department ID
+            $departmentId = $loggedInAdmin->employee?->division?->department_id;
 
             $departments = Department::with('divisions')
                 ->where('id', $departmentId)

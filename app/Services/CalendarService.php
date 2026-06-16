@@ -12,43 +12,29 @@ class CalendarService
      */
     public function getHolidayEvents(): array
     {
-        return CustomHoliday::all()->flatMap(function ($holiday) {
-            $events = [];
+        // Use single mapping instead of heavy looping; frontend will handle infinite year rendering
+        return CustomHoliday::all()->map(function ($holiday) {
             $isRegularColor = ($holiday->type === 'regular'); 
             $title = $holiday->name . ($holiday->is_half_day ? ' (Half-Day)' : '');
-            $baseDate = \Carbon\Carbon::parse($holiday->date);
 
-            // If the user checked "Repeats Annually"
-            if ($holiday->is_regular) {
-                // Loop to create the event for the past 2 years and future 5 years
-                for ($i = -2; $i <= 10; $i++) {
-                    $events[] = [
-                        // Append the year offset so FullCalendar doesn't complain about duplicate IDs
-                        'id' => 'custom_' . $holiday->id . '_offset_' . $i, 
-                        'title' => $title,
-                        'start' => $baseDate->copy()->addYears($i)->format('Y-m-d'),
-                        'backgroundColor' => $isRegularColor ? '#3b82f6' : '#f97316',
-                        'borderColor' => $isRegularColor ? '#2563eb' : '#ea580c',
-                        'textColor' => '#ffffff',
-                        'allDay' => true,
-                        'extendedProps' => ['type' => 'custom_holiday', 'holiday_id' => $holiday->id]
-                    ];
-                }
-            } else {
-                // If it's a one-time event, just push it exactly as you had it
-                $events[] = [
-                    'id' => 'custom_' . $holiday->id,
-                    'title' => $title,
-                    'start' => $holiday->date,
-                    'backgroundColor' => $isRegularColor ? '#3b82f6' : '#f97316',
-                    'borderColor' => $isRegularColor ? '#2563eb' : '#ea580c',
-                    'textColor' => '#ffffff',
-                    'allDay' => true,
-                    'extendedProps' => ['type' => 'custom_holiday', 'holiday_id' => $holiday->id]
-                ];
-            }
-
-            return $events;
+            return [
+                'id' => 'custom_' . $holiday->id,
+                'title' => $title,
+                'start' => \Carbon\Carbon::parse($holiday->date)->format('Y-m-d'),
+                'backgroundColor' => $isRegularColor ? '#3b82f6' : '#f97316',
+                'borderColor' => $isRegularColor ? '#2563eb' : '#ea580c',
+                'textColor' => '#ffffff',
+                'allDay' => true,
+                
+                // 🌟 CRITICAL: Pass the regular toggle flag to the calendar script
+                'is_regular' => (bool)$holiday->is_regular, 
+                
+                'extendedProps' => [
+                    'type' => 'custom_holiday', 
+                    'holiday_id' => $holiday->id,
+                    'is_regular' => (bool)$holiday->is_regular
+                ]
+            ];
         })->toArray();
     }
 
@@ -87,7 +73,8 @@ class CalendarService
             }
 
             $employeeName = $leave->employee->first_name ?? 'Employee';
-            $title = "$employeeName ({$leave->leave_type})";
+            $leaveTypeName = $leave->leaveType->leave_type_name ?? 'Leave';
+            $title = "$employeeName ($leaveTypeName)";
 
             foreach ($leave->details as $detail) {
                 $events[] = [
@@ -108,5 +95,4 @@ class CalendarService
 
         return $events;
     }
-    
 }

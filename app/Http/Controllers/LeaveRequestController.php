@@ -7,6 +7,7 @@ use App\Models\Employee;
 use App\Models\User;
 use App\Models\Department;
 use App\Models\Division;
+use App\Models\LeaveType;
 use App\Http\Requests\StoreLeaveRequest;
 use App\Http\Requests\ProcessLeaveActionRequest;
 use App\Services\LeaveManagementService;
@@ -33,15 +34,20 @@ class LeaveRequestController extends Controller
         $user = Auth::user();
         $employee = $user->employee;
         
+        // 1. Eager load the leave balances to prevent N+1 database queries
+        if ($employee) {
+            $employee->load('leaveBalances');
+        }
+        
         $leaveRequests = $employee 
-            ? LeaveRequest::with('details')
+            ? LeaveRequest::with('details', 'leaveType')
                 ->where('employee_id', $employee->id)
                 ->where('created_at', '>=', now()->subDays(30))
                 ->latest()
                 ->get() 
             : collect();
 
-        $leaveQuery = LeaveRequest::with(['employee', 'details'])
+        $leaveQuery = LeaveRequest::with(['employee', 'details', 'leaveType'])
             ->whereIn('status', ['pending', 'approved']);
 
         if ($user->role !== 'admin' && $employee?->division_id) {
@@ -57,7 +63,12 @@ class LeaveRequestController extends Controller
             $this->calendarService->getLeaveEvents($allLeaves, $employee?->id, false)
         );
 
-        return view('leave_requests.index', compact('employee', 'leaveRequests', 'calendarEvents'));
+        // 2. Fetch active leave types for the dynamic cards
+        // Fetch only the specific 4 leave types you want to display on the dashboard cards
+        $leaveTypes = \App\Models\LeaveType::whereIn('code', ['VL', 'SL', 'ML', 'SPL'])->get();
+
+        // 3. Pass EVERYTHING to the view
+        return view('leave_requests.index', compact('employee', 'leaveRequests', 'calendarEvents', 'leaveTypes'));
     }
 
     public function create()
@@ -67,11 +78,18 @@ class LeaveRequestController extends Controller
         if (!$employee) {
             return redirect()->route('dashboard')->with('error', 'You do not have an employee profile linked to your account yet.');
         }
+        $employee->load('leaveBalances');
         
-        // CLEANED UP: All date computations and array merging happen in the service layer
         $calendarData = $this->leaveService->getLeaveCalendarData($employee);
+        $leaveTypes = \App\Models\LeaveType::all(); 
 
-        return view('leave_requests.create', $calendarData);
+        // 🌟 FIX HERE: Fetch the full objects so the frontend can read the 'is_regular' column
+        $holidays = \App\Models\CustomHoliday::where('is_active', true)->get();
+
+        return view('leave_requests.create', array_merge($calendarData, [
+            'leaveTypes' => $leaveTypes,
+            'holidays' => $holidays
+        ]));
     }
 
     public function store(StoreLeaveRequest $request)
@@ -82,14 +100,12 @@ class LeaveRequestController extends Controller
         }
 
         try {
-            // Hand off all processing to the service layer
             $this->leaveService->createLeaveApplication($employee, $request->validated());
 
             return redirect()->route('leave-requests.index')
                 ->with('success', 'Leave application submitted successfully!');
                 
         } catch (\InvalidArgumentException $e) {
-            // Automatically returns the exact rule failure message back to your frontend validation error block
             return back()->withInput()->withErrors(['selected_dates' => $e->getMessage()]);
         }
     }
@@ -97,20 +113,22 @@ class LeaveRequestController extends Controller
     public function adminIndex(Request $request)
     {
         $admin = auth()->user();
-        $query = LeaveRequest::with('employee.department', 'employee.division', 'details')->latest();
+        
+        // Eager load everything needed for the view and calendar
+        $query = LeaveRequest::with(['employee.division.department', 'leaveType', 'details'])->latest();
 
-        // (Role and division logic stays here, as it dictates the base query rules)
         if ($admin->is_admin === User::ROLE_SUPER_ADMIN) {
-            $query->whereHas('employee.department', fn($q) => $q->where('code', '!=', 'SYSTEM-ADMIN'));
+            $query->whereHas('employee.division.department', fn($q) => $q->where('code', '!=', 'SYSTEM-ADMIN'));
             $validDeptIds = Department::where('code', '!=', 'SYSTEM-ADMIN')->pluck('id');
             $divisions = Division::whereIn('department_id', $validDeptIds)->get();
         } else {
-            $deptId = $admin->employee?->department_id;
-            $query->whereHas('employee', fn($q) => $q->where('department_id', $deptId));
+            // FIXED: Traverse safely through division to resolve department ID
+            $deptId = $admin->employee?->division?->department_id;
+            
+            $query->whereHas('employee.division', fn($q) => $q->where('department_id', $deptId));
             $divisions = Division::where('department_id', $deptId)->get();
         }
 
-        // CLEANED UP: Replaced the massive closure with our single search scope
         $query->search($request->search)
             ->when($request->status, fn($q, $status) => $q->where('status', $status))
             ->when($request->division, fn($q, $division) => $q->whereHas('employee', fn($empQ) => $empQ->where('division_id', $division)));
@@ -131,7 +149,7 @@ class LeaveRequestController extends Controller
 
     public function show($id)
     {
-        $leaveRequest = LeaveRequest::with('employee.department')->findOrFail($id);
+        $leaveRequest = LeaveRequest::with(['employee.division.department', 'leaveType'])->findOrFail($id);
         $user = Auth::user();
 
         if (!$user->is_admin && $user->employee && $leaveRequest->employee_id !== $user->employee->id) {
@@ -143,7 +161,7 @@ class LeaveRequestController extends Controller
 
     public function review($id)
     {
-        return view('leave_requests.review', ['leaveRequest' => LeaveRequest::with('employee')->findOrFail($id)]);
+        return view('leave_requests.review', ['leaveRequest' => LeaveRequest::with(['employee', 'leaveType'])->findOrFail($id)]);
     }
 
     public function action(ProcessLeaveActionRequest $request, $id)
@@ -154,7 +172,7 @@ class LeaveRequestController extends Controller
 
         if ($status === 'approved') {
             $daysToDeduct = (float) $request->input('days_with_pay', $leaveRequest->working_days_applied);
-            $this->leaveService->deductEmployeeBalance($employee, $leaveRequest->leave_type, $daysToDeduct);
+            $this->leaveService->deductEmployeeBalance($employee, $leaveRequest->leave_type_id, $daysToDeduct, $leaveRequest->id);
         }
 
         $leaveRequest->update([
@@ -172,7 +190,7 @@ class LeaveRequestController extends Controller
 
     public function generatePDF(Request $request, $id)
     {
-        $leaveRequest = LeaveRequest::with('employee.department')->findOrFail($id);
+        $leaveRequest = LeaveRequest::with(['employee.division.department', 'leaveType'])->findOrFail($id);
         $user = Auth::user();
 
         if (!$user->is_admin && $user->employee && $leaveRequest->employee_id !== $user->employee->id) {
@@ -190,8 +208,8 @@ class LeaveRequestController extends Controller
             return redirect()->route('dashboard')->with('error', 'You must have a linked employee profile to view history.');
         }
 
-        // CLEANED UP: Utilizing our new custom scopes
-        $leaveRequests = LeaveRequest::where('employee_id', $employee->id)
+        $leaveRequests = LeaveRequest::with('leaveType')
+            ->where('employee_id', $employee->id)
             ->search($request->search)
             ->withinTimeframe($request->timeframe)
             ->when($request->status, fn($q, $status) => $q->where('status', strtolower($status)))
@@ -201,5 +219,4 @@ class LeaveRequestController extends Controller
 
         return view('leave_requests.history', compact('leaveRequests'));
     }
-    
 }

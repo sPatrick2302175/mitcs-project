@@ -173,12 +173,12 @@
 
             {{-- --- 2. CALENDAR SCHEDULE SECTION --- --}}
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div class="mb-6 flex flex-col lg:flex-row justify-between items-start lg:items-center pb-5 border-b border-gray-100/80 gap-4">
                     <div>
                         <h3 class="text-lg font-extrabold text-gray-800 tracking-tight">Global Leave Schedule</h3>
                         <p class="text-xs text-gray-400 font-semibold mt-0.5">Overview of all employee leaves across divisions.</p>
                     </div>
-                    <div>
+                    <div class="flex flex-wrap items-center gap-4 w-full lg:w-auto justify-between lg:justify-end">
                         <a href="{{ route('admin.custom-holidays.index') }}" 
                         class="inline-flex items-center px-4 py-2.5 bg-gray-900 hover:bg-gray-800 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all duration-200 shadow-md shadow-gray-900/10 active:scale-[0.98]">
                             <svg class="w-4 h-4 mr-1.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -186,12 +186,30 @@
                             </svg>
                             Manage Corporate Holidays
                         </a>
+
+                        <div class="flex items-center bg-gray-50/80 pl-4 pr-3 py-1.5 rounded-xl border border-gray-200/60 shadow-sm shrink-0 transition-all">
+                            <span id="custom-year-display" class="text-2xl font-black text-gray-800 tracking-tight min-w-[4.5rem] text-center select-none">
+                                {{ date('Y') }}
+                            </span>
+                            
+                            <div class="flex flex-col ml-2.5 border-l border-gray-200/80 pl-2.5 text-[#F2A455]">
+                                <button id="year-btn-up" type="button" class="hover:text-[#df9344] p-0.5 focus:outline-none transition-colors transform active:scale-90" title="Next Year">
+                                    <svg class="w-4 h-4 font-bold" fill="none" stroke="currentColor" stroke-width="3.5" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5"></path>
+                                    </svg>
+                                </button>
+                                <button id="year-btn-down" type="button" class="hover:text-[#df9344] p-0.5 focus:outline-none transition-colors transform active:scale-90 mt-0.5" title="Previous Year">
+                                    <svg class="w-4 h-4 font-bold" fill="none" stroke="currentColor" stroke-width="3.5" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <div id="admin-calendar" class="min-h-[500px]"></div>
 
-                <!-- Cohesive Administrative Calendar Color Legend -->
                 <div class="mt-5 flex flex-wrap gap-x-5 gap-y-2.5 items-center text-[10px] font-black text-gray-400 uppercase tracking-wider bg-gray-50/60 border border-gray-100 p-3 rounded-xl shadow-inner">
                     <span class="text-gray-500">Schedule Legend:</span>
                     <span class="inline-flex items-center gap-1.5 text-emerald-700"><span class="w-3 h-3 rounded bg-emerald-50 border border-emerald-200"></span> Approved Leaves</span>
@@ -317,21 +335,69 @@
         document.addEventListener('DOMContentLoaded', function() {
             let calendar;
 
-            // --- 1. FULLCALENDAR INITIALIZATION ---
+            // --- 1. FULLCALENDAR INITIALIZATION WITH INFINITE YEAR CONSTRAINTS ---
             const calendarEl = document.getElementById('admin-calendar');
+            const yearDisplay = document.getElementById('custom-year-display');
+            
+            // Define as a let variable so the AJAX filter pipeline can update records seamlessly
             let calendarEvents = @json($calendarEvents ?? []); 
 
             if (calendarEl) {
                 calendar = new FullCalendar.Calendar(calendarEl, {
                     initialView: 'dayGridMonth',
+                    height: 'auto',
                     headerToolbar: {
                         left: 'prev,next today',
                         center: 'title',
                         right: 'dayGridMonth,dayGridWeek'
                     },
                     buttonText: { today: 'Today', month: 'Month', week: 'Week' },
-                    events: calendarEvents,
-                    height: 'auto',
+                    
+                    // 🌟 REMOVE YEAR FROM CENTER HEADER
+                    titleFormat: { month: 'long' },
+
+                    // 🌟 AUTO-SYNCHRONIZE THE TOP RIGHT YEAR PANEL ON PREV/NEXT MONTH CLICK
+                    datesSet: function(info) {
+                        let activeViewDate = calendar.getDate();
+                        let currentYearContext = activeViewDate.getFullYear();
+                        if (yearDisplay && yearDisplay.innerText != currentYearContext) {
+                            yearDisplay.innerText = currentYearContext;
+                        }
+                    },
+
+                    // 🌟 DYNAMIC MATHEMATICAL RECURRING HOLIDAY PROPAGATOR
+                    events: function(fetchInfo, successCallback, failureCallback) {
+                        let dynamicEvents = [];
+                        let startYear = fetchInfo.start.getFullYear();
+                        let endYear = fetchInfo.end.getFullYear();
+
+                        calendarEvents.forEach(event => {
+                            const isRegular = event.is_regular || (event.extendedProps && event.extendedProps.is_regular);
+
+                            if (isRegular) {
+                                // Clone the item across every future/past iteration window visible in this frame
+                                for (let y = startYear; y <= endYear; y++) {
+                                    let clonedEvent = { ...event }; 
+                                    let monthDayStr = String(clonedEvent.start).substring(5, 10); 
+                                    clonedEvent.start = `${y}-${monthDayStr}`;
+                                    
+                                    if (clonedEvent.end) {
+                                        let endMonthDayStr = String(clonedEvent.end).substring(5, 10);
+                                        clonedEvent.end = `${y}-${endMonthDayStr}`;
+                                    }
+                                    
+                                    clonedEvent.id = `${event.id || 'holiday'}-infinite-${y}`; 
+                                    dynamicEvents.push(clonedEvent);
+                                }
+                            } else {
+                                // Keep standard single-instance leave records untouched
+                                dynamicEvents.push(event);
+                            }
+                        });
+
+                        successCallback(dynamicEvents);
+                    },
+
                     eventDidMount: function(info) {
                         if (info.event.extendedProps && info.event.extendedProps.leave_id) {
                             info.el.classList.add('clickable-leave-event');
@@ -342,7 +408,7 @@
                         const props = info.event.extendedProps;
                         
                         if (props && props.leave_id) {
-                            const leaveRequestId = info.event.id;
+                            const leaveRequestId = props.leave_id; // Read directly from safe extended properties
                             const reviewRouteTemplate = "{{ route('admin.leave-requests.review', ':id') }}";
                             window.location.href = reviewRouteTemplate.replace(':id', leaveRequestId);
                             info.jsEvent.preventDefault();
@@ -362,6 +428,21 @@
                     }
                 });
                 calendar.render();
+
+                // 🌟 TELEPORT EVENTS VIA TIMESHIFT BUTTON CLICK BINDINGS
+                document.getElementById('year-btn-up').addEventListener('click', function() {
+                    let currentDate = calendar.getDate();
+                    let nextYear = currentDate.getFullYear() + 1;
+                    let currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
+                    calendar.gotoDate(`${nextYear}-${currentMonth}-01`);
+                });
+
+                document.getElementById('year-btn-down').addEventListener('click', function() {
+                    let currentDate = calendar.getDate();
+                    let prevYear = currentDate.getFullYear() - 1;
+                    let currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
+                    calendar.gotoDate(`${prevYear}-${currentMonth}-01`);
+                });
             }
 
             // --- 2. DYNAMIC SEARCH ENGINE WITH AJAX PAGINATION DELEGATION ---
@@ -374,7 +455,6 @@
 
             let debounceTimeout;
 
-            // Enhanced fetch signature supporting custom landing destinations (e.g. pagination URLs)
             function fetchFilteredData(targetUrl = null) {
                 spinner.classList.remove('hidden');
                 tableContainer.classList.add('opacity-60');
@@ -400,11 +480,13 @@
                         tableContainer.innerHTML = freshTableContent.innerHTML;
                     }
                     
+                    // 🌟 AJAX FILTER RE-BINDING COMPATIBILITY
                     const freshDataStore = freshDocument.getElementById('calendar-data-store');
                     if (freshDataStore && calendar) {
-                        const newEvents = JSON.parse(freshDataStore.dataset.events);
-                        calendar.removeAllEvents();
-                        calendar.addEventSource(newEvents);
+                        // Update the reference data scope array variable
+                        calendarEvents = JSON.parse(freshDataStore.dataset.events);
+                        // Trigger full engine computation loop redraw safely
+                        calendar.refetchEvents();
                     }
                     
                     window.history.pushState({}, '', fetchUrl);
@@ -416,7 +498,6 @@
                 });
             }
 
-            // AJAX Pagination Event Delegator - Intercepts pagination link triggers cleanly
             tableContainer.addEventListener('click', function(event) {
                 const linkElement = event.target.closest('nav a, .pagination a');
                 if (linkElement && linkElement.getAttribute('href')) {

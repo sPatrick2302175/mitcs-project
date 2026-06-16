@@ -9,99 +9,93 @@ class LeaveRequest extends Model
 {
     use HasFactory;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
     protected $fillable = [
         'employee_id',
+        'leave_type_id',
         'date_of_filing',
-        
-        // 6.A TYPE OF LEAVE
-        'leave_type', 
-        'leave_type_others', 
-        
-        // 6.B DETAILS OF LEAVE
         'leave_detail_category', 
         'leave_detail_specifics', 
-        
-        // 6.C NUMBER OF WORKING DAYS APPLIED FOR
         'working_days_applied',
         'start_date',
         'end_date',
-        
-        // 6.D COMMUTATION
         'commutation_requested', 
         
-        // 7. DETAILS OF ACTION ON APPLICATION
+        // ADDED: The historical balance snapshots for Section 7.A
+        'vl_balance_snapshot',
+        'sl_balance_snapshot',
+
         'status', 
-        
-        // 7.B RECOMMENDATION
         'recommendation_reason', 
         'recommending_officer_id', 
-        
-        // 7.C & 7.D FINAL ACTION
-        'days_with_pay',
-        'days_without_pay',
+        'approving_official_id', 
         'approved_others', 
         'disapproval_reason', 
-        'approving_official_id', 
+        'days_with_pay',
+        'days_without_pay',
     ];
 
-    /**
-     * The attributes that should be cast to native types.
-     *
-     * @var array
-     */
     protected $casts = [
         'date_of_filing' => 'date',
         'start_date' => 'date',
         'end_date' => 'date',
         'commutation_requested' => 'boolean',
         'working_days_applied' => 'decimal:1',
+        'vl_balance_snapshot' => 'decimal:3',
+        'sl_balance_snapshot' => 'decimal:3',
     ];
 
-    /**
-     * Get the employee who submitted the leave request.
-     */
     public function employee()
     {
         return $this->belongsTo(Employee::class);
     }
 
-    /**
-     * Get the officer who recommended the action (Section 7.B).
-     */
+    public function leaveType()
+    {
+        return $this->belongsTo(LeaveType::class);
+    }
+
     public function recommendingOfficer()
     {
-        return $this->belongsTo(User::class, 'recommending_officer_id');
+        return $this->belongsTo(Employee::class, 'recommending_officer_id');
     }
 
-    /**
-     * Get the official who gave final approval/disapproval (Section 7.C / 7.D).
-     */
     public function approvingOfficial()
     {
-        return $this->belongsTo(User::class, 'approving_official_id');
+        return $this->belongsTo(Employee::class, 'approving_official_id');
     }
 
+    public function ledgers()
+    {
+        // Polymorphic relationship mapping to reference_type and reference_id
+        return $this->morphMany(LeaveLedger::class, 'reference');
+    }
+    /**
+     * A leave request can have multiple supporting documents attached.
+     */
+    public function attachments()
+    {
+        return $this->hasMany(LeaveAttachment::class);
+    }
+    /**
+     * Get the specific Form No. 6 details associated with this leave request.
+     */
     public function details()
     {
-        return $this->hasMany(LeaveRequestDetail::class);
+        // Change 'LeaveRequestDetail::class' to whatever your details model is called
+        return $this->hasMany(LeaveRequestDetail::class); 
     }
 
-    /**
-     * Scope a query to search by leave type, specifics, or employee name.
-     */
     public function scopeSearch($query, $search)
     {
         return $query->when($search, function ($q, $search) {
             $q->where(function ($subQ) use ($search) {
-                $subQ->where('leave_type', 'like', "%{$search}%")
-                     ->orWhere('leave_type_others', 'like', "%{$search}%")
-                     ->orWhere('leave_detail_category', 'like', "%{$search}%")
+                $subQ->where('leave_detail_category', 'like', "%{$search}%")
                      ->orWhere('leave_detail_specifics', 'like', "%{$search}%")
+                     ->orWhereHas('leaveType', function ($typeQ) use ($search) {
+                         // UPDATED: Changed 'name' to 'leave_type_name'
+                         $typeQ->where('leave_type_name', 'like', "%{$search}%")
+                               ->orWhere('code', 'like', "%{$search}%");
+                     })
                      ->orWhereHas('employee', function ($empQ) use ($search) {
                          $empQ->whereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$search}%"]);
                      });
@@ -109,9 +103,6 @@ class LeaveRequest extends Model
         });
     }
 
-    /**
-     * Scope a query to filter by timeframe.
-     */
     public function scopeWithinTimeframe($query, $timeframe)
     {
         return $query->when($timeframe, function ($q, $timeframe) {
@@ -120,7 +111,7 @@ class LeaveRequest extends Model
                                   ->whereYear('date_of_filing', now()->year),
                 'last_3_months' => $q->where('date_of_filing', '>=', now()->subMonths(3)),
                 'this_year' => $q->whereYear('date_of_filing', now()->year),
-                default => $q
+                default => null
             };
         });
     }

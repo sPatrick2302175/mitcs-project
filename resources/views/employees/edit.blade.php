@@ -91,7 +91,7 @@
                                 class="block w-full rounded-xl border-gray-200 bg-gray-50/40 px-4 py-3 text-gray-800 focus:border-[#F2A455] focus:ring focus:ring-[#F2A455]/10 focus:bg-white transition-all duration-200 sm:text-sm">
                                 <option value="">-- Select Department --</option>
                                 @foreach($departments as $dept)
-                                    <option value="{{ $dept->id }}" @selected(old('department_id', $employee->department_id) == $dept->id)>
+                                    <option value="{{ $dept->id }}" @selected(old('department_id', $employee->division?->department_id) == $dept->id)>
                                         {{ $dept->department_name }}
                                     </option>
                                 @endforeach
@@ -115,49 +115,43 @@
                         </div>
                         
                         <div class="md:col-span-2 pt-4 mt-2 border-t border-gray-100/60">
-                            <h3 class="text-sm font-bold text-gray-700 mb-4 uppercase tracking-wider">Manage Leave Balances</h3>
-                            <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
-                                
-                                <div class="group">
-                                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2 group-focus-within:text-[#F2A455] transition-colors duration-200">
-                                        Vacation Leave <span class="text-rose-500">*</span>
-                                    </label>
-                                    <input type="number" step="0.01" min="0" name="vacation_leave_balance" value="{{ old('vacation_leave_balance', $employee->vacation_leave_balance) }}" required 
-                                        class="block w-full rounded-xl border-gray-200 bg-gray-50/40 px-4 py-3 text-gray-800 focus:border-[#F2A455] focus:ring focus:ring-[#F2A455]/10 focus:bg-white transition-all duration-200 sm:text-sm">
-                                </div>
+                            <div class="mb-6">
+                                <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wider">Manage Leave Balances</h3>
+                                <p class="text-xs text-gray-500 mt-1">Adjust core available balances. Manual adjustments made here update the active balances directly.</p>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                @foreach($leaveTypes as $leaveType)
+                                    @php
+                                        $currentBalance = $employee->leaveBalances->firstWhere('leave_type_id', $leaveType->id)?->balance ?? 0;
+                                    @endphp
 
-                                <div class="group">
-                                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2 group-focus-within:text-[#F2A455] transition-colors duration-200">
-                                        Sick Leave <span class="text-rose-500">*</span>
-                                    </label>
-                                    <input type="number" step="0.01" min="0" name="sick_leave_balance" value="{{ old('sick_leave_balance', $employee->sick_leave_balance) }}" required 
-                                        class="block w-full rounded-xl border-gray-200 bg-gray-50/40 px-4 py-3 text-gray-800 focus:border-[#F2A455] focus:ring focus:ring-[#F2A455]/10 focus:bg-white transition-all duration-200 sm:text-sm">
-                                </div>
+                                    <div class="group bg-white p-4 rounded-xl border border-gray-100 shadow-sm relative hover:border-[#F2A455]/30 transition-colors duration-200">
+                                        <div class="flex items-start justify-between mb-3">
+                                            <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 group-focus-within:text-[#F2A455] transition-colors duration-200">
+                                                {{ $leaveType->leave_type_name }} <span class="text-rose-500">*</span>
+                                            </label>
 
-                                <div class="group">
-                                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2 group-focus-within:text-[#F2A455] transition-colors duration-200">
-                                        Mandatory Leave <span class="text-rose-500">*</span>
-                                    </label>
-                                    <input type="number" step="0.01" min="0" name="mandatory_leave_balance" value="{{ old('mandatory_leave_balance', $employee->mandatory_leave_balance) }}" required 
-                                        class="block w-full rounded-xl border-gray-200 bg-gray-50/40 px-4 py-3 text-gray-800 focus:border-[#F2A455] focus:ring focus:ring-[#F2A455]/10 focus:bg-white transition-all duration-200 sm:text-sm">
-                                </div>
-
-                                <div class="group">
-                                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2 group-focus-within:text-[#F2A455] transition-colors duration-200">
-                                        Special Privilege <span class="text-rose-500">*</span>
-                                    </label>
-                                    <input type="number" step="0.01" min="0" name="special_privilege_leave_balance" value="{{ old('special_privilege_leave_balance', $employee->special_privilege_leave_balance) }}" required 
-                                        class="block w-full rounded-xl border-gray-200 bg-gray-50/40 px-4 py-3 text-gray-800 focus:border-[#F2A455] focus:ring focus:ring-[#F2A455]/10 focus:bg-white transition-all duration-200 sm:text-sm">
-                                </div>
-
-                                <div class="group">
-                                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2 group-focus-within:text-[#F2A455] transition-colors duration-200">
-                                        Special Emergency <span class="text-rose-500">*</span>
-                                    </label>
-                                    <input type="number" step="0.01" min="0" name="special_emergency_leave_balance" value="{{ old('special_emergency_leave_balance', $employee->special_emergency_leave_balance) }}" required 
-                                        class="block w-full rounded-xl border-gray-200 bg-gray-50/40 px-4 py-3 text-gray-800 focus:border-[#F2A455] focus:ring focus:ring-[#F2A455]/10 focus:bg-white transition-all duration-200 sm:text-sm">
-                                </div>
-
+                                            @if($leaveType->is_cumulative)
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                                    🔄 Cumulative
+                                                </span>
+                                            @else
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-100">
+                                                    📌 Fixed
+                                                </span>
+                                            @endif
+                                        </div>
+                                        
+                                        <input type="number" 
+                                            step="0.01" 
+                                            min="0" 
+                                            name="balances[{{ $leaveType->id }}]" 
+                                            value="{{ old('balances.' . $leaveType->id, $currentBalance) }}" 
+                                            required 
+                                            class="block w-full rounded-xl border-gray-200 bg-gray-50/40 px-4 py-3 text-gray-800 focus:border-[#F2A455] focus:ring focus:ring-[#F2A455]/10 focus:bg-white transition-all duration-200 sm:text-sm">
+                                    </div>
+                                @endforeach
                             </div>
                         </div>
 

@@ -13,13 +13,18 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // Super admin department (none offical department)
+        // 1. Seed the core Leave Types first
+        $this->call([
+            LeaveTypesSeeder::class,
+        ]);
+
+        // Super admin department (non-official department)
         $department = Department::firstOrCreate(
             ['code' => 'SYSTEM-ADMIN'],
             ['department_name' => 'SYSTEM-ADMIN']
         );
 
-        // Super admin division (none offical division)
+        // Super admin division (non-official division)
         $division = Division::firstOrCreate(
             ['code' => 'SYS-ADMIN'],
             [
@@ -36,25 +41,20 @@ class DatabaseSeeder extends Seeder
                 'last_name' => 'Administrator',
                 'middle_initial' => 'S',
                 'position' => 'Super Admin',
-                'department_id' => $department->id,
                 'division_id' => $division->id,
-                //'leave_credits' => 0, 
+                'salary' => 0.00 // Super admin can have a baseline flat rate
             ]
         );
 
         // Super Admin User using the linked employee record
-        if (!User::where('email', 'admin@company.com')->exists()) {
-            User::create([
+        User::updateOrCreate(
+            ['email' => 'admin@company.com'],
+            [
                 'name' => 'System Administrator',
-                'email' => 'admin@company.com',
-                'password' => Hash::make('12345678'), // changeable
-                'is_admin' => 2, // Super Admin role
+                'password' => Hash::make('12345678'), // Changeable upon deployment
+                'is_admin' => 2, // Corresponds to ROLE_SUPER_ADMIN = 2
                 'employee_id' => $adminEmployee->id, 
-            ]);
-
-            //$this->command->info('System Super Admin account successfully created!');
-        } else {
-            //$this->command->warn('Super Admin account already exists. Skipping...');
-        }
+            ]
+        );
     }
 }

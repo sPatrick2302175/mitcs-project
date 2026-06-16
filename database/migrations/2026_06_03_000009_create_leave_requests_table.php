@@ -6,22 +6,14 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('leave_requests', function (Blueprint $table) {
             $table->id();
-            
-            // Link to the employee applying
-            $table->foreignId('employee_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('employee_id')->constrained('employees')->cascadeOnDelete();
+            $table->foreignId('leave_type_id')->constrained('leave_types')->restrictOnDelete();
             $table->date('date_of_filing');
 
-            // 6.A TYPE OF LEAVE
-            $table->string('leave_type'); 
-            $table->string('leave_type_others')->nullable();
-            
             // 6.B DETAILS OF LEAVE
             $table->string('leave_detail_category')->nullable(); 
             $table->string('leave_detail_specifics')->nullable(); 
@@ -34,7 +26,11 @@ return new class extends Migration
             // 6.D COMMUTATION
             $table->boolean('commutation_requested')->default(false);
             
-            // Tracking Application Status
+            // 7.A CERTIFICATION OF LEAVE CREDITS (SNAPSHOTS)
+            // Added to freeze the balance history at the time of filing
+            $table->decimal('vl_balance_snapshot', 8, 3)->nullable()->comment('VL balance before this deduction');
+            $table->decimal('sl_balance_snapshot', 8, 3)->nullable()->comment('SL balance before this deduction');
+
             $table->enum('status', [
                 'pending', 
                 'recommended_for_approval', 
@@ -43,24 +39,21 @@ return new class extends Migration
                 'disapproved'
             ])->default('pending');
             
-            // 7.B RECOMMENDATION
+            // 7.B RECOMMENDATION 
             $table->text('recommendation_reason')->nullable();
-            $table->foreignId('recommending_officer_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('recommending_officer_id')->nullable()->constrained('employees')->nullOnDelete();
             
-            // 7.C & 7.D FINAL ACTION
-            $table->decimal('days_with_pay', 8, 1)->nullable();
-            $table->decimal('days_without_pay', 8, 1)->nullable();
+            // 7.C & 7.D FINAL ACTION (Can be Dept Head OR Admin Officer)
+            $table->foreignId('approving_official_id')->nullable()->constrained('employees')->nullOnDelete();
             $table->string('approved_others')->nullable();
             $table->text('disapproval_reason')->nullable();
-            $table->foreignId('approving_official_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->decimal('days_with_pay', 8, 1)->nullable();
+            $table->decimal('days_without_pay', 8, 1)->nullable();
 
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('leave_requests');
