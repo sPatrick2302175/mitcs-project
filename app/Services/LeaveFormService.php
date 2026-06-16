@@ -181,7 +181,7 @@ class LeaveFormService
         // --- DYNAMIC DAYS & DATES LOGIC ---
         $pdf->SetFont('CenturyGothic', '', 8);
         $pdf->SetXY(10, 158); 
-        $pdf->Write(0, number_format($leaveRequest->working_days_applied, 1) . ' days');
+        $pdf->Write(0, number_format($leaveRequest->working_days_applied, 2) . ' days');
         
         $startDate = Carbon::parse($leaveRequest->start_date);
         $endDate = Carbon::parse($leaveRequest->end_date);
@@ -234,31 +234,42 @@ class LeaveFormService
         $pdf->SetXY(45, 191); 
         $pdf->Write(0, $asOfDate);
 
-        // === 2. FIXED BALANCE LOGIC ===
-        // Fetch specific dynamic leave types securely using 'code' instead of explicit strings
-        $vlType = LeaveType::where('code', 'VL')->first();
-        $slType = LeaveType::where('code', 'SL')->first();
+        // === 2. SAFE SNAPSHOT & DETAILS-BASED BALANCE LOGIC ===
+        
+        // The snapshots represent the exact balance BEFORE deduction
+        $vlOriginal = (float)($leaveRequest->vl_balance_snapshot ?? 0);
+        $slOriginal = (float)($leaveRequest->sl_balance_snapshot ?? 0);
 
-        // Safely retrieve the row records mapped to this employee
-        $vlBalanceRecord = $leaveRequest->employee->leaveBalances()->where('leave_type_id', $vlType?->id)->first();
-        $slBalanceRecord = $leaveRequest->employee->leaveBalances()->where('leave_type_id', $slType?->id)->first();
-
-        $vlBalance = (float)($vlBalanceRecord?->balance ?? 0);
-        $slBalance = (float)($slBalanceRecord?->balance ?? 0);
-
-        $daysApplied = (float)$leaveRequest->working_days_applied;
         $vlDeduction = 0;
         $slDeduction = 0;
 
-        // 3. SECURE DEDUCTION CHECK: Uses strict Code matching (VL, FL, SL)
-        if (in_array($leaveCode, ['VL', 'FL'])) {
-            $vlDeduction = $daysApplied;
-        } elseif ($leaveCode === 'SL') {
-            $slDeduction = $daysApplied;
+        // DYNAMIC DEDUCTION: Only count days strictly marked as "With Pay"
+        if ($leaveRequest->details && $leaveRequest->details->count() > 0) {
+            if (in_array($leaveCode, ['VL', 'FL'])) {
+                $vlDeduction = $leaveRequest->details->where('is_with_pay', true)->sum('day_fraction');
+            } elseif ($leaveCode === 'SL') {
+                $slDeduction = $leaveRequest->details->where('is_with_pay', true)->sum('day_fraction');
+            }
+        } else {
+            // Fallback protection for legacy requests
+            $daysApplied = (float)$leaveRequest->working_days_applied;
+            if (in_array($leaveCode, ['VL', 'FL'])) {
+                $vlDeduction = $daysApplied;
+            } elseif ($leaveCode === 'SL') {
+                $slDeduction = $daysApplied;
+            }
         }
 
-        $vlEarned = $vlBalance + $vlDeduction;
-        $slEarned = $slBalance + $slDeduction;
+        // 🌟 THE CORRECT MATHEMATICS FOR SNAPSHOTS:
+        // Row 1: Total Earned is just the original snapshot balance
+        $vlEarned = $vlOriginal; 
+        $slEarned = $slOriginal;
+
+        // Row 2: Less This Application (Already calculated as $vlDeduction / $slDeduction above)
+
+        // Row 3: Final Balance is the original snapshot minus the paid deduction
+        $vlBalance = $vlOriginal - $vlDeduction;
+        $slBalance = $slOriginal - $slDeduction;
 
         $pdf->SetFont('CenturyGothic', '', 8);
 
@@ -270,14 +281,14 @@ class LeaveFormService
         $rowDeductionY = 206.5;   
         $rowBalanceY = 211.5;     
 
-        $vlEarnedText = number_format($vlEarned, 1);
-        $slEarnedText = number_format($slEarned, 1);
+        $vlEarnedText = number_format($vlEarned, 2);
+        $slEarnedText = number_format($slEarned, 2);
         
-        $vlDeductionText = $vlDeduction > 0 ? number_format($vlDeduction, 1) : '0';
-        $slDeductionText = $slDeduction > 0 ? number_format($slDeduction, 1) : '0';
+        $vlDeductionText = $vlDeduction > 0 ? number_format($vlDeduction, 2) : '0';
+        $slDeductionText = $slDeduction > 0 ? number_format($slDeduction, 2) : '0';
         
-        $vlBalanceText = number_format($vlBalance, 1);
-        $slBalanceText = number_format($slBalance, 1);
+        $vlBalanceText = number_format($vlBalance, 2);
+        $slBalanceText = number_format($slBalance, 2);
 
         $pdf->SetXY($vlColumnX, $rowEarnedY); 
         $pdf->Cell($columnWidth, 0, $vlEarnedText, 0, 0, 'C'); 

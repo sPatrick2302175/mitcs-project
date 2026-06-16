@@ -6,7 +6,7 @@ use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 
-#[Signature('app:reset-annual-leaves-command')]
+#[Signature('leave:reset-annual')]
 #[Description('Command description')]
 class ResetAnnualLeavesCommand extends Command
 {

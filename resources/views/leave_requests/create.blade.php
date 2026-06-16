@@ -60,7 +60,7 @@
 
         /* Standard Disabled Days (Weekends & Purely Non-working Days) */
         .flatpickr-day.flatpickr-disabled:not(.booked-by-other):not(.my-booked-date):not(.holiday-date) {
-            opacity: 0.4 !important; /* Extremely light opacity */
+            opacity: 1 !important; /* Extremely light opacity */
             cursor: not-allowed !important;
         }
     </style>
@@ -395,203 +395,234 @@
         </div> 
     </div> 
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-
-    <script>
+   <script>
         document.addEventListener('DOMContentLoaded', function() {
+            
             /* -------------------------------------------------------------
-                Dynamic Form 6.B Visibility Logic (Smooth Transition Mode)
+                1. Form 6.B Visibility Logic
             ------------------------------------------------------------- */
-            const typeRadios = document.querySelectorAll('input[name="leave_type_id"]');
-            const wrapper6B = document.getElementById('section_6b_wrapper');
-            const detailsLayoutContainer = document.getElementById('details_layout_container');
-            const subCategoriesLeftCol = document.getElementById('sub_categories_left_col');
-            
-            const subBlocks = {
-                'Vacation Leave': document.getElementById('details_vacation'),
-                'Special Privilege Leave': document.getElementById('details_vacation'),
-                'Sick Leave': document.getElementById('details_sick'),
-                'Study Leave': document.getElementById('details_study'),
-                'Others': document.getElementById('details_others')
-            };
-            
-            const specificsContainer = document.getElementById('specifics_container');
-            const specificsLabel = document.getElementById('specifics_label');
-            const specificsInput = document.getElementById('specifics_input');
-
-            function showElement(el, maxPercentHeight = 'max-h-[500px]') {
-                el.classList.remove('max-h-0', 'opacity-0');
-                el.classList.add(maxPercentHeight, 'opacity-100');
-            }
-
-            function hideElement(el, maxPercentHeight = 'max-h-[500px]') {
-                el.classList.remove(maxPercentHeight, 'opacity-100');
-                el.classList.add('max-h-0', 'opacity-0');
-            }
-
-            function handleLeaveTypeChange() {
-                const checkedRadio = document.querySelector('input[name="leave_type_id"]:checked');
-                const selectedType = checkedRadio ? checkedRadio.dataset.name : null;
+            try {
+                const typeRadios = document.querySelectorAll('input[name="leave_type_id"]');
+                const wrapper6B = document.getElementById('section_6b_wrapper');
+                const detailsLayoutContainer = document.getElementById('details_layout_container');
+                const subCategoriesLeftCol = document.getElementById('sub_categories_left_col');
                 
-                // Reset layout structure modifications completely
-                subCategoriesLeftCol.classList.remove('hidden');
-                specificsContainer.classList.remove('max-w-xl', 'mx-auto');
-                detailsLayoutContainer.className = "grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50/40 backdrop-blur-sm p-6 rounded-2xl border border-gray-100/80 shadow-sm mb-10 transition-all duration-500";
-
-                // Hide all inside elements cleanly
-                Object.values(subBlocks).forEach(block => hideElement(block));
-                hideElement(specificsContainer);
-
-                const typesWithSubOptions = ['Vacation Leave', 'Special Privilege Leave', 'Sick Leave', 'Study Leave', 'Others', 'Special Leave Benefits for Women'];
+                const subBlocks = {
+                    'Vacation Leave': document.getElementById('details_vacation'),
+                    'Special Privilege Leave': document.getElementById('details_vacation'),
+                    'Sick Leave': document.getElementById('details_sick'),
+                    'Study Leave': document.getElementById('details_study'),
+                    'Others': document.getElementById('details_others')
+                };
                 
-                if (typesWithSubOptions.includes(selectedType)) {
-                    // Activate master wrapper smoothly
-                    wrapper6B.classList.remove('max-h-0', 'opacity-0', 'pointer-events-none');
-                    wrapper6B.classList.add('max-h-[1000px]', 'opacity-100', 'pointer-events-auto');
+                const specificsContainer = document.getElementById('specifics_container');
+                const specificsLabel = document.getElementById('specifics_label');
+                const specificsInput = document.getElementById('specifics_input');
 
-                    if (['Vacation Leave', 'Special Privilege Leave'].includes(selectedType)) {
-                        showElement(subBlocks[selectedType]);
-                        showElement(specificsContainer);
-                        specificsLabel.textContent = 'Specify Destination (If Abroad):';
-                        specificsInput.placeholder = 'Please provide destination...';
-                    } 
-                    else if (selectedType === 'Sick Leave') {
-                        showElement(subBlocks['Sick Leave']);
-                        showElement(specificsContainer);
-                        specificsLabel.textContent = 'Specify Illness:';
-                        specificsInput.placeholder = 'Please describe specific illness...';
+                function showElement(el, maxPercentHeight = 'max-h-[500px]') {
+                    if(!el) return;
+                    el.classList.remove('max-h-0', 'opacity-0');
+                    el.classList.add(maxPercentHeight, 'opacity-100');
+                }
+
+                function hideElement(el, maxPercentHeight = 'max-h-[500px]') {
+                    if(!el) return;
+                    el.classList.remove(maxPercentHeight, 'opacity-100');
+                    el.classList.add('max-h-0', 'opacity-0');
+                }
+
+                function handleLeaveTypeChange() {
+                    const checkedRadio = document.querySelector('input[name="leave_type_id"]:checked');
+                    const selectedType = checkedRadio ? checkedRadio.dataset.name : null;
+                    
+                    if (subCategoriesLeftCol) subCategoriesLeftCol.classList.remove('hidden');
+                    if (specificsContainer) specificsContainer.classList.remove('max-w-xl', 'mx-auto');
+                    if (detailsLayoutContainer) detailsLayoutContainer.className = "grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50/40 backdrop-blur-sm p-6 rounded-2xl border border-gray-100/80 shadow-sm mb-10 transition-all duration-500";
+
+                    Object.values(subBlocks).forEach(block => hideElement(block));
+                    hideElement(specificsContainer);
+
+                    const typesWithSubOptions = ['Vacation Leave', 'Special Privilege Leave', 'Sick Leave', 'Study Leave', 'Others', 'Special Leave Benefits for Women'];
+                    
+                    if (typesWithSubOptions.includes(selectedType)) {
+                        if(wrapper6B) {
+                            wrapper6B.classList.remove('max-h-0', 'opacity-0', 'pointer-events-none');
+                            wrapper6B.classList.add('max-h-[1000px]', 'opacity-100', 'pointer-events-auto');
+                        }
+
+                        if (['Vacation Leave', 'Special Privilege Leave'].includes(selectedType)) {
+                            showElement(subBlocks[selectedType]);
+                            showElement(specificsContainer);
+                            if(specificsLabel) specificsLabel.textContent = 'Specify Destination (If Abroad):';
+                            if(specificsInput) specificsInput.placeholder = 'Please provide destination...';
+                        } 
+                        else if (selectedType === 'Sick Leave') {
+                            showElement(subBlocks['Sick Leave']);
+                            showElement(specificsContainer);
+                            if(specificsLabel) specificsLabel.textContent = 'Specify Illness:';
+                            if(specificsInput) specificsInput.placeholder = 'Please describe specific illness...';
+                        }
+                        else if (selectedType === 'Special Leave Benefits for Women') {
+                            if(subCategoriesLeftCol) subCategoriesLeftCol.classList.add('hidden');
+                            if(detailsLayoutContainer) detailsLayoutContainer.className = "flex flex-col items-center justify-center bg-gray-50/40 backdrop-blur-sm p-6 rounded-2xl border border-gray-100/80 shadow-sm mb-10 transition-all duration-500";
+                            
+                            if(specificsContainer) {
+                                specificsContainer.classList.add('max-w-xl', 'mx-auto');
+                                showElement(specificsContainer);
+                            }
+                            if(specificsLabel) specificsLabel.textContent = 'Specify Illness (Special Leave for Women):';
+                            if(specificsInput) specificsInput.placeholder = 'Please describe specific illness...';
+                        }
+                        else if (selectedType === 'Study Leave' || selectedType === 'Others') {
+                            showElement(subBlocks[selectedType]);
+                        }
+                    } else {
+                        if(wrapper6B) {
+                            wrapper6B.classList.remove('max-h-[1000px]', 'opacity-100', 'pointer-events-auto');
+                            wrapper6B.classList.add('max-h-0', 'opacity-0', 'pointer-events-none');
+                        }
                     }
-                    else if (selectedType === 'Special Leave Benefits for Women') {
-                        // 1. Hide left sub-options panel completely to clear layout space
-                        subCategoriesLeftCol.classList.add('hidden');
+                }
+
+                typeRadios.forEach(radio => {
+                    radio.addEventListener('change', handleLeaveTypeChange);
+                });
+
+                handleLeaveTypeChange();
+            } catch (err) { console.error("Form visibility logic error:", err); }
+
+            /* -------------------------------------------------------------
+                2. File Upload Preview Logic
+            ------------------------------------------------------------- */
+            try {
+                const fileInput = document.getElementById('dropzone-file');
+                const fileListContainer = document.getElementById('file-list');
+
+                if (fileInput && fileListContainer) {
+                    fileInput.addEventListener('change', function() {
+                        fileListContainer.innerHTML = ''; 
                         
-                        // 2. Reposition layout context into a clean, unified structure
-                        detailsLayoutContainer.className = "flex flex-col items-center justify-center bg-gray-50/40 backdrop-blur-sm p-6 rounded-2xl border border-gray-100/80 shadow-sm mb-10 transition-all duration-500";
-                        
-                        // 3. Scale text box area smoothly with elegant maximum constraints
-                        specificsContainer.classList.add('max-w-xl', 'mx-auto');
-                        showElement(specificsContainer);
-                        
-                        specificsLabel.textContent = 'Specify Illness (Special Leave for Women):';
-                        specificsInput.placeholder = 'Please describe specific illness...';
-                    }
-                    else if (selectedType === 'Study Leave' || selectedType === 'Others') {
-                        showElement(subBlocks[selectedType]);
+                        if (this.files.length > 0) {
+                            fileListContainer.classList.remove('hidden');
+                            
+                            Array.from(this.files).forEach((file) => {
+                                const fileSize = (file.size / (1024 * 1024)).toFixed(2); 
+                                const fileItem = document.createElement('div');
+                                fileItem.className = 'flex items-center justify-between p-3 bg-white border border-gray-100 rounded-lg shadow-sm';
+                                fileItem.innerHTML = `
+                                    <div class="flex items-center space-x-3 overflow-hidden">
+                                        <div class="p-2 bg-orange-50 rounded-lg shrink-0">
+                                            <svg class="w-4 h-4 text-[#F2A455]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+                                        </div>
+                                        <div class="truncate">
+                                            <p class="text-sm font-bold text-gray-700 truncate">${file.name}</p>
+                                            <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400">${fileSize} MB</p>
+                                        </div>
+                                    </div>
+                                `;
+                                fileListContainer.appendChild(fileItem);
+                            });
+                        } else {
+                            fileListContainer.classList.add('hidden');
+                        }
+                    });
+                }
+            } catch (err) { console.error("File upload logic error:", err); }
+
+            /* -------------------------------------------------------------
+                3. Flatpickr Calendar Logic (Bulletproof Auto-Detect)
+            ------------------------------------------------------------- */
+            try {
+                // Safely convert Laravel dates to clean YYYY-MM-DD arrays
+                function safeDateArray(data) {
+                    if (!data) return [];
+                    let arr = Array.isArray(data) ? data : Object.values(data);
+                    return arr.map(d => String(d).substring(0, 10));
+                }
+
+                const divisionApprovedDates = safeDateArray(@json($divisionApprovedDates ?? []));
+                const myBookedDates = safeDateArray(@json($myBookedDates ?? []));
+                const explicitDisabledDates = [...divisionApprovedDates, ...myBookedDates];
+
+                // Holiday Auto-Detector (Adapts to both Old Controller & New Controller)
+                const rawHolidays = @json($holidays ?? []); 
+                const customHolidays = [];
+
+                if (!Array.isArray(rawHolidays)) {
+                    // It's the OLD controller format: {"2025-12-25": "Holiday Name"}
+                    for (const [key, value] of Object.entries(rawHolidays)) {
+                        customHolidays.push({
+                            name: value,
+                            date: String(key).substring(0, 10),
+                            is_regular: false
+                        });
                     }
                 } else {
-                    // Collapse master envelope safely if type needs no details
-                    wrapper6B.classList.remove('max-h-[1000px]', 'opacity-100', 'pointer-events-auto');
-                    wrapper6B.classList.add('max-h-0', 'opacity-0', 'pointer-events-none');
+                    // It's the NEW controller format: Array of objects
+                    rawHolidays.forEach(h => {
+                        if (h && h.date) customHolidays.push(h);
+                    });
                 }
-            }
 
-            typeRadios.forEach(radio => {
-                radio.addEventListener('change', handleLeaveTypeChange);
-            });
-
-            handleLeaveTypeChange();
-
-            /* -------------------------------------------------------------
-                File Upload Preview Logic
-            ------------------------------------------------------------- */
-            const fileInput = document.getElementById('dropzone-file');
-            const fileListContainer = document.getElementById('file-list');
-
-            if (fileInput) {
-                fileInput.addEventListener('change', function() {
-                    fileListContainer.innerHTML = ''; // Clear previous
-                    
-                    if (this.files.length > 0) {
-                        fileListContainer.classList.remove('hidden');
-                        
-                        Array.from(this.files).forEach((file, index) => {
-                            const fileSize = (file.size / (1024 * 1024)).toFixed(2); // Convert to MB
+                const commonConfig = {
+                    dateFormat: "Y-m-d",
+                    minDate: "today",       
+                    disable: [
+                        function(date) {
+                            if (date.getDay() === 0 || date.getDay() === 6) return true; 
                             
-                            const fileItem = document.createElement('div');
-                            fileItem.className = 'flex items-center justify-between p-3 bg-white border border-gray-100 rounded-lg shadow-sm';
-                            fileItem.innerHTML = `
-                                <div class="flex items-center space-x-3 overflow-hidden">
-                                    <div class="p-2 bg-orange-50 rounded-lg shrink-0">
-                                        <svg class="w-4 h-4 text-[#F2A455]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
-                                    </div>
-                                    <div class="truncate">
-                                        <p class="text-sm font-bold text-gray-700 truncate">${file.name}</p>
-                                        <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400">${fileSize} MB</p>
-                                    </div>
-                                </div>
-                            `;
-                            fileListContainer.appendChild(fileItem);
+                            const dateStr = flatpickr.formatDate(date, "Y-m-d");
+                            const monthDayStr = dateStr.substring(5); // Gets "MM-DD"
+
+                            if (explicitDisabledDates.includes(dateStr)) return true;
+
+                            return customHolidays.some(h => {
+                                const hDate = String(h.date).substring(0, 10);
+                                return hDate === dateStr || (h.is_regular && hDate.substring(5) === monthDayStr);
+                            });
+                        }
+                    ],
+                    onDayCreate: function(dObj, dStr, fp, dayElem) {
+                        const dateStr = fp.formatDate(dayElem.dateObj, "Y-m-d");
+                        const monthDayStr = dateStr.substring(5); 
+                        
+                        if (myBookedDates.includes(dateStr)) {
+                            dayElem.classList.add("my-booked-date");
+                            dayElem.title = "My Leave Request";
+                        }
+                        else if (divisionApprovedDates.includes(dateStr)) {
+                            dayElem.classList.add("booked-by-other");
+                            dayElem.title = "Taken Leave";
+                        }
+                        else {
+                            const matchedHoliday = customHolidays.find(h => {
+                                const hDate = String(h.date).substring(0, 10);
+                                return hDate === dateStr || (h.is_regular && hDate.substring(5) === monthDayStr);
+                            });
+
+                            if (matchedHoliday) {
+                                dayElem.classList.add("holiday-date");
+                                dayElem.title = matchedHoliday.name || "Holiday";
+                            }
+                        }
+                    }
+                };
+
+                flatpickr("#selected_dates", {
+                    ...commonConfig,
+                    mode: "multiple",
+                    conjunction: ", ",
+                    onChange: function(selectedDates, dateStr, instance) {
+                        const workingDays = selectedDates.filter(date => {
+                            const day = date.getDay();
+                            return day !== 0 && day !== 6; 
                         });
-                    } else {
-                        fileListContainer.classList.add('hidden');
+                        const input = document.getElementById('working_days_applied');
+                        if (input) input.value = workingDays.length;
                     }
                 });
-            }
+            } catch (err) { console.error("Flatpickr Calendar crash prevented:", err); }
 
-            /* -------------------------------------------------------------
-                Flatpickr Logic
-            ------------------------------------------------------------- */
-            // 1. Fetch raw holidays and clean the timestamps off the dates
-            const rawHolidays = @json($holidays ?? []); 
-            const holidays = {};
-            for (const [key, value] of Object.entries(rawHolidays)) {
-                // This chops "2026-06-12 00:00:00" down to just "2026-06-12"
-                holidays[String(key).substring(0, 10)] = value;
-            }
-            const holidayDates = Object.keys(holidays);
-
-            // 2. Clean the timestamps off the division and personal leaves
-            const divisionApprovedDates = @json($divisionApprovedDates ?? []).map(d => String(d).substring(0, 10));
-            const myBookedDates = @json($myBookedDates ?? []).map(d => String(d).substring(0, 10));
-            
-            // 3. Combine all explicitly blocked dates
-            const explicitDisabledDates = [...divisionApprovedDates, ...myBookedDates, ...holidayDates];
-
-            const commonConfig = {
-                dateFormat: "Y-m-d",
-                minDate: "today",       
-                disable: [
-                    function(date) {
-                        // Disable Weekends entirely
-                        if (date.getDay() === 0 || date.getDay() === 6) {
-                            return true; 
-                        }
-                        
-                        // Disable if it matches taken leaves, my requests, or holidays
-                        const dateStr = flatpickr.formatDate(date, "Y-m-d");
-                        return explicitDisabledDates.includes(dateStr);
-                    }
-                ],
-                onDayCreate: function(dObj, dStr, fp, dayElem) {
-                    const dateStr = fp.formatDate(dayElem.dateObj, "Y-m-d");
-                    
-                    // Prioritize color application (My request > Division Approved > Holiday)
-                    if (myBookedDates.includes(dateStr)) {
-                        dayElem.classList.add("my-booked-date");
-                        dayElem.title = "My Leave Request";
-                    }
-                    else if (divisionApprovedDates.includes(dateStr)) {
-                        dayElem.classList.add("booked-by-other");
-                        dayElem.title = "Taken Leave";
-                    }
-                    else if (holidays[dateStr]) {
-                        dayElem.classList.add("holiday-date");
-                        dayElem.title = holidays[dateStr]; // Instantly prints the holiday name!
-                    }
-                }
-            };
-
-            flatpickr("#selected_dates", {
-                ...commonConfig,
-                mode: "multiple",
-                conjunction: ", ",
-                onChange: function(selectedDates, dateStr, instance) {
-                    const workingDays = selectedDates.filter(date => {
-                        const day = date.getDay();
-                        return day !== 0 && day !== 6; 
-                    });
-                    document.getElementById('working_days_applied').value = workingDays.length;
-                }
-            });
         });
     </script>
 </x-app-layout>

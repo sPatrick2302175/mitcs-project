@@ -343,35 +343,63 @@
                 </div>
             @endif
 
+            <!--Calendar-->
+
             <div class="bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100/60 overflow-hidden p-6 md:p-8">
-                <div class="mb-6">
-                    <h3 class="text-xl font-black text-gray-800 tracking-tight">NGC Calendar & Holidays</h3>
-                    <p class="text-xs font-bold uppercase tracking-wider text-gray-400 mt-1">Global view of scheduled events and corporate leaves</p>
+                
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-5 mb-6 border-b border-gray-100/80 gap-4">
+                    <div>
+                        <h3 class="text-xl font-black text-gray-800 tracking-tight">NGC Calendar & Holidays</h3>
+                        <p class="text-xs font-bold uppercase tracking-wider text-gray-400 mt-1">Global view of scheduled events and corporate leaves</p>
+                    </div>
+
+                    <div class="flex items-center bg-gray-50/80 pl-4 pr-3 py-1.5 rounded-xl border border-gray-200/60 shadow-sm shrink-0 self-start sm:self-center transition-all">
+                        <span id="custom-year-display" class="text-2xl font-black text-gray-800 tracking-tight min-w-[4.5rem] text-center select-none">
+                            {{ date('Y') }}
+                        </span>
+                        
+                        <div class="flex flex-col ml-2.5 border-l border-gray-200/80 pl-2.5 text-[#F2A455]">
+                            <button id="year-btn-up" class="hover:text-[#df9344] p-0.5 focus:outline-none transition-colors transform active:scale-90" title="Next Year">
+                                <svg class="w-4 h-4 font-bold" fill="none" stroke="currentColor" stroke-width="3.5" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5"></path>
+                                </svg>
+                            </button>
+                            <button id="year-btn-down" class="hover:text-[#df9344] p-0.5 focus:outline-none transition-colors transform active:scale-90 mt-0.5" title="Previous Year">
+                                <svg class="w-4 h-4 font-bold" fill="none" stroke="currentColor" stroke-width="3.5" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div id="calendar" class="min-h-[500px]"></div>
-                <div class="mt-5 flex flex-wrap gap-x-5 gap-y-2.5 items-center text-[10px] font-black text-gray-400 uppercase tracking-wider bg-gray-50/60 border border-gray-100 p-3 rounded-xl shadow-inner">
-                    <span class="text-gray-500">Schedule Legend:</span>
-                    <span class="inline-flex items-center gap-1.5 text-emerald-700"><span class="w-3 h-3 rounded bg-emerald-50 border border-emerald-200"></span> Approved Leaves</span>
-                    <span class="inline-flex items-center gap-1.5 text-amber-700"><span class="w-3 h-3 rounded bg-amber-50 border border-amber-200"></span> Pending Requests</span>
-                    <span class="inline-flex items-center gap-1.5 text-gray-600"><span class="w-3 h-3 rounded bg-orange-500"></span> None Regular Holidays</span>
-                    <span class="inline-flex items-center gap-1.5 text-blue-600"><span class="w-3 h-3 rounded bg-blue-500"></span> Regular Holidays</span>
+
+                <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                    <div id="calendar" class="min-h-[500px]"></div>
+                    
+                    <div class="mt-5 flex flex-wrap gap-x-5 gap-y-2.5 items-center text-[10px] font-black text-gray-400 uppercase tracking-wider bg-gray-50/60 border border-gray-100 p-3 rounded-xl shadow-inner">
+                        <span class="text-gray-500">Schedule Legend:</span>
+                        <span class="inline-flex items-center gap-1.5 text-emerald-700"><span class="w-3 h-3 rounded bg-emerald-50 border border-emerald-200"></span> Approved Leaves</span>
+                        <span class="inline-flex items-center gap-1.5 text-amber-700"><span class="w-3 h-3 rounded bg-amber-50 border border-amber-200"></span> Pending Requests</span>
+                        <span class="inline-flex items-center gap-1.5 text-gray-600"><span class="w-3 h-3 rounded bg-orange-500"></span> None Regular Holidays</span>
+                        <span class="inline-flex items-center gap-1.5 text-blue-600"><span class="w-3 h-3 rounded bg-blue-500"></span> Regular Holidays</span>
+                    </div>
                 </div>
+
             </div>
-            
-        </div>
     </div>
 
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             
-            // 1. Store the PHP array in a JavaScript variable
-            const eventsData = @json($calendarEvents ?? []);
-            
-            // 2. Console log it so you can inspect the structure
-            console.log('Events from Controller:', eventsData);
+            // 1. Get baseline records securely loaded from controller array mapping pipelines
+            const baseEvents = @json($calendarEvents ?? []);
+            console.log('Sanitized Base Event Models:', baseEvents);
 
+            const yearDisplay = document.getElementById('custom-year-display');
             var calendarEl = document.getElementById('calendar');
+            
+            // 2. Initialize Calendar Engine Configuration Layer
             var calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'dayGridMonth',
                 height: 'auto',
@@ -386,11 +414,76 @@
                     month: 'Month',
                     week: 'Week'
                 },
-                // 3. Pass that variable directly into FullCalendar
-                events: eventsData,
+                
+                // 🌟 REMOVE YEAR FROM CENTER DISPLAY TITLE (Shows only the Month Name now)
+                titleFormat: { month: 'long' },
+
+                // 🌟 DYNAMIC DATESYNCHRONIZER FOR MANUAL PREV/NEXT CLICKS
+                datesSet: function(info) {
+                    let activeViewDate = calendar.getDate();
+                    let currentYearContext = activeViewDate.getFullYear();
+                    
+                    if (yearDisplay.innerText != currentYearContext) {
+                        yearDisplay.innerText = currentYearContext;
+                    }
+                },
+                
+                // 🌟 TRUE MATHEMATICAL INFINITE EVENT GENERATOR HOOK
+                events: function(fetchInfo, successCallback, failureCallback) {
+                    let dynamicEvents = [];
+                    let startYear = fetchInfo.start.getFullYear();
+                    let endYear = fetchInfo.end.getFullYear();
+
+                    baseEvents.forEach(event => {
+                        // Check base properties or nested extended metadata safely
+                        const isRegular = event.is_regular || (event.extendedProps && event.extendedProps.is_regular);
+
+                        if (isRegular) {
+                            // Re-render and clone the event across every visible calendar frame context
+                            for (let y = startYear; y <= endYear; y++) {
+                                let clonedEvent = { ...event }; 
+                                
+                                // Strip out original base year characters (YYYY-MM-DD -> MM-DD)
+                                let monthDayStr = String(clonedEvent.start).substring(5, 10); 
+                                clonedEvent.start = `${y}-${monthDayStr}`;
+                                
+                                if (clonedEvent.end) {
+                                    let endMonthDayStr = String(clonedEvent.end).substring(5, 10);
+                                    clonedEvent.end = `${y}-${endMonthDayStr}`;
+                                }
+                                
+                                // Prevent engine conflicts via dynamically unique identification hashes
+                                clonedEvent.id = `${event.id || 'holiday'}-infinite-${y}`; 
+                                dynamicEvents.push(clonedEvent);
+                            }
+                        } else {
+                            // Standard leaves and single-day event profiles flow out naturally 
+                            dynamicEvents.push(event);
+                        }
+                    });
+
+                    successCallback(dynamicEvents);
+                }
             });
             
             calendar.render();
+
+            // 3. 🌟 UP/DOWN CLICK WARPING INTERFACES (Linked directly to FullCalendar Engine)
+            document.getElementById('year-btn-up').addEventListener('click', function() {
+                let currentDate = calendar.getDate();
+                let nextYear = currentDate.getFullYear() + 1;
+                let currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
+                
+                calendar.gotoDate(`${nextYear}-${currentMonth}-01`);
+            });
+
+            document.getElementById('year-btn-down').addEventListener('click', function() {
+                let currentDate = calendar.getDate();
+                let prevYear = currentDate.getFullYear() - 1;
+                let currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
+                
+                calendar.gotoDate(`${prevYear}-${currentMonth}-01`);
+            });
         });
     </script>
 </x-app-layout>
