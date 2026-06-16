@@ -134,11 +134,11 @@
 
                                             @if($leaveType->is_cumulative)
                                                 <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
-                                                    🔄 Cumulative
+                                                    Cumulative
                                                 </span>
                                             @else
                                                 <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-100">
-                                                    📌 Fixed
+                                                    Fixed
                                                 </span>
                                             @endif
                                         </div>

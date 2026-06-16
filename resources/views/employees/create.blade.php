@@ -102,7 +102,7 @@
                                 Division <span class="text-rose-500">*</span>
                             </label>
                             <select name="division_id" id="division_dropdown" required disabled 
-                                class="block w-full rounded-xl border-gray-200 bg-gray-100/60 px-4 py-3 text-gray-400 transition-all duration-200 sm:text-sm cursor-not-allowed">
+                                class="block w-full rounded-xl border-gray-200 bg-gray-100/60 px-4 py-3 text-gray-400 focus:border-[#F2A455] focus:ring focus:ring-[#F2A455]/10 focus:bg-white transition-all duration-200 sm:text-sm cursor-not-allowed">
                                 <option value="">-- Select Department First --</option>
                                 @foreach($divisions as $div)
                                     <option value="{{ $div->id }}" data-department="{{ $div->department_id }}">
@@ -136,11 +136,11 @@
 
                                             @if($leaveType->is_cumulative)
                                                 <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
-                                                    🔄 Cumulative
+                                                    Cumulative
                                                 </span>
                                             @else
                                                 <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-100">
-                                                    📌 Fixed
+                                                    Fixed
                                                 </span>
                                             @endif
                                         </div>

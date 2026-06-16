@@ -47,14 +47,13 @@ class LeaveFormService
         $pdf->SetXY(37, 47); $pdf->Write(0, Carbon::parse($leaveRequest->date_of_filing)->format('M d, Y'));
         $pdf->SetXY(97, 47); $pdf->Write(0, mb_strtoupper($leaveRequest->employee->position_code, 'UTF-8'));
 
-        // 2. DYNAMIC SALARY DISPLAY: Fetch from the globally updated Employee record
-        // Find this block around line 50:
+        // DYNAMIC SALARY DISPLAY
         if ($leaveRequest->employee->salary) {
             $pdf->SetXY(156, 47); 
             $pdf->Write(0, 'PhP ' . number_format($leaveRequest->employee->salary, 2));
         }
 
-        // Leave Types Checkboxes (Exact Y-Coordinates on the PDF)
+        // Leave Types Checkboxes
         $leaveYPositions = [
             'Vacation Leave'                   => 68.2,
             'Mandatory/Forced Leave'           => 73.4,
@@ -71,11 +70,9 @@ class LeaveFormService
             'Adoption Leave'                   => 130.2,
         ];
 
-        // Fetch the proper database relationship strings
         $leaveName = $leaveRequest->leaveType->leave_type_name ?? $leaveRequest->leaveType->name ?? 'Others';
         $leaveCode = $leaveRequest->leaveType->code ?? 'OTHERS';
 
-        // 1. DYNAMIC FUZZY MATCHING: Find which checkbox to tick
         $matchedCheckbox = 'Others';
         foreach ($leaveYPositions as $key => $yPos) {
             $search = str_replace(' Leave', '', $key); 
@@ -85,7 +82,6 @@ class LeaveFormService
             }
         }
 
-        // Print the checkbox or "Others" input
         if (str_contains($leaveName, 'Others') || $matchedCheckbox === 'Others') {
             $pdf->SetFont('CenturyGothic', '', 8);
             $pdf->SetXY(10, 146);
@@ -149,7 +145,6 @@ class LeaveFormService
             }
         } 
         elseif (stripos($leaveName, 'Women') !== false) {
-            
             $pdf->SetFont('CenturyGothic', '', 6);
             $y = 110;          
             $startXLine1 = 156;  
@@ -183,43 +178,8 @@ class LeaveFormService
         $pdf->SetXY(10, 158); 
         $pdf->Write(0, number_format($leaveRequest->working_days_applied, 2) . ' days');
         
-        $startDate = Carbon::parse($leaveRequest->start_date);
-        $endDate = Carbon::parse($leaveRequest->end_date);
-        
-        $calendarDaysSpan = $startDate->diffInDays($endDate) + 1;
-        $daysApplied = (float)$leaveRequest->working_days_applied;
-        $weekendDays = 0;
-        $tempDate = $startDate->copy();
-        while ($tempDate->lte($endDate)) {
-            if ($tempDate->isWeekend()) {
-                $weekendDays++;
-            }
-            $tempDate->addDay();
-        }
-
-        if ($calendarDaysSpan === 1 || $daysApplied === 1.0) {
-            $dates = $startDate->format('M d, Y'); 
-        } 
-        elseif ($daysApplied === (float)($calendarDaysSpan - $weekendDays)) {
-            $dates = $startDate->format('M d, Y') . ' - ' . $endDate->format('M d, Y');
-        } 
-        else {
-            $formattedDates = $leaveRequest->details()
-                ->orderBy('leave_date', 'asc')
-                ->pluck('leave_date')
-                ->map(fn($date) => Carbon::parse($date)->format('M d, Y'))
-                ->toArray();
-
-            $totalDatesCount = count($formattedDates);
-            if ($totalDatesCount === 1) {
-                $dates = $formattedDates[0];
-            } elseif ($totalDatesCount === 2) {
-                $dates = implode(' & ', $formattedDates);
-            } else {
-                $lastDate = array_pop($formattedDates);
-                $dates = implode(', ', $formattedDates) . ', & ' . $lastDate;
-            }
-        }
+        // OPTIMIZED: Run structural date ranges compression algorithm
+        $dates = $this->formatInclusiveDates($leaveRequest);
 
         $pdf->SetXY(10, 168);
         $pdf->Write(0, $dates);
@@ -234,16 +194,13 @@ class LeaveFormService
         $pdf->SetXY(45, 191); 
         $pdf->Write(0, $asOfDate);
 
-        // === 2. SAFE SNAPSHOT & DETAILS-BASED BALANCE LOGIC ===
-        
-        // The snapshots represent the exact balance BEFORE deduction
+        // SAFE SNAPSHOT & DETAILS-BASED BALANCE LOGIC
         $vlOriginal = (float)($leaveRequest->vl_balance_snapshot ?? 0);
         $slOriginal = (float)($leaveRequest->sl_balance_snapshot ?? 0);
 
         $vlDeduction = 0;
         $slDeduction = 0;
 
-        // DYNAMIC DEDUCTION: Only count days strictly marked as "With Pay"
         if ($leaveRequest->details && $leaveRequest->details->count() > 0) {
             if (in_array($leaveCode, ['VL', 'FL'])) {
                 $vlDeduction = $leaveRequest->details->where('is_with_pay', true)->sum('day_fraction');
@@ -251,7 +208,6 @@ class LeaveFormService
                 $slDeduction = $leaveRequest->details->where('is_with_pay', true)->sum('day_fraction');
             }
         } else {
-            // Fallback protection for legacy requests
             $daysApplied = (float)$leaveRequest->working_days_applied;
             if (in_array($leaveCode, ['VL', 'FL'])) {
                 $vlDeduction = $daysApplied;
@@ -260,14 +216,9 @@ class LeaveFormService
             }
         }
 
-        // 🌟 THE CORRECT MATHEMATICS FOR SNAPSHOTS:
-        // Row 1: Total Earned is just the original snapshot balance
         $vlEarned = $vlOriginal; 
         $slEarned = $slOriginal;
 
-        // Row 2: Less This Application (Already calculated as $vlDeduction / $slDeduction above)
-
-        // Row 3: Final Balance is the original snapshot minus the paid deduction
         $vlBalance = $vlOriginal - $vlDeduction;
         $slBalance = $slOriginal - $slDeduction;
 
@@ -305,9 +256,7 @@ class LeaveFormService
         $pdf->SetXY($slColumnX, $rowBalanceY); 
         $pdf->Cell($columnWidth, 0, $slBalanceText, 0, 0, 'C');
 
-        //admin responses
-        $pdf->SetFont('CenturyGothic', '', 8);
-
+        // Admin responses
         if ($leaveRequest->status === 'approved') {
             $pdf->SetXY(117.8, 191); 
             $pdf->SetFont('zapfdingbats', '', 8); 
@@ -349,5 +298,85 @@ class LeaveFormService
         
         $pdf->Output($request->has('download') ? 'D' : 'I', $fileName);
         exit;
+    }
+
+    /**
+     * NEW: Compresses chronological leave dates into a clean, month-grouped format.
+     * Prevents text overflows on the physical PDF bounding boxes.
+     */
+    private function formatInclusiveDates(LeaveRequest $leaveRequest): string
+    {
+        // Gather exact unique days filed from the database breakdown
+        $dates = $leaveRequest->details()
+            ->orderBy('leave_date', 'asc')
+            ->pluck('leave_date')
+            ->map(fn($d) => Carbon::parse($d))
+            ->toArray();
+
+        // Fallback safety layer for legacy entries
+        if (empty($dates)) {
+            $start = Carbon::parse($leaveRequest->start_date);
+            $end = Carbon::parse($leaveRequest->end_date);
+            if ($start->equalTo($end)) {
+                return $start->format('M d, Y');
+            }
+            return $start->format('M d, Y') . ' - ' . $end->format('M d, Y');
+        }
+
+        // Group dates by Year, then Month
+        $grouped = [];
+        foreach ($dates as $date) {
+            $year = $date->year;
+            $month = $date->format('M'); // Compresses down to short forms like 'Jun', 'Sep'
+            $day = $date->day;
+            $grouped[$year][$month][] = $day;
+        }
+
+        $yearStrings = [];
+        $totalYears = count($grouped);
+
+        foreach ($grouped as $year => $months) {
+            $monthStrings = [];
+            foreach ($months as $month => $days) {
+                sort($days);
+                $ranges = [];
+                $start = $days[0];
+                $end = $days[0];
+
+                // Compress consecutive numbers (e.g., 1, 2, 3 becomes "1-3")
+                for ($i = 1; $i < count($days); $i++) {
+                    if ($days[$i] === $end + 1) {
+                        $end = $days[$i];
+                    } else {
+                        $ranges[] = ($start === $end) ? $start : "$start-$end";
+                        $start = $days[$i];
+                        $end = $days[$i];
+                    }
+                }
+                $ranges[] = ($start === $end) ? $start : "$start-$end";
+
+                $monthStrings[] = $month . ' ' . implode(', ', $ranges);
+            }
+
+            if ($totalYears === 1) {
+                $yearStrings[] = implode('; ', $monthStrings);
+            } else {
+                $yearStrings[] = implode('; ', $monthStrings) . ", $year";
+            }
+        }
+
+        $finalString = implode('; ', $yearStrings);
+        if ($totalYears === 1) {
+            $firstYear = array_key_first($grouped);
+            $finalString .= ", $firstYear";
+        }
+
+        // BOX WIDTH PROTECTION RULE
+        // If text length exceeds 60 characters, default to a summary notice to avoid visual layout overflow.
+        if (strlen($finalString) > 60) {
+            return "Various Dates (See Attached Details)";
+        }
+
+        return $finalString;
     }
 }
