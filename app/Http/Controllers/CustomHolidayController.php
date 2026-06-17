@@ -67,6 +67,7 @@ class CustomHolidayController extends Controller
     {
         // 1. Validate the incoming data
         $request->validate([
+            'date' => 'required|date',
             'name' => 'required|string|max:255',
             'type' => 'required|in:custom,regular',
         ]);
@@ -77,6 +78,7 @@ class CustomHolidayController extends Controller
         // 3. Update the record
         // Note: checkboxes only send data if checked, so we use $request->has() to map them to booleans
         $customHoliday->update([
+            'date' => $request->date,
             'name' => $request->name,
             'type' => $request->type,
             'is_half_day' => $request->has('is_half_day'),

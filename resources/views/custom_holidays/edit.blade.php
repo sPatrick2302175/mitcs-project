@@ -3,6 +3,9 @@
         <h2 class="font-semibold text-xl text-white leading-tight">
             {{ __('Modify Calendar Rule') }}
         </h2>
+        
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/airbnb.css">
     </x-slot>
 
     <div class="py-12 bg-gray-50/50 min-h-screen">
@@ -41,11 +44,17 @@
                     @method('PUT')
                     
                     <div class="group">
-                        <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2 group-focus-within:text-[#F2A455] transition-colors duration-200">
-                            Target Date
+                        <label for="date" class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2 group-focus-within:text-[#F2A455] transition-colors duration-200">
+                            Target Date <span class="text-rose-500">*</span>
                         </label>
-                        <input type="text" disabled value="{{ \Carbon\Carbon::parse($customHoliday->date)->format('F d, Y') }}" 
-                            class="block w-full rounded-xl border-gray-200 bg-gray-100/60 px-4 py-3 text-gray-400 transition-all duration-200 sm:text-sm cursor-not-allowed">
+                        <div class="relative">
+                            <input type="text" name="date" id="date" required 
+                                value="{{ old('date', \Carbon\Carbon::parse($customHoliday->date)->format('Y-m-d')) }}" 
+                                class="block w-full rounded-xl border-gray-200 bg-gray-50/40 px-4 py-3 text-gray-800 focus:border-[#F2A455] focus:ring focus:ring-[#F2A455]/10 focus:bg-white transition-all duration-200 sm:text-sm cursor-pointer">
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                <svg class="w-5 h-5 text-gray-400 group-focus-within:text-[#F2A455] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="group">
@@ -107,4 +116,17 @@
             </div>
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            flatpickr("#date", {
+                dateFormat: "Y-m-d",
+                altInput: true,
+                altFormat: "F j, Y", // Displays as "June 17, 2026"
+                allowInput: true,
+                animate: true,
+            });
+        });
+    </script>
 </x-app-layout>
