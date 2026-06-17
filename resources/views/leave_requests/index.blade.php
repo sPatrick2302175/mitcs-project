@@ -435,6 +435,14 @@
                     let endYear = fetchInfo.end.getFullYear();
 
                     baseEvents.forEach(event => {
+                        
+                        const isActive = event.is_active ?? (event.extendedProps && event.extendedProps.is_active) ?? true;
+                            
+                        // If the admin toggled it off (false or 0), skip rendering it entirely!
+                        if (isActive === false || isActive === 0 || isActive === "0") {
+                            return; // Skips to the next event
+                        }
+
                         // Check base properties or nested extended metadata safely
                         const isRegular = event.is_regular || (event.extendedProps && event.extendedProps.is_regular);
 

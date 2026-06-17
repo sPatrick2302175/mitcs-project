@@ -13,7 +13,7 @@ class CalendarService
     public function getHolidayEvents(): array
     {
         // Use single mapping instead of heavy looping; frontend will handle infinite year rendering
-        return CustomHoliday::all()->map(function ($holiday) {
+        return CustomHoliday::where('is_active', true)->get()->map(function ($holiday) {
             $isRegularColor = ($holiday->type === 'regular'); 
             $title = $holiday->name . ($holiday->is_half_day ? ' (Half-Day)' : '');
 
