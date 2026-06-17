@@ -471,8 +471,24 @@
                     });
 
                     successCallback(dynamicEvents);
+                },
+                
+                eventContent: function(arg) {
+                    const isLeaveRequest = arg.event.extendedProps && arg.event.extendedProps.leave_id;
+                    const textColorStyle = isLeaveRequest ? '' : `color: ${arg.event.textColor || '#ffffff'};`;
+
+                    return {
+                        html: `
+                            <div style="display: flex; align-items: center; width: 100%; overflow: hidden; padding: 0 4px;">
+                                <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; ${textColorStyle}">
+                                    ${arg.event.title}
+                                </span>
+                            </div>
+                        `
+                    };
                 }
-            });
+            }); 
+            
             
             calendar.render();
 

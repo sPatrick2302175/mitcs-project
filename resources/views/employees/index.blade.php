@@ -7,6 +7,26 @@
 
     <div class="py-12 bg-gray-50/50 min-h-screen">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+
+            @if(in_array(auth()->user()->is_admin, [App\Models\User::ROLE_SUPER_ADMIN, App\Models\User::ROLE_ADMIN_OFFICER, App\Models\User::ROLE_DEPT_HEAD]))
+                @php
+                    $scopeText = auth()->user()->is_admin === App\Models\User::ROLE_SUPER_ADMIN 
+                        ? 'ALL employees in the organization' 
+                        : 'ALL employees in your department';
+                @endphp
+                
+                <div class="mb-6 flex justify-end">
+                    <form action="{{ route('admin.employees.mass-allocate') }}" method="POST" onsubmit="return confirm('Are you sure you want to mass allocate +1.25 Leave Credits to {{ $scopeText }}? This action will be recorded in the ledger and cannot be easily undone.');">
+                        @csrf
+                        <button type="submit" 
+                               {{-- @if(now()->day !== 1) disabled title="Only available on the 1st day of the month" @endif--}}
+                                class="inline-flex items-center px-4 py-2 bg-[#F2A455] border border-transparent rounded-lg font-bold text-xs text-white uppercase tracking-widest hover:bg-[#d98b3f] focus:outline-none focus:ring-2 focus:ring-[#F2A455] focus:ring-offset-2 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#F2A455]">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                            Mass Allocate Standard Monthly Credits (+1.25)
+                        </button>
+                    </form>
+                </div>
+            @endif
             
             @if(session('success'))
                 <div class="mb-8 bg-emerald-50/70 backdrop-blur-sm border border-emerald-100 rounded-xl p-5 shadow-sm transition-all duration-300 animate-fadeIn">

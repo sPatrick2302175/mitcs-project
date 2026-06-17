@@ -238,4 +238,168 @@ class EmployeeController extends Controller
 
         return redirect()->back()->with('success', 'User role updated successfully!');
     }
+
+   /**
+     * 🌟 INDIVIDUAL ALLOCATION: Manually add +1.25 to a single employee
+     */
+    public function allocateMonthlyCredits(Request $request, Employee $employee)
+    {
+        // 1. Strict Security Check: Only allow on the 1st day of the month
+        // if (now()->day !== 1) {
+        //     return redirect()->back()->withErrors(['error' => 'Monthly credits can only be posted on the 1st day of the month.']);
+        // }
+
+        $vlType = \App\Models\LeaveType::where('code', 'VL')->first();
+        
+        // 🌟 DUPLICATE CHECK: Look for existing accrual this month
+        $alreadyAllocated = \App\Models\LeaveLedger::where('employee_id', $employee->id)
+            ->where('leave_type_id', $vlType->id)
+            ->where('reason_code', 'MONTHLY_ACCRUAL')
+            ->whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
+            ->exists();
+
+        if ($alreadyAllocated) {
+            return redirect()->back()->withErrors(['error' => "{$employee->first_name} has already received their monthly accrual for this month."]);
+        }
+
+        DB::beginTransaction();
+        try {
+            $slType = \App\Models\LeaveType::where('code', 'SL')->first();
+            $currentYear = now()->year;
+
+            // VL Allocation
+            $vlBalance = EmployeeLeaveBalance::firstOrCreate(
+                ['employee_id' => $employee->id, 'leave_type_id' => $vlType->id, 'year' => $currentYear],
+                ['balance' => 0]
+            );
+            $vlBalance->balance += 1.25;
+            $vlBalance->save();
+
+            \App\Models\LeaveLedger::create([
+                'employee_id' => $employee->id,
+                'leave_type_id' => $vlType->id,
+                'type' => 'accrual', // 🌟 CHANGED FROM 'credit'
+                'amount' => 1.25,
+                'running_balance' => $vlBalance->balance,
+                'created_by' => auth()->id(),
+                'reason_code' => 'MONTHLY_ACCRUAL',
+                'remarks' => 'Manual Monthly Accrual Allocation (Standard)',
+            ]);
+
+            // SL Allocation
+            $slBalance = EmployeeLeaveBalance::firstOrCreate(
+                ['employee_id' => $employee->id, 'leave_type_id' => $slType->id, 'year' => $currentYear],
+                ['balance' => 0]
+            );
+            $slBalance->balance += 1.25;
+            $slBalance->save();
+
+            \App\Models\LeaveLedger::create([
+                'employee_id' => $employee->id,
+                'leave_type_id' => $slType->id,
+                'type' => 'accrual', // 🌟 CHANGED FROM 'credit'
+                'amount' => 1.25,
+                'running_balance' => $slBalance->balance,
+                'created_by' => auth()->id(),
+                'reason_code' => 'MONTHLY_ACCRUAL',
+                'remarks' => 'Manual Monthly Accrual Allocation (Standard)',
+            ]);
+
+            DB::commit();
+            return redirect()->back()->with('success', '1.25 Standard Monthly Credits successfully posted to VL and SL.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->withErrors(['error' => 'Failed to allocate credits: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * 🌟 MASS ALLOCATION: Add +1.25 to employees (Scoped by Admin Role)
+     */
+    public function massAllocateMonthlyCredits(Request $request)
+    {
+        // if (now()->day !== 1) {
+        //     return redirect()->back()->withErrors(['error' => 'Mass allocation can only be executed on the 1st day of the month.']);
+        // }
+
+        DB::beginTransaction();
+        try {
+            $vlType = \App\Models\LeaveType::where('code', 'VL')->first();
+            $slType = \App\Models\LeaveType::where('code', 'SL')->first();
+            $currentMonth = now()->month;
+            $currentYear = now()->year;
+            $loggedInAdmin = auth()->user();
+
+            // 🌟 SECURITY SCOPE: Super Admins get everyone. Dept Heads/Officers only get their department.
+            if ($loggedInAdmin->is_admin === \App\Models\User::ROLE_SUPER_ADMIN) {
+                $employees = Employee::where('employee_id_number', '!=', '0000000')->get();
+            } else {
+                $departmentId = $loggedInAdmin->employee?->division?->department_id;
+                $employees = Employee::whereHas('division', function ($query) use ($departmentId) {
+                    $query->where('department_id', $departmentId);
+                })->where('employee_id_number', '!=', '0000000')->get();
+            }
+
+            $count = 0;
+
+            foreach ($employees as $employee) {
+                // 🌟 SKIP CHECK: See if they were already processed
+                $alreadyAllocated = \App\Models\LeaveLedger::where('employee_id', $employee->id)
+                    ->where('leave_type_id', $vlType->id)
+                    ->where('reason_code', 'MONTHLY_ACCRUAL')
+                    ->whereMonth('created_at', $currentMonth)
+                    ->whereYear('created_at', $currentYear)
+                    ->exists();
+
+                if ($alreadyAllocated) {
+                    continue; // Skip to next employee
+                }
+
+                // VL
+                $vlBalance = EmployeeLeaveBalance::firstOrCreate(
+                    ['employee_id' => $employee->id, 'leave_type_id' => $vlType->id, 'year' => $currentYear],
+                    ['balance' => 0]
+                );
+                $vlBalance->balance += 1.25;
+                $vlBalance->save();
+
+                \App\Models\LeaveLedger::create([
+                    'employee_id' => $employee->id, 'leave_type_id' => $vlType->id, 
+                    'type' => 'accrual', // 🌟 CHANGED FROM 'credit'
+                    'amount' => 1.25, 'running_balance' => $vlBalance->balance, 'created_by' => $loggedInAdmin->id,
+                    'reason_code' => 'MONTHLY_ACCRUAL', 'remarks' => 'Mass Monthly Accrual Allocation',
+                ]);
+
+                // SL
+                $slBalance = EmployeeLeaveBalance::firstOrCreate(
+                    ['employee_id' => $employee->id, 'leave_type_id' => $slType->id, 'year' => $currentYear],
+                    ['balance' => 0]
+                );
+                $slBalance->balance += 1.25;
+                $slBalance->save();
+
+                \App\Models\LeaveLedger::create([
+                    'employee_id' => $employee->id, 'leave_type_id' => $slType->id, 
+                    'type' => 'accrual',  // 🌟 CHANGED FROM 'credit'
+                    'amount' => 1.25, 'running_balance' => $slBalance->balance, 'created_by' => $loggedInAdmin->id,
+                    'reason_code' => 'MONTHLY_ACCRUAL', 'remarks' => 'Mass Monthly Accrual Allocation',
+                ]);
+                
+                $count++;
+            }
+
+            DB::commit();
+
+            // Custom success message depending on if everyone was skipped
+            if ($count === 0) {
+                return redirect()->back()->with('success', "No credits were posted. All selected employees have already received their monthly allocation.");
+            }
+
+            return redirect()->back()->with('success', "Mass allocation complete. {$count} employees were credited (others were skipped).");
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->withErrors(['error' => 'Mass allocation failed: ' . $e->getMessage()]);
+        }
+    }
 }

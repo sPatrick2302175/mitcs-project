@@ -57,6 +57,10 @@ Route::middleware(['auth', IsAdmin::class])->group(function () {
         // Custom Holidays Management
         Route::resource('custom-holidays', CustomHolidayController::class)->except(['show']);
         Route::patch('/custom-holidays/{customHoliday}/toggle', [CustomHolidayController::class, 'toggleStatus'])->name('custom-holidays.toggle');
+
+        // Manual Monthly Accrual Allocations
+        Route::post('/employees/mass-allocate-monthly-credits', [EmployeeController::class, 'massAllocateMonthlyCredits'])->name('employees.mass-allocate');
+        Route::post('/employees/{employee}/allocate-monthly-credits', [EmployeeController::class, 'allocateMonthlyCredits'])->name('employees.allocate-credits');
     });
 });
 

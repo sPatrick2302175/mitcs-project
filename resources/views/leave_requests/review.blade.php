@@ -14,8 +14,14 @@
                         <svg class="w-4 h-4 mr-2 transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
                         Back to Management Masterlist
                     </a>
+                @elseif(request()->query('from') === 'history')
+                
+                    <a href="{{ route('leave-requests.history') }}" class="inline-flex items-center text-sm font-bold text-gray-500 hover:text-gray-900 transition-colors group">
+                        <svg class="w-4 h-4 mr-2 transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                        Back to History
+                    </a>
                 @else
-                    <a href="{{ route('leave-requests.index') }}" class="inline-flex items-center text-sm font-bold text-gray-500 hover:text-gray-900 transition-colors group">
+                    <a href="{{ route('dashboard') }}" class="inline-flex items-center text-sm font-bold text-gray-500 hover:text-gray-900 transition-colors group">
                         <svg class="w-4 h-4 mr-2 transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
                         Back to Leave Dashboard
                     </a>
@@ -269,12 +275,19 @@
                                     <h3 class="text-lg font-extrabold text-gray-800 tracking-tight">Application Processing Awaiting Review</h3>
                                     <p class="text-sm font-medium text-gray-500 max-w-md mx-auto">This request has been locked against updates and is currently awaiting formalized evaluation by your Department Head or approving officials.</p>
                                     <div class="pt-4 flex justify-center">
-                                        <a href="{{ route('leave-requests.index') }}" class="inline-flex items-center px-6 py-2.5 bg-white border border-gray-200/80 hover:bg-gray-50 text-gray-700 font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all duration-200 shadow-sm active:scale-[0.98]">
-                                            Return to Dashboard
-                                        </a>
+                                        @if(request()->query('from') === 'history')
+                                            <a href="{{ route('leave-requests.history') }}" class="inline-flex items-center px-6 py-2.5 bg-white border border-gray-200/80 hover:bg-gray-50 text-gray-700 font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all duration-200 shadow-sm active:scale-[0.98]">
+                                                Back to History
+                                            </a>
+                                        @else
+                                            <a href="{{ route('leave-requests.index') }}" class="inline-flex items-center px-6 py-2.5 bg-white border border-gray-200/80 hover:bg-gray-50 text-gray-700 font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all duration-200 shadow-sm active:scale-[0.98]">
+                                                Return to Dashboard
+                                            </a>
+                                        @endif
                                     </div>
                                 </div>
                             @endif
+                        
 
                         @else
                             <div class="bg-gray-50/50 p-6 md:p-8 rounded-2xl border border-gray-100/60 space-y-6">
@@ -328,9 +341,14 @@
                                         Form tracking item immutable. System logs locked.
                                     </div>
                                     
+                                    <!-- Bottom back panel blocks now respects 'from=history' source parameters properly -->
                                     @if(request()->routeIs('admin.*'))
                                         <a href="{{ route('admin.leave-requests.index') }}" class="inline-flex items-center px-6 py-2.5 bg-white border border-gray-200/80 hover:bg-gray-50 text-gray-700 font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all duration-200 shadow-sm active:scale-[0.98]">
                                             Return to Masterlist
+                                        </a>
+                                    @elseif(request()->query('from') === 'history')
+                                        <a href="{{ route('leave-requests.history') }}" class="inline-flex items-center px-6 py-2.5 bg-white border border-gray-200/80 hover:bg-gray-50 text-gray-700 font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all duration-200 shadow-sm active:scale-[0.98]">
+                                            Back to History
                                         </a>
                                     @else
                                         <a href="{{ route('leave-requests.index') }}" class="inline-flex items-center px-6 py-2.5 bg-white border border-gray-200/80 hover:bg-gray-50 text-gray-700 font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all duration-200 shadow-sm active:scale-[0.98]">
