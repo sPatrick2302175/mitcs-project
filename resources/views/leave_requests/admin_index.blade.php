@@ -255,8 +255,9 @@
                                     </td>
 
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="text-sm font-bold text-gray-700">{{ $request->leave_type }}</span>
-                                        @if($request->leave_type === 'Others' && $request->leave_type_others)
+                                        <span class="text-sm font-bold text-gray-700">{{ $request->leaveType->leave_type_name ?? $request->leaveType->name ?? 'Unknown Leave Type' }}</span>
+                                        
+                                        @if(($request->leaveType->leave_type_name ?? $request->leaveType->name) === 'Others' && $request->leave_type_others)
                                             <span class="block text-[11px] font-bold text-[#F2A455] uppercase tracking-wider mt-0.5">({{ $request->leave_type_others }})</span>
                                         @endif
                                     </td>

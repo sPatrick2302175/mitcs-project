@@ -179,7 +179,7 @@ class LeaveFormService
         $pdf->Write(0, number_format($leaveRequest->working_days_applied, 2) . ' days');
         
         // OPTIMIZED: Run structural date ranges compression algorithm
-        $dates = $this->formatInclusiveDates($leaveRequest);
+        $dates = $leaveRequest->formatted_inclusive_dates;
 
         $pdf->SetXY(10, 168);
         $pdf->Write(0, $dates);
@@ -304,7 +304,7 @@ class LeaveFormService
      * NEW: Compresses chronological leave dates into a clean, month-grouped format.
      * Prevents text overflows on the physical PDF bounding boxes.
      */
-    private function formatInclusiveDates(LeaveRequest $leaveRequest): string
+    /*private function formatInclusiveDates(LeaveRequest $leaveRequest): string
     {
         // Gather exact unique days filed from the database breakdown
         $dates = $leaveRequest->details()
@@ -378,5 +378,5 @@ class LeaveFormService
         }
 
         return $finalString;
-    }
+    }*/
 }

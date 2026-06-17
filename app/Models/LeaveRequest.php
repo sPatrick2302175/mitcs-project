@@ -115,4 +115,80 @@ class LeaveRequest extends Model
             };
         });
     }
+
+    /**
+     * 🌟 NEW ACCESSOR: Compresses chronological leave dates into a clean, month-grouped format.
+     */
+    public function getFormattedInclusiveDatesAttribute(): string
+    {
+        // Gather exact unique days filed from the database breakdown
+        $dates = $this->details()
+            ->orderBy('leave_date', 'asc')
+            ->pluck('leave_date')
+            ->map(fn($d) => \Carbon\Carbon::parse($d))
+            ->toArray();
+
+        // Fallback safety layer for legacy entries
+        if (empty($dates)) {
+            $start = \Carbon\Carbon::parse($this->start_date);
+            $end = \Carbon\Carbon::parse($this->end_date);
+            if ($start->equalTo($end)) {
+                return $start->format('M d, Y');
+            }
+            return $start->format('M d, Y') . ' - ' . $end->format('M d, Y');
+        }
+
+        // Group dates by Year, then Month
+        $grouped = [];
+        foreach ($dates as $date) {
+            $year = $date->year;
+            $month = $date->format('M'); 
+            $day = $date->day;
+            $grouped[$year][$month][] = $day;
+        }
+
+        $yearStrings = [];
+        $totalYears = count($grouped);
+
+        foreach ($grouped as $year => $months) {
+            $monthStrings = [];
+            foreach ($months as $month => $days) {
+                sort($days);
+                $ranges = [];
+                $start = $days[0];
+                $end = $days[0];
+
+                for ($i = 1; $i < count($days); $i++) {
+                    if ($days[$i] === $end + 1) {
+                        $end = $days[$i];
+                    } else {
+                        $ranges[] = ($start === $end) ? $start : "$start-$end";
+                        $start = $days[$i];
+                        $end = $days[$i];
+                    }
+                }
+                $ranges[] = ($start === $end) ? $start : "$start-$end";
+
+                $monthStrings[] = $month . ' ' . implode(', ', $ranges);
+            }
+
+            if ($totalYears === 1) {
+                $yearStrings[] = implode('; ', $monthStrings);
+            } else {
+                $yearStrings[] = implode('; ', $monthStrings) . ", $year";
+            }
+        }
+
+        $finalString = implode('; ', $yearStrings);
+        if ($totalYears === 1) {
+            $firstYear = array_key_first($grouped);
+            $finalString .= ", $firstYear";
+        }
+
+        if (strlen($finalString) > 60) {
+            return "Various Dates (See Attached Details)";
+        }
+
+        return $finalString;
+    }
 }

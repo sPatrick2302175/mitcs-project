@@ -64,6 +64,11 @@
                                 <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                 Approved Record
                             </span>
+                            <a href="{{ route('leave-requests.pdf', $leaveRequest->id) }}" class="inline-flex items-center justify-center px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-800 font-bold text-[10px] uppercase tracking-wider rounded-lg border border-indigo-100/60 transition-colors shadow-sm">
+                                <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                View PDF
+                            </a>
+                        
                         @else
                             <span class="inline-flex items-center px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-xl bg-rose-50 text-rose-600 border border-rose-100/60 shadow-sm">
                                 <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -103,15 +108,22 @@
                                 @endif
 
                                 <div class="pt-3 border-t border-gray-200/50 grid grid-cols-2 gap-4">
-                                    <div>
+                                    <div class="pr-2">
                                         <label class="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">Inclusive Range</label>
-                                        <span class="text-sm font-extrabold text-gray-800 block">
-                                            {{ \Carbon\Carbon::parse($leaveRequest->start_date)->format('M d, Y') }}
+                                        <span class="text-sm font-extrabold text-[#F2A455] block leading-relaxed">
+                                            {{ $leaveRequest->formatted_inclusive_dates }}
                                         </span>
-                                        <span class="text-xs text-gray-500 font-medium block mt-0.5">to {{ \Carbon\Carbon::parse($leaveRequest->end_date)->format('M d, Y') }}</span>
                                     </div>
                                     <div>
-                                        <label class="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">Days Claimed</label>
+                                        <label class="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">
+                                            @if($leaveRequest->status === 'pending')
+                                                Days Requested
+                                            @elseif($leaveRequest->status === 'disapproved')
+                                                Days Denied
+                                            @else
+                                                Days Claimed
+                                            @endif
+                                        </label>
                                         <span class="text-2xl font-black text-[#F2A455]">{{ number_format($leaveRequest->working_days_applied, 1) }} <span class="text-xs text-gray-500 font-bold uppercase tracking-wider">Days</span></span>
                                     </div>
                                 </div>
