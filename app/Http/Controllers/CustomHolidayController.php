@@ -14,7 +14,7 @@ class CustomHolidayController extends Controller
     {
         // Sorted by date ascending so upcoming holidays appear in chronological order
         $holidays = CustomHoliday::orderBy('date', 'asc')->get();
-        return view('custom_holidays.index', compact('holidays')); // Ensure this matches your actual view path
+        return view('custom_holidays.index', compact('holidays')); 
     }
 
     /**
@@ -29,7 +29,6 @@ class CustomHolidayController extends Controller
             'type' => 'required|string',
         ]);
 
-        // Split the comma-separated string into an array
         $dateArray = explode(', ', $request->dates);
 
         // Loop through each selected date and create a record
@@ -54,7 +53,7 @@ class CustomHolidayController extends Controller
     public function edit($id)
     {
         // Find the holiday or throw a 404 error if it doesn't exist
-        $customHoliday = \App\Models\CustomHoliday::findOrFail($id);
+        $customHoliday = CustomHoliday::findOrFail($id);
         
         // Load the view we just created and pass the data to it
         return view('custom_holidays.edit', compact('customHoliday'));
@@ -63,7 +62,7 @@ class CustomHolidayController extends Controller
     /**
      * Update the specified holiday in storage.
      */
-    public function update(\Illuminate\Http\Request $request, $id)
+    public function update(Request $request, $id)
     {
         // 1. Validate the incoming data
         $request->validate([
@@ -72,11 +71,11 @@ class CustomHolidayController extends Controller
             'type' => 'required|in:custom,regular',
         ]);
 
-        // 2. Find the exact record
-        $customHoliday = \App\Models\CustomHoliday::findOrFail($id);
+        // Find the exact record
+        $customHoliday = CustomHoliday::findOrFail($id);
 
-        // 3. Update the record
-        // Note: checkboxes only send data if checked, so we use $request->has() to map them to booleans
+        // Update the record
+        // Note: checkboxes only send data if checked, used $request->has() to map them to booleans
         $customHoliday->update([
             'date' => $request->date,
             'name' => $request->name,
@@ -85,12 +84,12 @@ class CustomHolidayController extends Controller
             'is_regular' => $request->has('is_regular'),
         ]);
 
-        // 4. Redirect back to the masterlist with a success message
+        // Redirect back to the masterlist with a success message
         return redirect()->route('admin.custom-holidays.index')
                          ->with('success', 'Calendar rule updated successfully!');
     }
 
-    // New feature: Toggles the holiday viewable state for users without deleting the record
+    // Toggles the holiday viewable state for users without deleting the record
     public function toggleStatus(CustomHoliday $customHoliday)
     {
         $customHoliday->update([

@@ -20,8 +20,7 @@ class Department extends Model
     }
 
     /**
-     * Updated: Since employees are connected to divisions, not departments directly,
-     * we use hasManyThrough to get all employees in a department.
+     * use hasManyThrough to get all employees in a department.
      */
     public function employees()
     {

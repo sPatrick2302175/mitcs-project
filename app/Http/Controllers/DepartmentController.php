@@ -9,7 +9,7 @@ class DepartmentController extends Controller
 {
    public function index()
     {
-        // Pull every department except the system utility one
+        // Pull every department except the system admin
         $departments = Department::where('code', '!=', 'SYSTEM-ADMIN')->get();
         
         return view('departments.index', compact('departments'));

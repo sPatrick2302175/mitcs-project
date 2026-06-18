@@ -17,11 +17,11 @@ class EmployeeController extends Controller
         $loggedInAdmin = auth()->user();
         $search = $request->input('search');
 
-        // 1. Start the base query
+        // Start the base query
         $query = Employee::with(['division.department', 'user', 'leaveBalances'])
             ->where('employee_id_number', '!=', '0000000');
 
-        // 2. Apply Role-based filtering
+        // Role-based filtering
         if ($loggedInAdmin->is_admin !== User::ROLE_SUPER_ADMIN) {
             $departmentId = $loggedInAdmin->employee?->division?->department_id;
             $query->whereHas('division', function ($q) use ($departmentId) {
@@ -29,7 +29,7 @@ class EmployeeController extends Controller
             });
         }
 
-        // 3. Apply Search filtering (Name or Employee ID)
+        // Search filtering (Name or Employee ID)
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('first_name', 'like', "%{$search}%")
@@ -38,10 +38,10 @@ class EmployeeController extends Controller
             });
         }
 
-        // 4. Fetch the results
+        // Fetch the results
         $employeesQuery = $query->get();
 
-        // 5. Group the table by the department name
+        // Group the table by the department name
         $groupedEmployees = $employeesQuery->groupBy(function($employee) {
             return $employee->division && $employee->division->department 
                 ? $employee->division->department->department_name 
@@ -60,7 +60,7 @@ class EmployeeController extends Controller
         $departments = Department::where('code', '!=', 'SYSTEM-ADMIN')->get();
         $divisions = Division::all();
         
-        // 🎯 FIX: Only send the 4 core leaves to the frontend creation form
+        // Only send the 4 core leaves to the frontend creation form
         $leaveTypes = \App\Models\LeaveType::whereIn('code', ['VL', 'SL', 'FL', 'SPL'])->get();
         
         return view('employees.create', compact('departments', 'divisions', 'leaveTypes'));
@@ -92,7 +92,7 @@ class EmployeeController extends Controller
                 'position_code' => $validatedData['position_code'],
             ]);
 
-            // 🎯 FIX: Query ALL 13 system leaves from the database
+            // Query ALL 13 system leaves from the database
             $allLeaveTypes = \App\Models\LeaveType::all();
 
             foreach ($allLeaveTypes as $type) {
@@ -112,13 +112,13 @@ class EmployeeController extends Controller
 
     public function show(string $id)
     {
-        // 1. Fetch the employee with relationships preloaded (Your existing code - perfect!)
+        // Fetch the employee with relationships preloaded
         $employee = Employee::with(['division.department', 'user', 'leaveBalances.leaveType'])->findOrFail($id);
         
-        // 2. ADD THIS: Fetch all leave types so the Blade file can build the list dynamically
+        // Fetch all leave types so the Blade file can build the list dynamically
         $leaveTypes = \App\Models\LeaveType::all();
 
-        // 3. UPDATE THIS: Pass both 'employee' and 'leaveTypes' to the view
+        // Pass both 'employee' and 'leaveTypes' to the view
         return view('employees.show', compact('employee', 'leaveTypes'));
     }
 
@@ -128,7 +128,7 @@ class EmployeeController extends Controller
         $departments = Department::where('code', '!=', 'SYSTEM-ADMIN')->get();
         $divisions = Division::all();
         
-        // 🎯 FIX: Only display the 4 core leaves on the editing screen
+        // Only display the 4 core leaves on the editing screen
         $leaveTypes = \App\Models\LeaveType::whereIn('code', ['VL', 'SL', 'FL', 'SPL'])->get();
 
         return view('employees.edit', compact('employee', 'departments', 'divisions', 'leaveTypes'));
@@ -160,7 +160,7 @@ class EmployeeController extends Controller
                 'position_code' => $validatedData['position_code'],
             ]);
 
-            // 🎯 FIX: Safely update only the 4 core leaves submitted by the form
+            // Safely update only the 4 core leaves submitted by the form
             foreach ($validatedData['balances'] as $leaveTypeId => $balanceAmount) {
                 $employee->leaveBalances()->updateOrCreate(
                     ['leave_type_id' => $leaveTypeId],
@@ -247,8 +247,8 @@ class EmployeeController extends Controller
         return redirect()->back()->with('success', 'User role updated successfully!');
     }
 
-   /**
-     * 🌟 INDIVIDUAL ALLOCATION: Manually add +1.25 to a single employee
+    /**
+     * INDIVIDUAL ALLOCATION: Manually add +1.25 to a single employee
      */
     public function allocateMonthlyCredits(Request $request, Employee $employee)
     {
@@ -259,7 +259,7 @@ class EmployeeController extends Controller
 
         $vlType = \App\Models\LeaveType::where('code', 'VL')->first();
         
-        // 🌟 DUPLICATE CHECK: Look for existing accrual this month
+        //  DUPLICATE CHECK: Look for existing accrual this month
         $alreadyAllocated = \App\Models\LeaveLedger::where('employee_id', $employee->id)
             ->where('leave_type_id', $vlType->id)
             ->where('reason_code', 'MONTHLY_ACCRUAL')
@@ -287,7 +287,7 @@ class EmployeeController extends Controller
             \App\Models\LeaveLedger::create([
                 'employee_id' => $employee->id,
                 'leave_type_id' => $vlType->id,
-                'type' => 'accrual', // 🌟 CHANGED FROM 'credit'
+                'type' => 'accrual', 
                 'amount' => 1.25,
                 'running_balance' => $vlBalance->balance,
                 'created_by' => auth()->id(),
@@ -306,7 +306,7 @@ class EmployeeController extends Controller
             \App\Models\LeaveLedger::create([
                 'employee_id' => $employee->id,
                 'leave_type_id' => $slType->id,
-                'type' => 'accrual', // 🌟 CHANGED FROM 'credit'
+                'type' => 'accrual', 
                 'amount' => 1.25,
                 'running_balance' => $slBalance->balance,
                 'created_by' => auth()->id(),
@@ -323,7 +323,7 @@ class EmployeeController extends Controller
     }
 
     /**
-     * 🌟 MASS ALLOCATION: Add +1.25 to employees (Scoped by Admin Role)
+     *  MASS ALLOCATION: Add +1.25 to employees (Scoped by Admin Role)
      */
     public function massAllocateMonthlyCredits(Request $request)
     {
@@ -339,8 +339,8 @@ class EmployeeController extends Controller
             $currentYear = now()->year;
             $loggedInAdmin = auth()->user();
 
-            // 🌟 SECURITY SCOPE: Super Admins get everyone. Dept Heads/Officers only get their department.
-            if ($loggedInAdmin->is_admin === \App\Models\User::ROLE_SUPER_ADMIN) {
+            //  Super Admins get everyone. Dept Heads/Officers only get their department.
+            if ($loggedInAdmin->is_admin === User::ROLE_SUPER_ADMIN) {
                 $employees = Employee::where('employee_id_number', '!=', '0000000')->get();
             } else {
                 $departmentId = $loggedInAdmin->employee?->division?->department_id;
@@ -352,7 +352,7 @@ class EmployeeController extends Controller
             $count = 0;
 
             foreach ($employees as $employee) {
-                // 🌟 SKIP CHECK: See if they were already processed
+                //  View if they were already processed
                 $alreadyAllocated = \App\Models\LeaveLedger::where('employee_id', $employee->id)
                     ->where('leave_type_id', $vlType->id)
                     ->where('reason_code', 'MONTHLY_ACCRUAL')
@@ -374,7 +374,7 @@ class EmployeeController extends Controller
 
                 \App\Models\LeaveLedger::create([
                     'employee_id' => $employee->id, 'leave_type_id' => $vlType->id, 
-                    'type' => 'accrual', // 🌟 CHANGED FROM 'credit'
+                    'type' => 'accrual', 
                     'amount' => 1.25, 'running_balance' => $vlBalance->balance, 'created_by' => $loggedInAdmin->id,
                     'reason_code' => 'MONTHLY_ACCRUAL', 'remarks' => 'Mass Monthly Accrual Allocation',
                 ]);
@@ -389,7 +389,7 @@ class EmployeeController extends Controller
 
                 \App\Models\LeaveLedger::create([
                     'employee_id' => $employee->id, 'leave_type_id' => $slType->id, 
-                    'type' => 'accrual',  // 🌟 CHANGED FROM 'credit'
+                    'type' => 'accrual',  
                     'amount' => 1.25, 'running_balance' => $slBalance->balance, 'created_by' => $loggedInAdmin->id,
                     'reason_code' => 'MONTHLY_ACCRUAL', 'remarks' => 'Mass Monthly Accrual Allocation',
                 ]);

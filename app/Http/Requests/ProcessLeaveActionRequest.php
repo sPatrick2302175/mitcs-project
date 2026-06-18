@@ -23,7 +23,7 @@ class ProcessLeaveActionRequest extends FormRequest
             'days_with_pay' => 'nullable|numeric|min:0',
             'days_without_pay' => 'nullable|numeric|min:0',
             
-            // Critical Fix: Strictly required if the final action is a disapproval
+            // Strictly required if the final action is a disapproval
             'disapproval_reason' => 'required_if:status,disapproved|nullable|string',
         ];
     }

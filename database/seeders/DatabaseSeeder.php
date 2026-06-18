@@ -13,7 +13,6 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. Seed the core Leave Types first
         $this->call([
             LeaveTypesSeeder::class,
         ]);
@@ -42,7 +41,7 @@ class DatabaseSeeder extends Seeder
                 'middle_initial' => 'S',
                 'position' => 'Super Admin',
                 'division_id' => $division->id,
-                'salary' => 0.00 // Super admin can have a baseline flat rate
+                'salary' => 0.00 
             ]
         );
 
@@ -51,8 +50,8 @@ class DatabaseSeeder extends Seeder
             ['email' => 'admin@company.com'],
             [
                 'name' => 'System Administrator',
-                'password' => Hash::make('12345678'), // Changeable upon deployment
-                'is_admin' => 2, // Corresponds to ROLE_SUPER_ADMIN = 2
+                'password' => Hash::make('12345678'), 
+                'is_admin' => 2, 
                 'employee_id' => $adminEmployee->id, 
             ]
         );

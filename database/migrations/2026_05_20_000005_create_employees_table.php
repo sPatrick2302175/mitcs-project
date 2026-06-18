@@ -13,7 +13,6 @@ return new class extends Migration
     {
         Schema::create('employees', function (Blueprint $table) {
             $table->id();
-            // Changed to nullable to support onDelete('set null') per target schema
             $table->foreignId('division_id')->nullable()->constrained('divisions')->onDelete('set null');
             $table->string('employee_id_number')->unique();
             $table->string('first_name');

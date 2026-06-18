@@ -18,7 +18,6 @@ class CustomHoliday extends Model
         'is_active',
     ];
 
-    // Ensures Laravel treats this strictly as true/false
     protected $casts = [
         'is_half_day' => 'boolean',
         'is_regular'  => 'boolean',

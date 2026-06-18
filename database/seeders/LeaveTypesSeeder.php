@@ -103,7 +103,7 @@ class LeaveTypesSeeder extends Seeder
                 'requires_attachment' => true,
                 'is_cumulative' => false,
                 'is_event_based' => true,
-                'max_days_per_year' => 60.0 // Up to 2 months max for gynecological surgeries
+                'max_days_per_year' => 60.0 // Up to 2 months max
             ],
             [
                 'code' => 'SEL', 
@@ -137,7 +137,6 @@ class LeaveTypesSeeder extends Seeder
         ];
 
         foreach ($types as $type) {
-            // Using updateOrCreate avoids duplicate exceptions if seeder runs multiple times
             LeaveType::updateOrCreate(['code' => $type['code']], $type);
         }
     }

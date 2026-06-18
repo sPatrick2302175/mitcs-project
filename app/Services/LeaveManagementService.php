@@ -38,7 +38,7 @@ class LeaveManagementService
         $leaveType = LeaveType::findOrFail($validated['leave_type_id']);
         $requestedDays = count($rawDates); 
 
-        // 🌟 NEW: ENFORCE 5-DAY ADVANCE FILING RULES ON BACKEND LAYER
+        // ENFORCE 5-DAY ADVANCE FILING RULES
         $isSickLeave = (str_contains(strtolower($leaveType->leave_type_name), 'sick') || ($leaveType->code ?? '') === 'SL');
         
         if (!$isSickLeave) {
@@ -83,7 +83,7 @@ class LeaveManagementService
             ? $this->getPhilippineHolidays($startYear)
             : array_merge($this->getPhilippineHolidays($startYear), $this->getPhilippineHolidays($endYear));
             
-        // 🌟 Key holidays by their 'Y-m-d' date string for instant dictionary lookup
+        // Key holidays by their 'Y-m-d' date string for instant dictionary lookup
         $holidaysKeyed = [];
         foreach ($holidayData as $h) {
             $formattedDate = \Carbon\Carbon::parse($h['date'])->format('Y-m-d');
@@ -97,12 +97,12 @@ class LeaveManagementService
             if (\Carbon\Carbon::parse($dateString)->isWeekday()) {
                 $matchedHoliday = $holidaysKeyed[$dateString] ?? null;
 
-                // 🌟 If it's a full holiday, skip it entirely.
+                // If it's a full holiday, skip it entirely.
                 if ($matchedHoliday && !($matchedHoliday['is_half_day'] ?? false)) {
                     continue;
                 }
 
-                // 🌟 Determine the day fraction (0.5 for half-day holiday, 1.0 for normal day)
+                // Determine the day fraction (0.5 for half-day holiday, 1.0 for normal day)
                 $dayFraction = ($matchedHoliday && ($matchedHoliday['is_half_day'] ?? false)) ? 0.5 : 1.0;
                 
                 $validWorkingDays += $dayFraction;
@@ -115,9 +115,9 @@ class LeaveManagementService
                 } elseif ($leaveType->is_paid) {
                     // 1. Check if they have enough balance for this day to be PAID
                     if ($availableBalance >= $dayFraction) {
-                        $isWithPay = true; // They have credits, so they get paid
+                        $isWithPay = true; 
                     } else {
-                        $isWithPay = false; // Out of credits! This day is Leave Without Pay
+                        $isWithPay = false; 
                     }
                     
                     // 2. ALWAYS deduct the balance, even if it forces them into the negatives
@@ -126,7 +126,7 @@ class LeaveManagementService
 
                 $detailsToInsert[] = [
                     'leave_date' => $dateString, 
-                    'day_fraction' => $dayFraction, // 🌟 Store 0.5 or 1.0 dynamically
+                    'day_fraction' => $dayFraction, // Store 0.5 or 1.0 dynamically
                     'is_with_pay' => $isWithPay, 
                     'created_at' => now(), 
                     'updated_at' => now()
@@ -134,7 +134,7 @@ class LeaveManagementService
             }
         }
 
-        // 🌟 Prevent float arithmetic inaccuracy during form comparison
+        // Prevent float arithmetic inaccuracy during form comparison
         if (abs((float)$validated['working_days_applied'] - (float)$validWorkingDays) > 0.01) {
             throw new InvalidArgumentException("Error: You applied for {$validated['working_days_applied']} days, but you only selected {$validWorkingDays} valid working days.");
         }
@@ -187,14 +187,14 @@ class LeaveManagementService
                 $mappedHolidays[] = [
                     'date' => sprintf('%04d-%02d-%02d', $year, $holidayDate->month, $holidayDate->day),
                     'name' => $holiday->name,
-                    'is_half_day' => (bool) $holiday->is_half_day, // 🌟 NEW: Track attribute
+                    'is_half_day' => (bool) $holiday->is_half_day, 
                 ];
             } else {
                 if ($holidayDate->year === $year) {
                     $mappedHolidays[] = [
                         'date' => $holidayDate->format('Y-m-d'),
                         'name' => $holiday->name,
-                        'is_half_day' => (bool) $holiday->is_half_day, // 🌟 NEW: Track attribute
+                        'is_half_day' => (bool) $holiday->is_half_day,
                     ];
                 }
             }
@@ -292,7 +292,7 @@ class LeaveManagementService
                     'type' => 'deduction',
                     'amount' => $daysToDeduct,
                     'running_balance' => $newBalance,
-                    'reference_type' => \App\Models\LeaveRequest::class,
+                    'reference_type' => LeaveRequest::class,
                     'reference_id' => $leaveRequestId,
                     'created_by' => auth()->id(), 
                     'reason_code' => 'APPROVED_LEAVE',
@@ -305,7 +305,7 @@ class LeaveManagementService
                     'type' => 'deduction',
                     'amount' => $daysToDeduct,
                     'running_balance' => 0.00, 
-                    'reference_type' => \App\Models\LeaveRequest::class,
+                    'reference_type' => LeaveRequest::class,
                     'reference_id' => $leaveRequestId,
                     'created_by' => auth()->id(), 
                     'reason_code' => 'EVENT_LEAVE_USED',
@@ -331,7 +331,7 @@ class LeaveManagementService
 
             foreach ($employees as $employee) {
                 foreach ($leaveTypes as $leaveType) {
-                    $alreadyAccrued = \App\Models\LeaveLedger::where('employee_id', $employee->id)
+                    $alreadyAccrued = LeaveLedger::where('employee_id', $employee->id)
                         ->where('leave_type_id', $leaveType->id)
                         ->where('reason_code', 'MONTHLY_ACCRUAL')
                         ->where('remarks', $remarksText)
@@ -341,7 +341,7 @@ class LeaveManagementService
                         continue; 
                     }
 
-                    $balanceRecord = \App\Models\EmployeeLeaveBalance::firstOrCreate(
+                    $balanceRecord = EmployeeLeaveBalance::firstOrCreate(
                         [
                             'employee_id' => $employee->id,
                             'leave_type_id' => $leaveType->id,
@@ -352,7 +352,7 @@ class LeaveManagementService
                     $newBalance = (float) $balanceRecord->balance + 1.25;
                     $balanceRecord->update(['balance' => $newBalance]);
 
-                    \App\Models\LeaveLedger::create([
+                    LeaveLedger::create([
                         'employee_id' => $employee->id,
                         'leave_type_id' => $leaveType->id,
                         'type' => 'accrual',
@@ -386,7 +386,7 @@ class LeaveManagementService
         $holidayDates = [];
         
         for ($year = $currentYear; $year <= $currentYear + 10; $year++) {
-            // 🌟 NEW: Clean lookup ensures half-day holidays are NOT placed into the disabled list
+            // ensures half-day holidays are NOT placed into the disabled list
             $yearlyHolidays = $this->getPhilippineHolidays($year);
             foreach ($yearlyHolidays as $h) {
                 if (!empty($h['is_half_day'])) {
@@ -427,7 +427,7 @@ class LeaveManagementService
 
             foreach ($employees as $employee) {
                 foreach ($leaveTypes as $leaveType) { 
-                    $alreadyReset = \App\Models\LeaveLedger::where('employee_id', $employee->id)
+                    $alreadyReset = LeaveLedger::where('employee_id', $employee->id)
                         ->where('leave_type_id', $leaveType->id)
                         ->where('reason_code', 'ANNUAL_RESET')
                         ->where('remarks', $remarksText)
@@ -442,7 +442,7 @@ class LeaveManagementService
                     if ($leaveType->code === 'FL') $resetAmount = 5.00;
                     if ($leaveType->code === 'SOPL') $resetAmount = 7.00;
 
-                    $balanceRecord = \App\Models\EmployeeLeaveBalance::firstOrCreate(
+                    $balanceRecord = EmployeeLeaveBalance::firstOrCreate(
                         [
                             'employee_id' => $employee->id,
                             'leave_type_id' => $leaveType->id,
@@ -452,7 +452,7 @@ class LeaveManagementService
 
                     $balanceRecord->update(['balance' => $resetAmount]);
 
-                    \App\Models\LeaveLedger::create([
+                    LeaveLedger::create([
                         'employee_id' => $employee->id,
                         'leave_type_id' => $leaveType->id,
                         'type' => 'adjustment', 

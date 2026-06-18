@@ -6,15 +6,17 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Run the migrations.
+     */
     public function up(): void
     {
         Schema::create('leave_attachments', function (Blueprint $table) {
             $table->id();
-            // Perfectly sets up cascading delete
             $table->foreignId('leave_request_id')->constrained('leave_requests')->cascadeOnDelete();
             $table->string('file_path');
             $table->string('file_name');
-            $table->timestamp('uploaded_at')->useCurrent(); // Database handles this automatically
+            $table->timestamp('uploaded_at')->useCurrent(); 
         });
     }
 

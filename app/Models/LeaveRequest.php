@@ -20,7 +20,7 @@ class LeaveRequest extends Model
         'end_date',
         'commutation_requested', 
         
-        // ADDED: The historical balance snapshots for Section 7.A
+        // historical balance snapshots for Section 7.A
         'vl_balance_snapshot',
         'sl_balance_snapshot',
 
@@ -81,7 +81,6 @@ class LeaveRequest extends Model
      */
     public function details()
     {
-        // Change 'LeaveRequestDetail::class' to whatever your details model is called
         return $this->hasMany(LeaveRequestDetail::class); 
     }
 
@@ -92,7 +91,6 @@ class LeaveRequest extends Model
                 $subQ->where('leave_detail_category', 'like', "%{$search}%")
                      ->orWhere('leave_detail_specifics', 'like', "%{$search}%")
                      ->orWhereHas('leaveType', function ($typeQ) use ($search) {
-                         // UPDATED: Changed 'name' to 'leave_type_name'
                          $typeQ->where('leave_type_name', 'like', "%{$search}%")
                                ->orWhere('code', 'like', "%{$search}%");
                      })
@@ -117,7 +115,7 @@ class LeaveRequest extends Model
     }
 
     /**
-     * 🌟 NEW ACCESSOR: Compresses chronological leave dates into a clean, month-grouped format.
+     * Compresses chronological leave dates into a clean, month-grouped format.
      */
     public function getFormattedInclusiveDatesAttribute(): string
     {

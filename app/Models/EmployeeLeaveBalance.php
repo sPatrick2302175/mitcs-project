@@ -18,13 +18,11 @@ class EmployeeLeaveBalance extends Model
         'year' => 'integer',
     ];
 
-    // 🌟 THIS TELLS LARAVEL TO INCLUDE OUR VIRTUAL COLUMN WHEN PASSING TO VUE/JSON
     protected $appends = ['display_balance'];
 
-    // 🌟 THE "ZERO" MASK LOGIC
     public function getDisplayBalanceAttribute()
     {
-        // If the real balance is negative (e.g. -2.75), return 0. Otherwise, return the real balance.
+        // If the real balance is negative (e.g. -2.75), return 0. Otherwise, return the real balance???
         return $this->balance < 0 ? 0.000 : (float) $this->balance;
     }
 
