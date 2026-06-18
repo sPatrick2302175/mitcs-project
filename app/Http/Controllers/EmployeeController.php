@@ -12,38 +12,46 @@ use Illuminate\Support\Facades\DB;
 
 class EmployeeController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $loggedInAdmin = auth()->user();
+        $search = $request->input('search');
 
-        // Fetch employees based on role excluding super admin
-        if ($loggedInAdmin->is_admin === User::ROLE_SUPER_ADMIN) {
-            $employeesQuery = Employee::with(['division.department', 'user', 'leaveBalances'])
-                ->where('employee_id_number', '!=', '0000000')
-                ->get();
-        } else {
-            // Both Admin Officers (1) and Dept Heads (3) fall here and safely get only their department's team
+        // 1. Start the base query
+        $query = Employee::with(['division.department', 'user', 'leaveBalances'])
+            ->where('employee_id_number', '!=', '0000000');
+
+        // 2. Apply Role-based filtering
+        if ($loggedInAdmin->is_admin !== User::ROLE_SUPER_ADMIN) {
             $departmentId = $loggedInAdmin->employee?->division?->department_id;
-
-            $employeesQuery = Employee::with(['division.department', 'user', 'leaveBalances'])
-                ->whereHas('division', function ($query) use ($departmentId) {
-                    $query->where('department_id', $departmentId);
-                })
-                ->where('employee_id_number', '!=', '0000000')
-                ->get();
+            $query->whereHas('division', function ($q) use ($departmentId) {
+                $q->where('department_id', $departmentId);
+            });
         }
 
-        // Group the table by the department name
+        // 3. Apply Search filtering (Name or Employee ID)
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('first_name', 'like', "%{$search}%")
+                ->orWhere('last_name', 'like', "%{$search}%")
+                ->orWhere('employee_id_number', 'like', "%{$search}%");
+            });
+        }
+
+        // 4. Fetch the results
+        $employeesQuery = $query->get();
+
+        // 5. Group the table by the department name
         $groupedEmployees = $employeesQuery->groupBy(function($employee) {
             return $employee->division && $employee->division->department 
                 ? $employee->division->department->department_name 
                 : 'Unassigned Department';
         });
 
-        // Fetch active leave types for dynamic table headers
         $leaveTypes = \App\Models\LeaveType::all();
 
-        // Pass BOTH groupedEmployees and leaveTypes to the view
+       
+
         return view('employees.index', compact('groupedEmployees', 'leaveTypes'));
     }
 

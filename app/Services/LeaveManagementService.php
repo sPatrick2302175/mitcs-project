@@ -113,13 +113,15 @@ class LeaveManagementService
                 if ($leaveType->is_event_based) {
                     $isWithPay = $leaveType->is_paid; // Event leaves dictate their own pay status
                 } elseif ($leaveType->is_paid) {
-                    // Standard leave (VL, SL). Do they have enough balance for THIS day's fraction?
+                    // 1. Check if they have enough balance for this day to be PAID
                     if ($availableBalance >= $dayFraction) {
-                        $isWithPay = true;
-                        $availableBalance -= $dayFraction; // Deduct the precise fraction from our temporary tracker
+                        $isWithPay = true; // They have credits, so they get paid
                     } else {
-                        $isWithPay = false; // Out of balance! This day becomes Leave Without Pay.
+                        $isWithPay = false; // Out of credits! This day is Leave Without Pay
                     }
+                    
+                    // 2. ALWAYS deduct the balance, even if it forces them into the negatives
+                    $availableBalance -= $dayFraction; 
                 }
 
                 $detailsToInsert[] = [
@@ -147,22 +149,23 @@ class LeaveManagementService
         unset($validated['attachments']);
         unset($validated['selected_dates']);
 
-        // Find the VL and SL type IDs dynamically 
-        $vlType = LeaveType::where('code', 'VL')->first();
-        $slType = LeaveType::where('code', 'SL')->first();
+        // Find the 4 core type models dynamically 
+        $vlType  = LeaveType::where('code', 'VL')->first();
+        $slType  = LeaveType::where('code', 'SL')->first();
+        $flType  = LeaveType::where('code', 'FL')->first();
+        $splType = LeaveType::where('code', 'SPL')->first();
 
-        // Get current balances (default to 0 if none exist yet)
-        $vlBalance = EmployeeLeaveBalance::where('employee_id', $employee->id)
-            ->where('leave_type_id', $vlType?->id)
-            ->value('balance') ?? 0.000;
+        // Capture live balance snapshots (fall back to 0.000 safely if entry is missing)
+        $vlBalance  = EmployeeLeaveBalance::where('employee_id', $employee->id)->where('leave_type_id', $vlType?->id)->value('balance') ?? 0.000;
+        $slBalance  = EmployeeLeaveBalance::where('employee_id', $employee->id)->where('leave_type_id', $slType?->id)->value('balance') ?? 0.000;
+        $flBalance  = EmployeeLeaveBalance::where('employee_id', $employee->id)->where('leave_type_id', $flType?->id)->value('balance') ?? 0.000;
+        $splBalance = EmployeeLeaveBalance::where('employee_id', $employee->id)->where('leave_type_id', $splType?->id)->value('balance') ?? 0.000;
 
-        $slBalance = EmployeeLeaveBalance::where('employee_id', $employee->id)
-            ->where('leave_type_id', $slType?->id)
-            ->value('balance') ?? 0.000;
-
-        // Append the snapshots to the validated array before passing it to the transaction
-        $validated['vl_balance_snapshot'] = $vlBalance;
-        $validated['sl_balance_snapshot'] = $slBalance;
+        // Freeze data inputs securely inside the validated structural array
+        $validated['vl_balance_snapshot']  = $vlBalance;
+        $validated['sl_balance_snapshot']  = $slBalance;
+        $validated['fl_balance_snapshot']  = $flBalance;
+        $validated['spl_balance_snapshot'] = $splBalance;
 
         return $this->processLeaveTransaction($validated, $employee, $rawDates, $detailsToInsert, $attachments);
     }

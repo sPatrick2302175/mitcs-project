@@ -3,6 +3,97 @@
         <h2 class="font-semibold text-xl text-white leading-tight">
             {{ __('Modify Calendar Rule') }}
         </h2>
+        
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+        
+        <style>
+            .flatpickr-calendar {
+                font-family: inherit;
+                border-radius: 1rem !important;
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05) !important;
+                border: 1px solid #f3f4f6 !important;
+                padding: 0.25rem;
+
+                /* PREVENTS THE BLUE TEXT HIGHLIGHTING WHEN HOLDING SHIFT */
+                -webkit-user-select: none;
+                -moz-user-select: none;
+                -ms-user-select: none;
+                user-select: none;
+            }
+            
+            .flatpickr-day.selected {
+                background: #F2A455 !important;
+                border-color: #F2A455 !important;
+                border-radius: 0.5rem !important;
+            }
+
+            /* Style for today's date indicator when clickable/active */
+            .flatpickr-day.calendar-today-marker {
+                border: 2px solid #94A3B8 !important; /* Theme Accent Orange Circle */
+                border-radius: 50%;
+            }
+
+            /* Style for today's date indicator when grayed out/disabled by the 5-day rule */
+            .flatpickr-day.calendar-today-marker.flatpickr-disabled {
+                border: 2px solid #94A3B8 !important; /* Distinct Slate Gray Circle */
+                background: transparent !important;
+                color: #94A3B8 !important; /* Keep text visibly low-contrast/disabled */
+                opacity: 0.8;
+                border-radius: 50%;
+            }
+
+           /* Styling for Approved Leaves (Red/Taken) - OVERRIDE DISABLED STATE */
+            .flatpickr-day.flatpickr-disabled.booked-by-other, 
+            .flatpickr-day.flatpickr-disabled.booked-by-other:hover {
+                background-color: #ffbcbc !important; 
+                border-color: #ef4444 !important;
+                color: #1d1d1d !important;
+                border-radius: 0.5rem !important;
+                font-weight: 700 !important;
+                opacity: 0.65 !important;
+                cursor: not-allowed;
+            }
+
+            /* Styling for MY Own Booked Leaves - OVERRIDE DISABLED STATE */
+            .flatpickr-day.flatpickr-disabled.my-booked-date, 
+            .flatpickr-day.flatpickr-disabled.my-booked-date:hover {
+                background-color: #84f9c3 !important; 
+                border-color: #059669 !important;
+                color: #1d1d1d !important;
+                border-radius: 0.5rem !important;
+                font-weight: 700 !important;
+                opacity: 0.8 !important;
+                cursor: not-allowed;
+            }
+
+            /* Holiday Styling - OVERRIDE DISABLED STATE */
+            .flatpickr-day.flatpickr-disabled.holiday-date, 
+            .flatpickr-day.flatpickr-disabled.holiday-date:hover {
+                background-color: #c3d9fc !important; 
+                border-color: #3b82f6 !important;
+                color: #1d1d1d !important;
+                border-radius: 0.5rem !important;
+                font-weight: 700 !important;
+                opacity: 0.8 !important;
+                cursor: not-allowed;
+            }
+
+            /* Style for selectable Half-Day Holidays */
+            .flatpickr-day.half-day-holiday:not(.selected) {
+                background-color: #ffecca !important; 
+                border-color: #f59e0b !important;
+                color: #1d1d1d !important;
+                border-radius: 0.5rem !important;
+                font-weight: 700 !important;
+                opacity: 0.8 !important;
+            }
+
+            /* Standard Disabled Days (Weekends & Purely Non-working Days) */
+            .flatpickr-day.flatpickr-disabled:not(.booked-by-other):not(.my-booked-date):not(.holiday-date) {
+                opacity: 1 !important; /* Extremely light opacity */
+                cursor: not-allowed !important;
+            }
+        </style>
     </x-slot>
 
     <div class="py-12 bg-gray-50/50 min-h-screen">
@@ -41,11 +132,17 @@
                     @method('PUT')
                     
                     <div class="group">
-                        <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2 group-focus-within:text-[#F2A455] transition-colors duration-200">
-                            Target Date
+                        <label for="date" class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2 group-focus-within:text-[#F2A455] transition-colors duration-200">
+                            Target Date <span class="text-rose-500">*</span>
                         </label>
-                        <input type="text" disabled value="{{ \Carbon\Carbon::parse($customHoliday->date)->format('F d, Y') }}" 
-                            class="block w-full rounded-xl border-gray-200 bg-gray-100/60 px-4 py-3 text-gray-400 transition-all duration-200 sm:text-sm cursor-not-allowed">
+                        <div class="relative">
+                            <input type="text" name="date" id="date" required 
+                                value="{{ old('date', \Carbon\Carbon::parse($customHoliday->date)->format('Y-m-d')) }}" 
+                                class="block w-full rounded-xl border-gray-200 bg-gray-50/40 px-4 py-3 text-gray-800 focus:border-[#F2A455] focus:ring focus:ring-[#F2A455]/10 focus:bg-white transition-all duration-200 sm:text-sm cursor-pointer">
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                <svg class="w-5 h-5 text-gray-400 group-focus-within:text-[#F2A455] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="group">
@@ -107,4 +204,17 @@
             </div>
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            flatpickr("#date", {
+                dateFormat: "Y-m-d",
+                altInput: true,
+                altFormat: "F j, Y", // Displays as "June 17, 2026"
+                allowInput: true,
+                animate: true,
+            });
+        });
+    </script>
 </x-app-layout>

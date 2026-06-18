@@ -14,7 +14,7 @@
                     <div class="md:col-span-2">
                         <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">Search Keywords</label>
                         <div class="relative">
-                            <input type="text" id="search-input" name="search" value="{{ request('search') }}" placeholder="Type leave type, detail, or status..." class="w-full bg-gray-50 border border-gray-200 text-sm rounded-xl px-4 py-2 focus:bg-white focus:border-indigo-400 focus:ring-0 transition-colors">
+                            <input type="text" id="search-input" name="search" value="{{ request('search') }}" placeholder="Type leave type, detail, or status..." class="w-full bg-gray-50 border border-gray-200/80 text-sm font-medium rounded-xl px-4 py-2.5 focus:bg-white focus:border-[#F2A455] focus:ring-2 focus:ring-[#F2A455]/20 transition-all placeholder-gray-400">
                             <div id="table-spinner" class="hidden absolute right-3 top-2.5">
                                 <svg class="animate-spin h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -26,7 +26,7 @@
 
                     <div>
                         <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">Status</label>
-                        <select id="status-select" name="status" class="w-full bg-gray-50 border border-gray-200 text-sm rounded-xl px-4 py-2 focus:bg-white focus:border-indigo-400 focus:ring-0 transition-colors">
+                        <select id="status-select" name="status" class="w-full bg-gray-50 border border-gray-200/80 text-sm font-bold text-gray-600 rounded-xl px-4 py-2.5 focus:bg-white focus:border-[#F2A455] focus:ring-2 focus:ring-[#F2A455]/20 transition-all">
                             <option value="">All Status</option>
                             <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
                             <option value="approved" {{ request('status') == 'approved' ? 'selected' : '' }}>Approved</option>

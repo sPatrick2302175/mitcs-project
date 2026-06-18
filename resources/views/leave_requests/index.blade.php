@@ -217,19 +217,41 @@
                                 <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400 block mb-1">
                                     {{ str_replace(' Leave', '', $leaveName) }} Leave
                                 </span>
-                                <div class="flex items-baseline space-x-1.5">
-                                    <span class="text-3xl font-black text-gray-800">{{ number_format($balanceValue, 2) }}</span>
-                                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Days</span>
+                                
+                                <div class="flex flex-col justify-end">
+                                    <div class="flex items-baseline space-x-1.5">
+                                        @if($balanceValue < 0)
+                                            <span class="text-3xl font-black text-gray-800">0.00</span>
+                                        @else
+                                            <span class="text-3xl font-black text-gray-800">{{ number_format($balanceValue, 2) }}</span>
+                                        @endif
+                                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Days</span>
+                                    </div>
+
+                                    @if($balanceValue < 0)
+                                        <span class="text-[10px] font-bold text-rose-500 uppercase tracking-wider flex items-center mt-1.5 animate-fade-in">
+                                            <svg class="w-3 h-3 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            Advance Taken: {{ number_format(abs($balanceValue), 2) }}
+                                        </span>
+                                    @endif
                                 </div>
                             </div>
                         </div>
+                        
                     @empty
                         <div class="col-span-full bg-white border border-gray-100/60 rounded-2xl p-6 text-center shadow-sm">
                             <span class="text-sm font-bold text-gray-400">No core leave types configured.</span>
                         </div>
                     @endforelse
                 </div>
-
+                <div class="flex justify-end items-center mb-4">
+                    <a href="{{ route('leave-ledger.index') }}" class="group inline-flex items-center text-xs font-bold text-gray-500 hover:text-[#F2A455] uppercase tracking-wider transition-colors duration-200">
+                        Balance Record
+                        <svg class="w-4 h-4 ml-1 transform group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </a>
+                </div>
                 @php
                     $today = \Carbon\Carbon::now()->startOfDay();
                     
@@ -380,8 +402,8 @@
                         <span class="text-gray-500">Schedule Legend:</span>
                         <span class="inline-flex items-center gap-1.5 text-emerald-700"><span class="w-3 h-3 rounded bg-emerald-50 border border-emerald-200"></span> Approved Leaves</span>
                         <span class="inline-flex items-center gap-1.5 text-amber-700"><span class="w-3 h-3 rounded bg-amber-50 border border-amber-200"></span> Pending Requests</span>
-                        <span class="inline-flex items-center gap-1.5 text-gray-600"><span class="w-3 h-3 rounded bg-orange-500"></span> None Regular Holidays</span>
                         <span class="inline-flex items-center gap-1.5 text-blue-600"><span class="w-3 h-3 rounded bg-blue-500"></span> Regular Holidays</span>
+                        <span class="inline-flex items-center gap-1.5 text-gray-600"><span class="w-3 h-3 rounded bg-orange-500"></span> Non-Regular Holidays</span>
                     </div>
                 </div>
 

@@ -144,31 +144,67 @@
                         </div>
 
                         <div class="space-y-4">
-                            <h4 class="text-xs font-bold uppercase tracking-wider text-gray-400">Current Employee Leave Balances</h4>
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-gray-400">
+                                {{ $leaveRequest->status === 'pending' ? 'Current Employee Leave Balances' : 'Leave Credit Impact Summary' }}
+                            </h4>
                             
                             @php
-                                // Index the employee's multiple balance rows by their Leave Type ID for instant lookup
                                 $indexedBalances = $leaveRequest->employee->leaveBalances->keyBy('leave_type_id');
-                                
-                                // Fetch all leave types to ensure we map names to IDs cleanly
                                 $allLeaveTypes = \App\Models\LeaveType::whereIn('code', ['VL', 'SL', 'FL', 'SPL'])->get();
                             @endphp
 
                             <div class="grid grid-cols-2 gap-4">
                                 @foreach($allLeaveTypes as $type)
                                     @php
-                                        // Pull the specific balance record for this leave type row
-                                        $balanceRecord = $indexedBalances->get($type->id);
-                                        $currentBalance = $balanceRecord ? $balanceRecord->balance : 0.00;
+                                        // 1. Resolve "Before Request" via snapshots. Fall back to current data for legacy records.
+                                        $beforeBalance = 0.00;
+                                        if ($type->code === 'VL') {
+                                            $beforeBalance = $leaveRequest->vl_balance_snapshot ?? ($indexedBalances->get($type->id)?->balance ?? 0.00);
+                                        } elseif ($type->code === 'SL') {
+                                            $beforeBalance = $leaveRequest->sl_balance_snapshot ?? ($indexedBalances->get($type->id)?->balance ?? 0.00);
+                                        } elseif ($type->code === 'FL') {
+                                            $beforeBalance = $leaveRequest->fl_balance_snapshot ?? ($indexedBalances->get($type->id)?->balance ?? 0.00);
+                                        } elseif ($type->code === 'SPL') {
+                                            $beforeBalance = $leaveRequest->spl_balance_snapshot ?? ($indexedBalances->get($type->id)?->balance ?? 0.00);
+                                        }
+
+                                        // 2. Resolve "After Request" mathematically based on approved transaction statuses
+                                        $afterBalance = $beforeBalance;
+                                        if ($leaveRequest->status === 'approved' && $leaveRequest->leave_type_id === $type->id) {
+                                            $afterBalance = $beforeBalance - ($leaveRequest->days_with_pay ?? 0);
+                                        }
                                     @endphp
                                     
                                     <div class="p-5 bg-white border border-gray-100/60 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300">
-                                        <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400 block mb-1">
+                                        <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400 block mb-2">
                                             {{ $type->leave_type_name }} ({{ $type->code }})
                                         </span>
-                                        <span class="text-2xl font-black {{ $currentBalance <= 0 ? 'text-rose-600' : 'text-gray-800' }}">
-                                            {{ number_format($currentBalance, 2) }}
-                                        </span>
+                                        
+                                        @if($leaveRequest->status === 'pending')
+                                            <!-- Simple layout for Pending Applications -->
+                                            <div class="flex justify-between items-baseline mt-1">
+                                                <span class="text-xs font-semibold text-gray-400">Available:</span>
+                                                <span class="text-2xl font-black {{ $beforeBalance <= 0 ? 'text-rose-600' : 'text-gray-800' }}">
+                                                    {{ number_format($beforeBalance, 2) }}
+                                                </span>
+                                            </div>
+                                        @else
+                                            <!-- Comprehensive Before vs After breakdown for Audited History logs -->
+                                            <div class="space-y-1.5 pt-1">
+                                                <div class="flex justify-between text-xs font-medium text-gray-400">
+                                                    <span>Before Request:</span>
+                                                    <span class="font-bold text-gray-700">{{ number_format($beforeBalance, 2) }}</span>
+                                                </div>
+                                                <div class="flex justify-between text-xs font-medium border-t border-gray-100 pt-1.5">
+                                                    <span class="{{ $leaveRequest->status === 'approved' && $leaveRequest->leave_type_id === $type->id ? 'text-emerald-600 font-bold' : 'text-gray-400' }}">
+                                                        After Action:
+                                                    </span>
+                                                    <span class="font-black text-sm {{ $afterBalance <= 0 ? 'text-rose-600' : ($leaveRequest->status === 'approved' && $leaveRequest->leave_type_id === $type->id ? 'text-emerald-600' : 'text-gray-800') }}">
+                                                        {{ number_format($afterBalance, 2) }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        @endif
                                     </div>
                                 @endforeach
                             </div>
@@ -298,9 +334,22 @@
                                 
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                                     <div class="space-y-4">
-                                        <div>
-                                            <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">Processing Action Status</span>
-                                            <span class="font-extrabold capitalize {{ $leaveRequest->status === 'approved' ? 'text-emerald-600' : 'text-rose-600' }}">{{ $leaveRequest->status }}</span>
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">Processing Action Status</span>
+                                                <span class="font-extrabold capitalize {{ $leaveRequest->status === 'approved' ? 'text-emerald-600' : 'text-rose-600' }}">{{ $leaveRequest->status }}</span>
+                                            </div>
+                                            
+                                            <div>
+                                                <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">Action Evaluated By</span>
+                                                <span class="font-extrabold text-gray-800">
+                                                    @if($leaveRequest->approvingOfficial)
+                                                        {{ $leaveRequest->approvingOfficial->first_name }} {{ $leaveRequest->approvingOfficial->last_name }}
+                                                    @else
+                                                        <span class="text-gray-400 italic font-medium">Not Available</span>
+                                                    @endif
+                                                </span>
+                                            </div>
                                         </div>
                                         <div class="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200/50">
                                             <div>

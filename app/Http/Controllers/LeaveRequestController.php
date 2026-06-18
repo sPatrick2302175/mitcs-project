@@ -171,7 +171,10 @@ class LeaveRequestController extends Controller
         $status = strtolower($request->status);
 
         if ($status === 'approved') {
-            $daysToDeduct = (float) $request->input('days_with_pay', $leaveRequest->working_days_applied);
+            // CHANGE HERE: Force the deduction to use the full working days applied, 
+            // ignoring whether they are paid or unpaid so it pushes the balance into the negative!
+            $daysToDeduct = (float) $leaveRequest->working_days_applied;
+            
             $this->leaveService->deductEmployeeBalance($employee, $leaveRequest->leave_type_id, $daysToDeduct, $leaveRequest->id);
         }
 
@@ -181,8 +184,8 @@ class LeaveRequestController extends Controller
             'days_with_pay' => $request->input('days_with_pay', 0),
             'days_without_pay' => $request->input('days_without_pay', 0),
             'disapproval_reason' => $request->disapproval_reason,
-            'recommending_officer_id' => Auth::id(),
-            'approving_official_id' => Auth::id(),
+            'recommending_officer_id' => Auth::user()->employee?->id,
+            'approving_official_id' => Auth::user()->employee?->id,
         ]);
 
         return redirect()->route('admin.leave-requests.index')->with('success', 'Leave application has been processed successfully!');

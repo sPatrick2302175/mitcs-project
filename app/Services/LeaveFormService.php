@@ -194,6 +194,7 @@ class LeaveFormService
         $pdf->SetXY(45, 191); 
         $pdf->Write(0, $asOfDate);
 
+        // 7.A
         // SAFE SNAPSHOT & DETAILS-BASED BALANCE LOGIC
         $vlOriginal = (float)($leaveRequest->vl_balance_snapshot ?? 0);
         $slOriginal = (float)($leaveRequest->sl_balance_snapshot ?? 0);
@@ -203,9 +204,9 @@ class LeaveFormService
 
         if ($leaveRequest->details && $leaveRequest->details->count() > 0) {
             if (in_array($leaveCode, ['VL', 'FL'])) {
-                $vlDeduction = $leaveRequest->details->where('is_with_pay', true)->sum('day_fraction');
+                $vlDeduction = $leaveRequest->details->sum('day_fraction');
             } elseif ($leaveCode === 'SL') {
-                $slDeduction = $leaveRequest->details->where('is_with_pay', true)->sum('day_fraction');
+                $slDeduction = $leaveRequest->details->sum('day_fraction');
             }
         } else {
             $daysApplied = (float)$leaveRequest->working_days_applied;
@@ -300,83 +301,4 @@ class LeaveFormService
         exit;
     }
 
-    /**
-     * NEW: Compresses chronological leave dates into a clean, month-grouped format.
-     * Prevents text overflows on the physical PDF bounding boxes.
-     */
-    /*private function formatInclusiveDates(LeaveRequest $leaveRequest): string
-    {
-        // Gather exact unique days filed from the database breakdown
-        $dates = $leaveRequest->details()
-            ->orderBy('leave_date', 'asc')
-            ->pluck('leave_date')
-            ->map(fn($d) => Carbon::parse($d))
-            ->toArray();
-
-        // Fallback safety layer for legacy entries
-        if (empty($dates)) {
-            $start = Carbon::parse($leaveRequest->start_date);
-            $end = Carbon::parse($leaveRequest->end_date);
-            if ($start->equalTo($end)) {
-                return $start->format('M d, Y');
-            }
-            return $start->format('M d, Y') . ' - ' . $end->format('M d, Y');
-        }
-
-        // Group dates by Year, then Month
-        $grouped = [];
-        foreach ($dates as $date) {
-            $year = $date->year;
-            $month = $date->format('M'); // Compresses down to short forms like 'Jun', 'Sep'
-            $day = $date->day;
-            $grouped[$year][$month][] = $day;
-        }
-
-        $yearStrings = [];
-        $totalYears = count($grouped);
-
-        foreach ($grouped as $year => $months) {
-            $monthStrings = [];
-            foreach ($months as $month => $days) {
-                sort($days);
-                $ranges = [];
-                $start = $days[0];
-                $end = $days[0];
-
-                // Compress consecutive numbers (e.g., 1, 2, 3 becomes "1-3")
-                for ($i = 1; $i < count($days); $i++) {
-                    if ($days[$i] === $end + 1) {
-                        $end = $days[$i];
-                    } else {
-                        $ranges[] = ($start === $end) ? $start : "$start-$end";
-                        $start = $days[$i];
-                        $end = $days[$i];
-                    }
-                }
-                $ranges[] = ($start === $end) ? $start : "$start-$end";
-
-                $monthStrings[] = $month . ' ' . implode(', ', $ranges);
-            }
-
-            if ($totalYears === 1) {
-                $yearStrings[] = implode('; ', $monthStrings);
-            } else {
-                $yearStrings[] = implode('; ', $monthStrings) . ", $year";
-            }
-        }
-
-        $finalString = implode('; ', $yearStrings);
-        if ($totalYears === 1) {
-            $firstYear = array_key_first($grouped);
-            $finalString .= ", $firstYear";
-        }
-
-        // BOX WIDTH PROTECTION RULE
-        // If text length exceeds 60 characters, default to a summary notice to avoid visual layout overflow.
-        if (strlen($finalString) > 60) {
-            return "Various Dates (See Attached Details)";
-        }
-
-        return $finalString;
-    }*/
 }

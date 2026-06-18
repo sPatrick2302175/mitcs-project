@@ -163,7 +163,6 @@
                                         
                                         <input type="number" 
                                             step="0.01" 
-                                            min="0" 
                                             name="balances[{{ $leaveType->id }}]" 
                                             value="{{ old('balances.' . $leaveType->id, $currentBalance) }}" 
                                             required 

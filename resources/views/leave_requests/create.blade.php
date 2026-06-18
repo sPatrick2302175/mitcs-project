@@ -751,7 +751,7 @@
                     }
                 });
 
-                // 🌟 NEW: Wipe the board clean button
+                // Wipe the board clean button
                 const clearBtn = document.getElementById('clear-dates-btn');
                 if (clearBtn) {
                     clearBtn.addEventListener('click', () => {
@@ -793,8 +793,27 @@
 
                 // Attach dynamic policy listeners to each radio option
                 const leaveTypeRadios = document.querySelectorAll('input[name="leave_type_id"]');
+                
+                // Variable to remember which radio was previously clicked
+                let previousRadio = null;
+
                 leaveTypeRadios.forEach(radio => {
-                    radio.addEventListener('change', enforceFilingAdvancePolicy);
+                    // 1. Detect if the same radio is clicked twice to uncheck it
+                    radio.addEventListener('click', function(e) {
+                        if (previousRadio === this) {
+                            this.checked = false;
+                            previousRadio = null;
+                            enforceFilingAdvancePolicy(); // Update calendar policies
+                        } else {
+                            previousRadio = this;
+                        }
+                    });
+
+                    // 2. Standard change listener for when a new option is clicked
+                    radio.addEventListener('change', function() {
+                        previousRadio = this;
+                        enforceFilingAdvancePolicy();
+                    });
                 });
 
                 // Run immediately upon initialization to sync setup with initial state or old values
