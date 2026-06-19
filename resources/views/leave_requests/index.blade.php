@@ -37,22 +37,26 @@
         .fc-day-today { background-color: rgba(242, 164, 85, 0.08) !important; }
 
         /* Updated Base Event Style */
-        .fc-event {
+        .fc-event { 
             display: flex !important;
             align-items: center !important;
-            padding: 0.25rem 0.625rem !important;
+            padding: 0.35rem 0.625rem !important;
             font-size: 10px !important;
             font-weight: 700 !important;
             text-transform: uppercase !important;
             letter-spacing: 0.05em !important;
             border-radius: 0.5rem !important;
-            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03) !important;
             border-width: 1px !important;
             border-style: solid !important;
-            /*cursor: pointer;*/
+            cursor: pointer;
+            transition: transform 0.15s ease, opacity 0.15s ease;
         }
 
-        .fc-event .fc-event-main {
+        .clickable-leave-event { cursor: pointer; }
+        .clickable-leave-event:hover { opacity: 0.92; transform: scale(1.01); }
+
+        .fc-event .fc-event-main, .status-approved .fc-event-main, .status-pending .fc-event-main {
             display: flex;
             align-items: center;
             width: 100%;
@@ -65,6 +69,7 @@
             color: #d97706 !important;
             border-color: rgba(254, 243, 199, 0.6) !important;
         }
+        
         .status-pending .fc-event-main::before {
             content: '';
             display: inline-block;
@@ -73,7 +78,7 @@
             border-radius: 9999px;
             background-color: #f59e0b;
             margin-right: 6px;
-            animation: event-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+            animation: statusPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
 
         /* APPROVED STATUS */
@@ -94,74 +99,14 @@
 
     
         /* Pulsing Animation */
-        @keyframes event-pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: .5; }
+        @keyframes statusPulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: .4; transform: scale(1.1); }
         }
 
-        /* -------------------------------------
-        CO-WORKER: APPROVED
-        -------------------------------------- */
-        .status-coworker-approved {
-            background-color: #ffffff !important; /* bg-white */
-            color: #94a3b8 !important; /* text-slate-400 */
-            border-color: #cbd5e1 !important; /* border-slate-300 */
-            border-style: dashed !important; /* Dashed border for unconfirmed */
-        }
-        
-        /* Gray Checkmark SVG */
-        .status-coworker-approved .fc-event-main::before {
-            content: '';
-            display: inline-block;
-            flex-shrink: 0;
-            width: 12px; height: 12px;
-            margin-right: 4px;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%2364748b' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M5 13l4 4L19 7'/%3E%3C/svg%3E");
-            background-size: cover;
-        }
-
-        /* -------------------------------------
-        CO-WORKER: PENDING
-        -------------------------------------- */
-        .status-coworker-pending {
-            background-color: #ffffff !important; /* bg-white */
-            color: #94a3b8 !important; /* text-slate-400 */
-            border-color: #cbd5e1 !important; /* border-slate-300 */
-            border-style: dashed !important; /* Dashed border for unconfirmed */
-        }
-        
-        /* Hollow Gray Circle (Static) */
-        .status-coworker-pending .fc-event-main::before {
-            content: '';
-            display: inline-block;
-            flex-shrink: 0;
-            width: 8px; height: 8px;
-            border-radius: 9999px;
-            border: 2px solid #cbd5e1; /* border-slate-300 */
-            margin-right: 6px;
-            background-color: transparent;
-        }
-
-        /* -------------------------------------
-        CO-WORKER: DISAPPROVED (Fallback)
-        -------------------------------------- */
-        .status-coworker-disapproved {
-            background-color: #f8fafc !important; 
-            color: #94a3b8 !important; 
-            border-color: #e2e8f0 !important; 
-        }
-        
-        /* Gray X SVG */
-        .status-coworker-disapproved .fc-event-main::before {
-            content: '';
-            display: inline-block;
-            flex-shrink: 0;
-            width: 12px; height: 12px;
-            margin-right: 4px;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%2394a3b8' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M6 18L18 6M6 6l12 12'/%3E%3C/svg%3E");
-            background-size: cover;
-        }
+       
     </style>
+    
 
     <div class="py-12 bg-gray-50/50 min-h-screen">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-8">
@@ -412,124 +357,153 @@
 
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            
-            // 1. Get baseline records securely loaded from controller array mapping pipelines
-            const baseEvents = @json($calendarEvents ?? []);
-            console.log('Sanitized Base Event Models:', baseEvents);
-
-            const yearDisplay = document.getElementById('custom-year-display');
-            var calendarEl = document.getElementById('calendar');
-            
-            // 2. Initialize Calendar Engine Configuration Layer
-            var calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridMonth',
-                height: 'auto',
-                contentHeight: 'auto',
-                headerToolbar: {
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'dayGridMonth,dayGridWeek'
-                },
-                buttonText: {
-                    today: 'Today',
-                    month: 'Month',
-                    week: 'Week'
-                },
+            document.addEventListener('DOMContentLoaded', function() {
                 
-                // 🌟 REMOVE YEAR FROM CENTER DISPLAY TITLE (Shows only the Month Name now)
-                titleFormat: { month: 'long' },
+                // 1. Get baseline records securely loaded from controller array mapping pipelines
+                const baseEvents = @json($calendarEvents ?? []);
+                console.log('Sanitized Base Event Models:', baseEvents);
 
-                // 🌟 DYNAMIC DATESYNCHRONIZER FOR MANUAL PREV/NEXT CLICKS
-                datesSet: function(info) {
-                    let activeViewDate = calendar.getDate();
-                    let currentYearContext = activeViewDate.getFullYear();
+                const yearDisplay = document.getElementById('custom-year-display');
+                var calendarEl = document.getElementById('calendar');
+                
+                // 2. Initialize Calendar Engine Configuration Layer
+                var calendar = new FullCalendar.Calendar(calendarEl, {
+                    initialView: 'dayGridMonth',
+                    height: 'auto',
+                    contentHeight: 'auto',
+                    headerToolbar: {
+                        left: 'prev,next today',
+                        center: 'title',
+                        right: 'dayGridMonth,dayGridWeek'
+                    },
+                    buttonText: {
+                        today: 'Today',
+                        month: 'Month',
+                        week: 'Week'
+                    },
                     
-                    if (yearDisplay.innerText != currentYearContext) {
-                        yearDisplay.innerText = currentYearContext;
-                    }
-                },
-                
-                // 🌟 TRUE MATHEMATICAL INFINITE EVENT GENERATOR HOOK
-                events: function(fetchInfo, successCallback, failureCallback) {
-                    let dynamicEvents = [];
-                    let startYear = fetchInfo.start.getFullYear();
-                    let endYear = fetchInfo.end.getFullYear();
+                    // REMOVE YEAR FROM CENTER DISPLAY TITLE (Shows only the Month Name now)
+                    titleFormat: { month: 'long' },
 
-                    baseEvents.forEach(event => {
+                    // DYNAMIC DATESYNCHRONIZER FOR MANUAL PREV/NEXT CLICKS
+                    datesSet: function(info) {
+                        let activeViewDate = calendar.getDate();
+                        let currentYearContext = activeViewDate.getFullYear();
                         
-                        const isActive = event.is_active ?? (event.extendedProps && event.extendedProps.is_active) ?? true;
+                        if (yearDisplay.innerText != currentYearContext) {
+                            yearDisplay.innerText = currentYearContext;
+                        }
+                    },
+                    
+                    // TRUE MATHEMATICAL INFINITE EVENT GENERATOR HOOK
+                    // TRUE MATHEMATICAL INFINITE EVENT GENERATOR HOOK
+                    events: function(fetchInfo, successCallback, failureCallback) {
+                        let dynamicEvents = [];
+                        let startYear = fetchInfo.start.getFullYear();
+                        let endYear = fetchInfo.end.getFullYear();
+
+                        baseEvents.forEach(event => {
                             
-                        // If the admin toggled it off (false or 0), skip rendering it entirely!
-                        if (isActive === false || isActive === 0 || isActive === "0") {
-                            return; // Skips to the next event
-                        }
-
-                        // Check base properties or nested extended metadata safely
-                        const isRegular = event.is_regular || (event.extendedProps && event.extendedProps.is_regular);
-
-                        if (isRegular) {
-                            // Re-render and clone the event across every visible calendar frame context
-                            for (let y = startYear; y <= endYear; y++) {
-                                let clonedEvent = { ...event }; 
+                            const isActive = event.is_active ?? (event.extendedProps && event.extendedProps.is_active) ?? true;
                                 
-                                // Strip out original base year characters (YYYY-MM-DD -> MM-DD)
-                                let monthDayStr = String(clonedEvent.start).substring(5, 10); 
-                                clonedEvent.start = `${y}-${monthDayStr}`;
-                                
-                                if (clonedEvent.end) {
-                                    let endMonthDayStr = String(clonedEvent.end).substring(5, 10);
-                                    clonedEvent.end = `${y}-${endMonthDayStr}`;
-                                }
-                                
-                                // Prevent engine conflicts via dynamically unique identification hashes
-                                clonedEvent.id = `${event.id || 'holiday'}-infinite-${y}`; 
-                                dynamicEvents.push(clonedEvent);
+                            // If the admin toggled it off (false or 0), skip rendering it entirely!
+                            if (isActive === false || isActive === 0 || isActive === "0") {
+                                return; // Skips to the next event
                             }
-                        } else {
-                            // Standard leaves and single-day event profiles flow out naturally 
-                            dynamicEvents.push(event);
-                        }
-                    });
 
-                    successCallback(dynamicEvents);
-                },
+                            // Check base properties or nested extended metadata safely
+                            const isRegular = event.is_regular || (event.extendedProps && event.extendedProps.is_regular);
+
+                            if (isRegular) {
+                                // 🌟 HOLIDAYS (isRegular = true): Re-render across every visible calendar frame context
+                                for (let y = startYear; y <= endYear; y++) {
+                                    let clonedEvent = { ...event }; 
+                                    
+                                    // Strip out original base year characters (YYYY-MM-DD -> MM-DD)
+                                    let monthDayStr = String(clonedEvent.start).substring(5, 10); 
+                                    clonedEvent.start = `${y}-${monthDayStr}`;
+                                    
+                                    if (clonedEvent.end) {
+                                        let endMonthDayStr = String(clonedEvent.end).substring(5, 10);
+                                        clonedEvent.end = `${y}-${endMonthDayStr}`;
+                                    }
+                                    
+                                    // Prevent engine conflicts via dynamically unique identification hashes
+                                    clonedEvent.id = `${event.id || 'holiday'}-infinite-${y}`; 
+
+                                    // 🌟 NO EXTRA CLASSES FOR HOLIDAYS: Leave classNames empty so they don't scale
+                                    clonedEvent.classNames = []; 
+
+                                    dynamicEvents.push(clonedEvent);
+                                }
+                            } else {
+                                // 🌟 LEAVE REQUESTS (isRegular = false): Standard leaves flow out naturally 
+                                let standardEvent = { ...event };
+
+                                // Determine status ('approved', 'pending', etc.)
+                                let statusClass = '';
+                                if (event.status) {
+                                    statusClass = `status-${event.status.toLowerCase()}`;
+                                } else if (event.extendedProps && event.extendedProps.status) {
+                                    statusClass = `status-${event.extendedProps.status.toLowerCase()}`;
+                                }
+
+                                // Inject the hover scaling class and status theme only to leaves
+                                standardEvent.classNames = ['clickable-leave-event'];
+                                if (statusClass) standardEvent.classNames.push(statusClass);
+
+                                dynamicEvents.push(standardEvent);
+                            }
+                        });
+
+                        successCallback(dynamicEvents);
+                    },
+                    eventClick: function(info) {
+                            if (info.event.url) { return; }
+                            const props = info.event.extendedProps;
+                            
+                            if (props && props.leave_id) {
+                                const leaveRequestId = props.leave_id; // Read directly from safe extended properties
+                                const reviewRouteTemplate = "{{ route('leave-requests.show', ':id') }}";
+                                window.location.href = reviewRouteTemplate.replace(':id', leaveRequestId);
+                                info.jsEvent.preventDefault();
+                            }
+                        }, 
+                    
+                    eventContent: function(arg) {
+                        const isLeaveRequest = arg.event.extendedProps && arg.event.extendedProps.leave_id;
+                        const textColorStyle = isLeaveRequest ? '' : `color: ${arg.event.textColor || '#ffffff'};`;
+
+                        return {
+                            html: `
+                                <div style="display: flex; align-items: center; width: 100%; overflow: hidden; padding: 0 4px;">
+                                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; ${textColorStyle}">
+                                        ${arg.event.title}
+                                    </span>
+                                </div>
+                            `
+                        };
+                    }
+                }); 
                 
-                eventContent: function(arg) {
-                    const isLeaveRequest = arg.event.extendedProps && arg.event.extendedProps.leave_id;
-                    const textColorStyle = isLeaveRequest ? '' : `color: ${arg.event.textColor || '#ffffff'};`;
+                calendar.render();
 
-                    return {
-                        html: `
-                            <div style="display: flex; align-items: center; width: 100%; overflow: hidden; padding: 0 4px;">
-                                <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; ${textColorStyle}">
-                                    ${arg.event.title}
-                                </span>
-                            </div>
-                        `
-                    };
-                }
-            }); 
-            
-            
-            calendar.render();
+                // 3. UP/DOWN CLICK WARPING INTERFACES (Linked directly to FullCalendar Engine)
+                document.getElementById('year-btn-up').addEventListener('click', function() {
+                    let currentDate = calendar.getDate();
+                    let nextYear = currentDate.getFullYear() + 1;
+                    let currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
+                    
+                    calendar.gotoDate(`${nextYear}-${currentMonth}-01`);
+                });
 
-            // 3. 🌟 UP/DOWN CLICK WARPING INTERFACES (Linked directly to FullCalendar Engine)
-            document.getElementById('year-btn-up').addEventListener('click', function() {
-                let currentDate = calendar.getDate();
-                let nextYear = currentDate.getFullYear() + 1;
-                let currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
-                
-                calendar.gotoDate(`${nextYear}-${currentMonth}-01`);
+                document.getElementById('year-btn-down').addEventListener('click', function() {
+                    let currentDate = calendar.getDate();
+                    let prevYear = currentDate.getFullYear() - 1;
+                    let currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
+                    
+                    calendar.gotoDate(`${prevYear}-${currentMonth}-01`);
+                });
             });
-
-            document.getElementById('year-btn-down').addEventListener('click', function() {
-                let currentDate = calendar.getDate();
-                let prevYear = currentDate.getFullYear() - 1;
-                let currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
-                
-                calendar.gotoDate(`${prevYear}-${currentMonth}-01`);
-            });
-        });
     </script>
 </x-app-layout>

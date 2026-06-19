@@ -85,7 +85,8 @@ class LeaveFormService
         if (str_contains($leaveName, 'Others') || $matchedCheckbox === 'Others') {
             $pdf->SetFont('CenturyGothic', '', 8);
             $pdf->SetXY(10, 146);
-            $pdf->Write(0, $leaveRequest->leave_detail_category); 
+            $customLeaveType = $leaveRequest->leave_type_others ?? 'Others';
+            $pdf->Write(0, $customLeaveType); 
         } else {
             $pdf->SetXY(6, $leaveYPositions[$matchedCheckbox]); 
             $pdf->SetFont('zapfdingbats', '', 8); $pdf->Write(0, '3'); 

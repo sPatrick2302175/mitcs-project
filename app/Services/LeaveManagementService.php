@@ -31,9 +31,7 @@ class LeaveManagementService
             throw new InvalidArgumentException('You have already booked a leave request for one or more of these specific dates.');
         }
 
-        if ($this->checkDivisionOverlap($employee, $rawDates)) {
-            throw new InvalidArgumentException('One or more selected dates are already taken by another employee whose leave is approved.');
-        }
+        
 
         $leaveType = LeaveType::findOrFail($validated['leave_type_id']);
         $requestedDays = count($rawDates); 

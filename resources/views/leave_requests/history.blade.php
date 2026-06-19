@@ -56,9 +56,12 @@
                                         {{ \Carbon\Carbon::parse($request->date_of_filing)->format('M d, Y') }}
                                     </td>
                                     <td class="py-4 px-6">
-                                        <span class="text-sm font-bold text-gray-700 block">{{ $request->leave_type }}</span>
-                                        @if($request->leave_type_others)
-                                            <span class="text-[11px] text-gray-400 block italic">Specifics: {{ $request->leave_type_others }}</span>
+                                        <!-- Access the related model using ->leaveType-> -->
+                                        <span class="text-sm font-bold text-gray-700 block">{{ $request->leaveType->leave_type_name ?? 'Unknown Leave' }}</span>
+                                        
+                                        <!-- Use the correct database column name for specifics -->
+                                        @if($request->leave_detail_specifics)
+                                            <span class="text-[11px] text-gray-400 block italic">Specifics: {{ $request->leave_detail_specifics }}</span>
                                         @endif
                                     </td>
                                     <td class="py-4 px-6 text-sm font-medium text-gray-600 whitespace-nowrap">

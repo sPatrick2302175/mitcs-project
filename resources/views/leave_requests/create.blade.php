@@ -153,6 +153,12 @@
 
                                 // 1. Fetch all actual leave types from the database
                                 $dbLeaveTypes = \App\Models\LeaveType::all();
+        
+                                // Find the "Others" leave type in the database
+                                $othersType = $dbLeaveTypes->first(function($item) {
+                                    return stripos($item->leave_type_name, 'Others') !== false;
+                                });
+                                $othersTypeId = $othersType ? $othersType->id : '';
                             @endphp
 
                             @foreach($leaveTypes as $type => $citation)
@@ -192,10 +198,10 @@
 
                             <div class="col-span-1 md:col-span-2 mt-2 p-4 rounded-xl bg-gray-50/50 border border-gray-200/60 shadow-inner">
                                 <label class="flex items-center space-x-3 cursor-pointer mb-2 group">
-                                    <input type="radio" name="leave_type_id" value="others" data-name="Others" @checked(old('leave_type_id') === 'others') class="w-4 h-4 text-[#F2A455] border-gray-300 focus:ring-[#F2A455] focus:ring-offset-0 bg-gray-50 transition">
+                                    <input type="radio" name="leave_type_id" value="{{ $othersTypeId }}" data-name="Others" @checked(old('leave_type_id') == $othersTypeId) class="w-4 h-4 text-[#F2A455] border-gray-300 focus:ring-[#F2A455] focus:ring-offset-0 bg-gray-50 transition" required>
                                     <span class="text-sm font-bold text-gray-700 group-hover:text-gray-900 transition-colors">Others:</span>
                                 </label>
-                                <input type="text" name="leave_type_others" value="{{ old('leave_type_others') }}" placeholder="Specify other leave type..." class="block w-full rounded-xl border-gray-200 bg-white shadow-sm focus:border-[#F2A455] focus:ring-[#F2A455] text-sm font-medium py-2.5 transition-all">
+                               <input type="text" name="leave_type_others" value="{{ old('leave_type_others') }}" placeholder="Specify other leave type..." class="block w-full rounded-xl border-gray-200 bg-white shadow-sm focus:border-[#F2A455] focus:ring-[#F2A455] text-sm font-medium py-2.5 transition-all">
                             </div>
                         </div>
                     </div>
@@ -384,7 +390,7 @@
                     $indexedBalances = $employee->leaveBalances->keyBy('leave_type_id');
                     
                     // 2. Define exactly which leaves we want to show in this sidebar, in this order
-                    $displayCodes = ['VL', 'SL', 'FL', 'SPL', 'SEL'];
+                    $displayCodes = ['VL', 'SL', 'FL', 'SPL'];
                     
                     // 3. Fetch them from the database and keep our preferred order
                     $leaveTypes = \App\Models\LeaveType::whereIn('code', $displayCodes)

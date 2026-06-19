@@ -52,9 +52,8 @@ class LeaveRequestController extends Controller
             ->whereIn('status', ['pending', 'approved']);
 
         if ($user->role !== 'admin' && $employee?->division_id) {
-            $leaveQuery->whereHas('employee', function ($query) use ($employee) {
-                $query->where('division_id', $employee->division_id);
-            });
+            $leaveQuery->where('employee_id', $employee->id);
+         
         }
 
         $allLeaves = $leaveQuery->get();
