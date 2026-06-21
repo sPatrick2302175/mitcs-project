@@ -50,12 +50,12 @@ class LeaveTypesSeeder extends Seeder
                 'max_days_per_year' => 3.0
             ],
             [
-                'code' => 'SOLO', 
+                'code' => 'SOPL', 
                 'leave_type_name' => 'Solo Parent Leave', 
                 'is_paid' => true, 
                 'requires_attachment' => true,
                 'is_cumulative' => false,
-                'is_event_based' => false,
+                'is_event_based' => true,
                 'max_days_per_year' => 7.0
             ],
 
@@ -103,7 +103,7 @@ class LeaveTypesSeeder extends Seeder
                 'requires_attachment' => true,
                 'is_cumulative' => false,
                 'is_event_based' => true,
-                'max_days_per_year' => 60.0 // Up to 2 months max for gynecological surgeries
+                'max_days_per_year' => 60.0 // Up to 2 months max
             ],
             [
                 'code' => 'SEL', 
@@ -134,10 +134,18 @@ class LeaveTypesSeeder extends Seeder
                 'is_event_based' => true,
                 'max_days_per_year' => 180.0 // Up to 6 months max
             ],
+            [
+                'code' => 'OTHERS', 
+                'leave_type_name' => 'Others', 
+                'is_paid' => true, // Set to true if "Others" defaults to paid
+                'requires_attachment' => false,
+                'is_cumulative' => false,
+                'is_event_based' => true,
+                'max_days_per_year' => null 
+            ],
         ];
 
         foreach ($types as $type) {
-            // Using updateOrCreate avoids duplicate exceptions if seeder runs multiple times
             LeaveType::updateOrCreate(['code' => $type['code']], $type);
         }
     }

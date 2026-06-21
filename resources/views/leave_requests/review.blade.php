@@ -14,8 +14,14 @@
                         <svg class="w-4 h-4 mr-2 transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
                         Back to Management Masterlist
                     </a>
+                @elseif(request()->query('from') === 'history')
+                
+                    <a href="{{ route('leave-requests.history') }}" class="inline-flex items-center text-sm font-bold text-gray-500 hover:text-gray-900 transition-colors group">
+                        <svg class="w-4 h-4 mr-2 transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                        Back to History
+                    </a>
                 @else
-                    <a href="{{ route('leave-requests.index') }}" class="inline-flex items-center text-sm font-bold text-gray-500 hover:text-gray-900 transition-colors group">
+                    <a href="{{ route('dashboard') }}" class="inline-flex items-center text-sm font-bold text-gray-500 hover:text-gray-900 transition-colors group">
                         <svg class="w-4 h-4 mr-2 transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
                         Back to Leave Dashboard
                     </a>
@@ -64,6 +70,11 @@
                                 <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                 Approved Record
                             </span>
+                            <a href="{{ route('leave-requests.pdf', $leaveRequest->id) }}" class="inline-flex items-center justify-center px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-800 font-bold text-[10px] uppercase tracking-wider rounded-lg border border-indigo-100/60 transition-colors shadow-sm">
+                                <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                View PDF
+                            </a>
+                        
                         @else
                             <span class="inline-flex items-center px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-xl bg-rose-50 text-rose-600 border border-rose-100/60 shadow-sm">
                                 <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -103,15 +114,22 @@
                                 @endif
 
                                 <div class="pt-3 border-t border-gray-200/50 grid grid-cols-2 gap-4">
-                                    <div>
+                                    <div class="pr-2">
                                         <label class="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">Inclusive Range</label>
-                                        <span class="text-sm font-extrabold text-gray-800 block">
-                                            {{ \Carbon\Carbon::parse($leaveRequest->start_date)->format('M d, Y') }}
+                                        <span class="text-sm font-extrabold text-[#F2A455] block leading-relaxed">
+                                            {{ $leaveRequest->formatted_inclusive_dates }}
                                         </span>
-                                        <span class="text-xs text-gray-500 font-medium block mt-0.5">to {{ \Carbon\Carbon::parse($leaveRequest->end_date)->format('M d, Y') }}</span>
                                     </div>
                                     <div>
-                                        <label class="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">Days Claimed</label>
+                                        <label class="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">
+                                            @if($leaveRequest->status === 'pending')
+                                                Days Requested
+                                            @elseif($leaveRequest->status === 'disapproved')
+                                                Days Denied
+                                            @else
+                                                Days Claimed
+                                            @endif
+                                        </label>
                                         <span class="text-2xl font-black text-[#F2A455]">{{ number_format($leaveRequest->working_days_applied, 1) }} <span class="text-xs text-gray-500 font-bold uppercase tracking-wider">Days</span></span>
                                     </div>
                                 </div>
@@ -126,31 +144,67 @@
                         </div>
 
                         <div class="space-y-4">
-                            <h4 class="text-xs font-bold uppercase tracking-wider text-gray-400">Current Employee Leave Balances</h4>
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-gray-400">
+                                {{ $leaveRequest->status === 'pending' ? 'Current Employee Leave Balances' : 'Leave Credit Impact Summary' }}
+                            </h4>
                             
                             @php
-                                // Index the employee's multiple balance rows by their Leave Type ID for instant lookup
                                 $indexedBalances = $leaveRequest->employee->leaveBalances->keyBy('leave_type_id');
-                                
-                                // Fetch all leave types to ensure we map names to IDs cleanly
                                 $allLeaveTypes = \App\Models\LeaveType::whereIn('code', ['VL', 'SL', 'FL', 'SPL'])->get();
                             @endphp
 
                             <div class="grid grid-cols-2 gap-4">
                                 @foreach($allLeaveTypes as $type)
                                     @php
-                                        // Pull the specific balance record for this leave type row
-                                        $balanceRecord = $indexedBalances->get($type->id);
-                                        $currentBalance = $balanceRecord ? $balanceRecord->balance : 0.00;
+                                        // 1. Resolve "Before Request" via snapshots. Fall back to current data for legacy records.
+                                        $beforeBalance = 0.00;
+                                        if ($type->code === 'VL') {
+                                            $beforeBalance = $leaveRequest->vl_balance_snapshot ?? ($indexedBalances->get($type->id)?->balance ?? 0.00);
+                                        } elseif ($type->code === 'SL') {
+                                            $beforeBalance = $leaveRequest->sl_balance_snapshot ?? ($indexedBalances->get($type->id)?->balance ?? 0.00);
+                                        } elseif ($type->code === 'FL') {
+                                            $beforeBalance = $leaveRequest->fl_balance_snapshot ?? ($indexedBalances->get($type->id)?->balance ?? 0.00);
+                                        } elseif ($type->code === 'SPL') {
+                                            $beforeBalance = $leaveRequest->spl_balance_snapshot ?? ($indexedBalances->get($type->id)?->balance ?? 0.00);
+                                        }
+
+                                        // 2. Resolve "After Request" mathematically based on approved transaction statuses
+                                        $afterBalance = $beforeBalance;
+                                        if ($leaveRequest->status === 'approved' && $leaveRequest->leave_type_id === $type->id) {
+                                            $afterBalance = $beforeBalance - ($leaveRequest->days_with_pay ?? 0);
+                                        }
                                     @endphp
                                     
                                     <div class="p-5 bg-white border border-gray-100/60 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300">
-                                        <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400 block mb-1">
+                                        <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400 block mb-2">
                                             {{ $type->leave_type_name }} ({{ $type->code }})
                                         </span>
-                                        <span class="text-2xl font-black {{ $currentBalance <= 0 ? 'text-rose-600' : 'text-gray-800' }}">
-                                            {{ number_format($currentBalance, 2) }}
-                                        </span>
+                                        
+                                        @if($leaveRequest->status === 'pending')
+                                            <!-- Simple layout for Pending Applications -->
+                                            <div class="flex justify-between items-baseline mt-1">
+                                                <span class="text-xs font-semibold text-gray-400">Available:</span>
+                                                <span class="text-2xl font-black {{ $beforeBalance <= 0 ? 'text-rose-600' : 'text-gray-800' }}">
+                                                    {{ number_format($beforeBalance, 2) }}
+                                                </span>
+                                            </div>
+                                        @else
+                                            <!-- Comprehensive Before vs After breakdown for Audited History logs -->
+                                            <div class="space-y-1.5 pt-1">
+                                                <div class="flex justify-between text-xs font-medium text-gray-400">
+                                                    <span>Before Request:</span>
+                                                    <span class="font-bold text-gray-700">{{ number_format($beforeBalance, 2) }}</span>
+                                                </div>
+                                                <div class="flex justify-between text-xs font-medium border-t border-gray-100 pt-1.5">
+                                                    <span class="{{ $leaveRequest->status === 'approved' && $leaveRequest->leave_type_id === $type->id ? 'text-emerald-600 font-bold' : 'text-gray-400' }}">
+                                                        After Action:
+                                                    </span>
+                                                    <span class="font-black text-sm {{ $afterBalance <= 0 ? 'text-rose-600' : ($leaveRequest->status === 'approved' && $leaveRequest->leave_type_id === $type->id ? 'text-emerald-600' : 'text-gray-800') }}">
+                                                        {{ number_format($afterBalance, 2) }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        @endif
                                     </div>
                                 @endforeach
                             </div>
@@ -257,12 +311,19 @@
                                     <h3 class="text-lg font-extrabold text-gray-800 tracking-tight">Application Processing Awaiting Review</h3>
                                     <p class="text-sm font-medium text-gray-500 max-w-md mx-auto">This request has been locked against updates and is currently awaiting formalized evaluation by your Department Head or approving officials.</p>
                                     <div class="pt-4 flex justify-center">
-                                        <a href="{{ route('leave-requests.index') }}" class="inline-flex items-center px-6 py-2.5 bg-white border border-gray-200/80 hover:bg-gray-50 text-gray-700 font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all duration-200 shadow-sm active:scale-[0.98]">
-                                            Return to Dashboard
-                                        </a>
+                                        @if(request()->query('from') === 'history')
+                                            <a href="{{ route('leave-requests.history') }}" class="inline-flex items-center px-6 py-2.5 bg-white border border-gray-200/80 hover:bg-gray-50 text-gray-700 font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all duration-200 shadow-sm active:scale-[0.98]">
+                                                Back to History
+                                            </a>
+                                        @else
+                                            <a href="{{ route('leave-requests.index') }}" class="inline-flex items-center px-6 py-2.5 bg-white border border-gray-200/80 hover:bg-gray-50 text-gray-700 font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all duration-200 shadow-sm active:scale-[0.98]">
+                                                Return to Dashboard
+                                            </a>
+                                        @endif
                                     </div>
                                 </div>
                             @endif
+                        
 
                         @else
                             <div class="bg-gray-50/50 p-6 md:p-8 rounded-2xl border border-gray-100/60 space-y-6">
@@ -273,9 +334,22 @@
                                 
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                                     <div class="space-y-4">
-                                        <div>
-                                            <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">Processing Action Status</span>
-                                            <span class="font-extrabold capitalize {{ $leaveRequest->status === 'approved' ? 'text-emerald-600' : 'text-rose-600' }}">{{ $leaveRequest->status }}</span>
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">Processing Action Status</span>
+                                                <span class="font-extrabold capitalize {{ $leaveRequest->status === 'approved' ? 'text-emerald-600' : 'text-rose-600' }}">{{ $leaveRequest->status }}</span>
+                                            </div>
+                                            
+                                            <div>
+                                                <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">Action Evaluated By</span>
+                                                <span class="font-extrabold text-gray-800">
+                                                    @if($leaveRequest->approvingOfficial)
+                                                        {{ $leaveRequest->approvingOfficial->first_name }} {{ $leaveRequest->approvingOfficial->last_name }}
+                                                    @else
+                                                        <span class="text-gray-400 italic font-medium">Not Available</span>
+                                                    @endif
+                                                </span>
+                                            </div>
                                         </div>
                                         <div class="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200/50">
                                             <div>
@@ -316,9 +390,14 @@
                                         Form tracking item immutable. System logs locked.
                                     </div>
                                     
+                                    <!-- Bottom back panel blocks now respects 'from=history' source parameters properly -->
                                     @if(request()->routeIs('admin.*'))
                                         <a href="{{ route('admin.leave-requests.index') }}" class="inline-flex items-center px-6 py-2.5 bg-white border border-gray-200/80 hover:bg-gray-50 text-gray-700 font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all duration-200 shadow-sm active:scale-[0.98]">
                                             Return to Masterlist
+                                        </a>
+                                    @elseif(request()->query('from') === 'history')
+                                        <a href="{{ route('leave-requests.history') }}" class="inline-flex items-center px-6 py-2.5 bg-white border border-gray-200/80 hover:bg-gray-50 text-gray-700 font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all duration-200 shadow-sm active:scale-[0.98]">
+                                            Back to History
                                         </a>
                                     @else
                                         <a href="{{ route('leave-requests.index') }}" class="inline-flex items-center px-6 py-2.5 bg-white border border-gray-200/80 hover:bg-gray-50 text-gray-700 font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all duration-200 shadow-sm active:scale-[0.98]">

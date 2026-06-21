@@ -18,6 +18,14 @@ class EmployeeLeaveBalance extends Model
         'year' => 'integer',
     ];
 
+    protected $appends = ['display_balance'];
+
+    public function getDisplayBalanceAttribute()
+    {
+        // If the real balance is negative (e.g. -2.75), return 0. Otherwise, return the real balance???
+        return $this->balance < 0 ? 0.000 : (float) $this->balance;
+    }
+
     public function employee()
     {
         return $this->belongsTo(Employee::class);

@@ -14,12 +14,33 @@
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05) !important;
             border: 1px solid #f3f4f6 !important;
             padding: 0.25rem;
+
+            /* PREVENTS THE BLUE TEXT HIGHLIGHTING WHEN HOLDING SHIFT */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
         
         .flatpickr-day.selected {
             background: #F2A455 !important;
             border-color: #F2A455 !important;
             border-radius: 0.5rem !important;
+        }
+
+        /* Style for today's date indicator when clickable/active */
+        .flatpickr-day.calendar-today-marker {
+            border: 2px solid #94A3B8 !important; /* Theme Accent Orange Circle */
+            border-radius: 50%;
+        }
+
+        /* Style for today's date indicator when grayed out/disabled by the 5-day rule */
+        .flatpickr-day.calendar-today-marker.flatpickr-disabled {
+            border: 2px solid #94A3B8 !important; /* Distinct Slate Gray Circle */
+            background: transparent !important;
+            color: #94A3B8 !important; /* Keep text visibly low-contrast/disabled */
+            opacity: 0.8;
+            border-radius: 50%;
         }
 
        /* Styling for Approved Leaves (Red/Taken) - OVERRIDE DISABLED STATE */
@@ -34,9 +55,21 @@
             cursor: not-allowed;
         }
 
-        /* Styling for MY Own Booked Leaves (Blue) - OVERRIDE DISABLED STATE */
+        /* Styling for MY Own Booked Leaves - OVERRIDE DISABLED STATE */
         .flatpickr-day.flatpickr-disabled.my-booked-date, 
         .flatpickr-day.flatpickr-disabled.my-booked-date:hover {
+            background-color: #84f9c3 !important; 
+            border-color: #059669 !important;
+            color: #1d1d1d !important;
+            border-radius: 0.5rem !important;
+            font-weight: 700 !important;
+            opacity: 0.8 !important;
+            cursor: not-allowed;
+        }
+
+        /* Holiday Styling - OVERRIDE DISABLED STATE */
+        .flatpickr-day.flatpickr-disabled.holiday-date, 
+        .flatpickr-day.flatpickr-disabled.holiday-date:hover {
             background-color: #c3d9fc !important; 
             border-color: #3b82f6 !important;
             color: #1d1d1d !important;
@@ -46,16 +79,14 @@
             cursor: not-allowed;
         }
 
-        /* Holiday Styling (Purple) - OVERRIDE DISABLED STATE */
-        .flatpickr-day.flatpickr-disabled.holiday-date, 
-        .flatpickr-day.flatpickr-disabled.holiday-date:hover {
-            background-color: #e9d5ff !important; 
-            border-color: #a855f7 !important;
+        /* Style for selectable Half-Day Holidays */
+        .flatpickr-day.half-day-holiday:not(.selected) {
+            background-color: #ffecca !important; 
+            border-color: #f59e0b !important;
             color: #1d1d1d !important;
             border-radius: 0.5rem !important;
             font-weight: 700 !important;
             opacity: 0.8 !important;
-            cursor: not-allowed;
         }
 
         /* Standard Disabled Days (Weekends & Purely Non-working Days) */
@@ -122,6 +153,12 @@
 
                                 // 1. Fetch all actual leave types from the database
                                 $dbLeaveTypes = \App\Models\LeaveType::all();
+        
+                                // Find the "Others" leave type in the database
+                                $othersType = $dbLeaveTypes->first(function($item) {
+                                    return stripos($item->leave_type_name, 'Others') !== false;
+                                });
+                                $othersTypeId = $othersType ? $othersType->id : '';
                             @endphp
 
                             @foreach($leaveTypes as $type => $citation)
@@ -161,10 +198,10 @@
 
                             <div class="col-span-1 md:col-span-2 mt-2 p-4 rounded-xl bg-gray-50/50 border border-gray-200/60 shadow-inner">
                                 <label class="flex items-center space-x-3 cursor-pointer mb-2 group">
-                                    <input type="radio" name="leave_type_id" value="others" data-name="Others" @checked(old('leave_type_id') === 'others') class="w-4 h-4 text-[#F2A455] border-gray-300 focus:ring-[#F2A455] focus:ring-offset-0 bg-gray-50 transition">
+                                    <input type="radio" name="leave_type_id" value="{{ $othersTypeId }}" data-name="Others" @checked(old('leave_type_id') == $othersTypeId) class="w-4 h-4 text-[#F2A455] border-gray-300 focus:ring-[#F2A455] focus:ring-offset-0 bg-gray-50 transition" required>
                                     <span class="text-sm font-bold text-gray-700 group-hover:text-gray-900 transition-colors">Others:</span>
                                 </label>
-                                <input type="text" name="leave_type_others" value="{{ old('leave_type_others') }}" placeholder="Specify other leave type..." class="block w-full rounded-xl border-gray-200 bg-white shadow-sm focus:border-[#F2A455] focus:ring-[#F2A455] text-sm font-medium py-2.5 transition-all">
+                               <input type="text" name="leave_type_others" value="{{ old('leave_type_others') }}" placeholder="Specify other leave type..." class="block w-full rounded-xl border-gray-200 bg-white shadow-sm focus:border-[#F2A455] focus:ring-[#F2A455] text-sm font-medium py-2.5 transition-all">
                             </div>
                         </div>
                     </div>
@@ -307,11 +344,19 @@
                                 <!-- Calendar Legend Keys Alignment -->
                                 <div class="mt-3 flex flex-wrap gap-x-4 gap-y-2 items-center text-[11px] font-bold text-gray-400 uppercase tracking-wider bg-white border border-gray-100 p-2.5 rounded-xl shadow-sm">
                                     <span class="text-gray-500">Calendar Key:</span>
-                                    <span class="inline-flex items-center gap-1.5 text-gray-600"><span class="w-3 h-3 rounded-md bg-[#c3d9fc] border border-[#3b82f6]"></span> My Requests</span>
+                                    <span class="inline-flex items-center gap-1.5 text-gray-600"><span class="w-3 h-3 rounded-md bg-[#84f9c3] border border-[#059669]"></span> My Requests</span>
                                     <span class="inline-flex items-center gap-1.5 text-gray-600"><span class="w-3 h-3 rounded-md bg-[#ffbcbc] border border-[#ef4444]"></span> Taken Leave</span>
-                                    <span class="inline-flex items-center gap-1.5 text-gray-600"><span class="w-3 h-3 rounded-md bg-[#ffecca] border border-[#f59e0b]"></span> Holidays </span>
+                                    <span class="inline-flex items-center gap-1.5 text-gray-600"><span class="w-3 h-3 rounded-md bg-[#c3d9fc] border border-[#3b82f6]"></span> Holidays </span>
+                                    <span class="inline-flex items-center gap-1.5 text-gray-600"><span class="w-3 h-3 rounded-md bg-[#ffecca] border border-[#f59e0b]"></span> Half Day Holidays </span>
                                 </div>
                                 <p class="text-xs font-medium text-gray-400 mt-2">You can select non-consecutive dates. Weekends and company approved dates are omitted automatically.</p>
+                                <div class="mb-2 p-3 bg-blue-50 border border-blue-100 rounded-xl flex items-start gap-3">
+                                    <svg class="w-5 h-5 text-blue-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    <div>
+                                        <p class="text-xs font-bold text-blue-800 uppercase tracking-wider">Pro-Tip for Long Leaves</p>
+                                        <p class="text-xs text-blue-600 mt-0.5">Need to select a whole week or month? Click your start date, <b>hold the SHIFT key</b>, and click your end date to select the entire range instantly!</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         
@@ -345,7 +390,7 @@
                     $indexedBalances = $employee->leaveBalances->keyBy('leave_type_id');
                     
                     // 2. Define exactly which leaves we want to show in this sidebar, in this order
-                    $displayCodes = ['VL', 'SL', 'FL', 'SPL', 'SEL'];
+                    $displayCodes = ['VL', 'SL', 'FL', 'SPL'];
                     
                     // 3. Fetch them from the database and keep our preferred order
                     $leaveTypes = \App\Models\LeaveType::whereIn('code', $displayCodes)
@@ -533,7 +578,6 @@
                 3. Flatpickr Calendar Logic (Bulletproof Auto-Detect)
             ------------------------------------------------------------- */
             try {
-                // Safely convert Laravel dates to clean YYYY-MM-DD arrays
                 function safeDateArray(data) {
                     if (!data) return [];
                     let arr = Array.isArray(data) ? data : Object.values(data);
@@ -544,21 +588,21 @@
                 const myBookedDates = safeDateArray(@json($myBookedDates ?? []));
                 const explicitDisabledDates = [...divisionApprovedDates, ...myBookedDates];
 
-                // Holiday Auto-Detector (Adapts to both Old Controller & New Controller)
                 const rawHolidays = @json($holidays ?? []); 
                 const customHolidays = [];
 
+                let lastSelectedDate = null; // Remembers the first date clicked for the shift-click range
+
                 if (!Array.isArray(rawHolidays)) {
-                    // It's the OLD controller format: {"2025-12-25": "Holiday Name"}
                     for (const [key, value] of Object.entries(rawHolidays)) {
                         customHolidays.push({
                             name: value,
                             date: String(key).substring(0, 10),
-                            is_regular: false
+                            is_regular: false,
+                            is_half_day: false // Fallback
                         });
                     }
                 } else {
-                    // It's the NEW controller format: Array of objects
                     rawHolidays.forEach(h => {
                         if (h && h.date) customHolidays.push(h);
                     });
@@ -566,26 +610,40 @@
 
                 const commonConfig = {
                     dateFormat: "Y-m-d",
-                    minDate: "today",       
+                    //  minDate is removed from here to be controlled dynamically below
                     disable: [
                         function(date) {
                             if (date.getDay() === 0 || date.getDay() === 6) return true; 
                             
                             const dateStr = flatpickr.formatDate(date, "Y-m-d");
-                            const monthDayStr = dateStr.substring(5); // Gets "MM-DD"
+                            const monthDayStr = dateStr.substring(5);
 
                             if (explicitDisabledDates.includes(dateStr)) return true;
 
-                            return customHolidays.some(h => {
+                            const matchedHoliday = customHolidays.find(h => {
                                 const hDate = String(h.date).substring(0, 10);
                                 return hDate === dateStr || (h.is_regular && hDate.substring(5) === monthDayStr);
                             });
+
+                            //  Disable the day ONLY if it is a FULL holiday. 
+                            // Half-days are ignored here so they remain clickable!
+                            if (matchedHoliday && !matchedHoliday.is_half_day) {
+                                return true;
+                            }
+                            return false;
                         }
                     ],
                     onDayCreate: function(dObj, dStr, fp, dayElem) {
                         const dateStr = fp.formatDate(dayElem.dateObj, "Y-m-d");
                         const monthDayStr = dateStr.substring(5); 
-                        
+
+                        // 🌟 NEW: Force-detect "Today" and attach a permanent reference class
+                        const todayStr = fp.formatDate(new Date(), "Y-m-d");
+                        if (dateStr === todayStr) {
+                            dayElem.classList.add("calendar-today-marker");
+                            if (!dayElem.title) dayElem.title = "Today";
+                        }
+
                         if (myBookedDates.includes(dateStr)) {
                             dayElem.classList.add("my-booked-date");
                             dayElem.title = "My Leave Request";
@@ -600,27 +658,173 @@
                                 return hDate === dateStr || (h.is_regular && hDate.substring(5) === monthDayStr);
                             });
 
+                            //  Check if it's a half-day and inject the text
                             if (matchedHoliday) {
-                                dayElem.classList.add("holiday-date");
-                                dayElem.title = matchedHoliday.name || "Holiday";
+                                if (matchedHoliday.is_half_day) {
+                                    dayElem.classList.add("half-day-holiday"); 
+                                    dayElem.title = `${matchedHoliday.name || "Holiday"} (HALF DAY)`;
+                                } else {
+                                    dayElem.classList.add("holiday-date");
+                                    dayElem.title = matchedHoliday.name || "Holiday";
+                                }
                             }
                         }
+
+                        // 🌟 UPGRADED SHIFT-CLICK LOGIC (Select & Erase Modes)
+                        dayElem.addEventListener("click", function(e) {
+                            if (e.shiftKey && lastSelectedDate) {
+                                let start = new Date(lastSelectedDate);
+                                let end = new Date(dayElem.dateObj);
+
+                                if (start > end) {
+                                    let temp = start; start = end; end = temp;
+                                }
+
+                                // 🌟 NEW: Detect if we are erasing. If the clicked date is already selected, we erase the range!
+                                let isErasing = dayElem.classList.contains("selected");
+                                
+                                let newDates = [...fpInstance.selectedDates];
+                                let current = new Date(start);
+
+                                while (current <= end) {
+                                    let currStr = fp.formatDate(current, "Y-m-d");
+                                    let currTime = current.getTime();
+
+                                    if (isErasing) {
+                                        // ERASE MODE: Remove this date from the selected array
+                                        newDates = newDates.filter(d => d.getTime() !== currTime);
+                                    } else {
+                                        // SELECT MODE: Validate and add the date
+                                        let day = current.getDay();
+                                        let mStr = currStr.substring(5);
+
+                                        if (day !== 0 && day !== 6 && !explicitDisabledDates.includes(currStr)) {
+                                            let matchedHoliday = customHolidays.find(h => {
+                                                let hDate = String(h.date).substring(0, 10);
+                                                return hDate === currStr || (h.is_regular && hDate.substring(5) === mStr);
+                                            });
+
+                                            if (!matchedHoliday || matchedHoliday.is_half_day) {
+                                                if (!newDates.some(d => d.getTime() === currTime)) {
+                                                    newDates.push(new Date(current));
+                                                }
+                                            }
+                                        }
+                                    }
+                                    current.setDate(current.getDate() + 1);
+                                }
+
+                                setTimeout(() => {
+                                    fpInstance.setDate(newDates, true); 
+                                }, 10);
+                            }
+                            lastSelectedDate = dayElem.dateObj; 
+                        });
                     }
                 };
 
-                flatpickr("#selected_dates", {
+                //  Assigning instance to a constant to update configurations dynamically
+                const fpInstance = flatpickr("#selected_dates", {
                     ...commonConfig,
                     mode: "multiple",
                     conjunction: ", ",
                     onChange: function(selectedDates, dateStr, instance) {
-                        const workingDays = selectedDates.filter(date => {
+                        let totalDays = 0;
+                        
+                        //  Calculate exact fraction logic for 0.5 counts
+                        selectedDates.forEach(date => {
                             const day = date.getDay();
-                            return day !== 0 && day !== 6; 
+                            if (day !== 0 && day !== 6) { // Skip weekends just in case
+                                const dStr = flatpickr.formatDate(date, "Y-m-d");
+                                const mStr = dStr.substring(5);
+                                
+                                const matchedHoliday = customHolidays.find(h => {
+                                    const hDate = String(h.date).substring(0, 10);
+                                    return hDate === dateStr || (h.is_regular && hDate.substring(5) === mStr);
+                                });
+
+                                // If the selected day is a Half-Day holiday, add 0.5. Otherwise, add 1.
+                                if (matchedHoliday && matchedHoliday.is_half_day) {
+                                    totalDays += 0.5;
+                                } else {
+                                    totalDays += 1;
+                                }
+                            }
                         });
+
                         const input = document.getElementById('working_days_applied');
-                        if (input) input.value = workingDays.length;
+                        if (input) input.value = totalDays; // Will output "0.5", "1.5", "2", etc.
                     }
                 });
+
+                // Wipe the board clean button
+                const clearBtn = document.getElementById('clear-dates-btn');
+                if (clearBtn) {
+                    clearBtn.addEventListener('click', () => {
+                        fpInstance.clear(); // Wipes Flatpickr
+                        lastSelectedDate = null; // Resets our Shift-Click memory
+                        
+                        const input = document.getElementById('working_days_applied');
+                        if (input) input.value = 0; // Resets the numeric counter to zero
+                    });
+                }
+
+                //  NEW: Dynamic 5-Day Advance Filing Policy Interceptor
+                function enforceFilingAdvancePolicy() {
+                    const selectedRadio = document.querySelector('input[name="leave_type_id"]:checked');
+                    if (!selectedRadio) {
+                        // Standard fallback before a user makes a selection
+                        fpInstance.set('minDate', 'today');
+                        return;
+                    }
+
+                    const typeName = selectedRadio.getAttribute('data-name') ? selectedRadio.getAttribute('data-name').toLowerCase() : '';
+                    const isSickLeave = typeName.includes('sick');
+
+                    if (isSickLeave) {
+                        // Sick Leave rules: Allow full historical/retroactive selections
+                        fpInstance.set('minDate', null);
+                    } else {
+                        // All other leaves: Lock out everything prior to Today + 5 Days
+                        let advanceNoticeDate = new Date();
+                        advanceNoticeDate.setDate(advanceNoticeDate.getDate() + 5);
+                        fpInstance.set('minDate', advanceNoticeDate);
+                    }
+
+                    // Flush active selections when shifting radio choices to avoid policy leakage
+                    fpInstance.clear();
+                    const input = document.getElementById('working_days_applied');
+                    if (input) input.value = 0;
+                }
+
+                // Attach dynamic policy listeners to each radio option
+                const leaveTypeRadios = document.querySelectorAll('input[name="leave_type_id"]');
+                
+                // Variable to remember which radio was previously clicked
+                let previousRadio = null;
+
+                leaveTypeRadios.forEach(radio => {
+                    // 1. Detect if the same radio is clicked twice to uncheck it
+                    radio.addEventListener('click', function(e) {
+                        if (previousRadio === this) {
+                            this.checked = false;
+                            previousRadio = null;
+                            enforceFilingAdvancePolicy(); // Update calendar policies
+                        } else {
+                            previousRadio = this;
+                        }
+                    });
+
+                    // 2. Standard change listener for when a new option is clicked
+                    radio.addEventListener('change', function() {
+                        previousRadio = this;
+                        enforceFilingAdvancePolicy();
+                    });
+                });
+
+                // Run immediately upon initialization to sync setup with initial state or old values
+                enforceFilingAdvancePolicy();
+
             } catch (err) { console.error("Flatpickr Calendar crash prevented:", err); }
 
         });

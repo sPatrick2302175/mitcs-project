@@ -18,6 +18,7 @@ class StoreLeaveRequest extends FormRequest
         return [
             'leave_type_id' => 'required|exists:leave_types,id',
             'leave_detail_category' => 'nullable|string',
+            'leave_type_others' => 'nullable|string|max:255',
             'leave_detail_specifics' => 'nullable|string',
             'working_days_applied' => 'required|numeric|min:0.5',
             'selected_dates' => 'required|string',

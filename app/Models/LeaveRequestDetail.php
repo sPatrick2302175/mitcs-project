@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class LeaveRequestDetail extends Model
 {
-    // UPDATED: Swapped $guarded for strict $fillable for security
     protected $fillable = [
         'leave_request_id',
         'leave_date',
@@ -17,7 +16,7 @@ class LeaveRequestDetail extends Model
     protected $casts = [
         'leave_date' => 'date',
         'is_with_pay' => 'boolean',
-        'day_fraction' => 'decimal:2', // ADDED: Ensures precise 0.50 or 1.00 casting
+        'day_fraction' => 'decimal:2', 
     ];
 
     public function leaveRequest()

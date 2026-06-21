@@ -6,6 +6,9 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Run the migrations.
+     */
     public function up(): void
     {
         Schema::create('leave_requests', function (Blueprint $table) {
@@ -27,9 +30,10 @@ return new class extends Migration
             $table->boolean('commutation_requested')->default(false);
             
             // 7.A CERTIFICATION OF LEAVE CREDITS (SNAPSHOTS)
-            // Added to freeze the balance history at the time of filing
             $table->decimal('vl_balance_snapshot', 8, 3)->nullable()->comment('VL balance before this deduction');
             $table->decimal('sl_balance_snapshot', 8, 3)->nullable()->comment('SL balance before this deduction');
+            $table->decimal('fl_balance_snapshot', 8, 3)->nullable()->comment('FL balance before this deduction');
+            $table->decimal('spl_balance_snapshot', 8, 3)->nullable()->comment('SPL balance before this deduction');
 
             $table->enum('status', [
                 'pending', 
@@ -43,7 +47,7 @@ return new class extends Migration
             $table->text('recommendation_reason')->nullable();
             $table->foreignId('recommending_officer_id')->nullable()->constrained('employees')->nullOnDelete();
             
-            // 7.C & 7.D FINAL ACTION (Can be Dept Head OR Admin Officer)
+            // 7.C & 7.D FINAL ACTION 
             $table->foreignId('approving_official_id')->nullable()->constrained('employees')->nullOnDelete();
             $table->string('approved_others')->nullable();
             $table->text('disapproval_reason')->nullable();

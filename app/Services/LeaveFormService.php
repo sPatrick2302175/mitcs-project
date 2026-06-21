@@ -47,14 +47,13 @@ class LeaveFormService
         $pdf->SetXY(37, 47); $pdf->Write(0, Carbon::parse($leaveRequest->date_of_filing)->format('M d, Y'));
         $pdf->SetXY(97, 47); $pdf->Write(0, mb_strtoupper($leaveRequest->employee->position_code, 'UTF-8'));
 
-        // 2. DYNAMIC SALARY DISPLAY: Fetch from the globally updated Employee record
-        // Find this block around line 50:
+        // DYNAMIC SALARY DISPLAY
         if ($leaveRequest->employee->salary) {
             $pdf->SetXY(156, 47); 
             $pdf->Write(0, 'PhP ' . number_format($leaveRequest->employee->salary, 2));
         }
 
-        // Leave Types Checkboxes (Exact Y-Coordinates on the PDF)
+        // Leave Types Checkboxes
         $leaveYPositions = [
             'Vacation Leave'                   => 68.2,
             'Mandatory/Forced Leave'           => 73.4,
@@ -71,11 +70,9 @@ class LeaveFormService
             'Adoption Leave'                   => 130.2,
         ];
 
-        // Fetch the proper database relationship strings
         $leaveName = $leaveRequest->leaveType->leave_type_name ?? $leaveRequest->leaveType->name ?? 'Others';
         $leaveCode = $leaveRequest->leaveType->code ?? 'OTHERS';
 
-        // 1. DYNAMIC FUZZY MATCHING: Find which checkbox to tick
         $matchedCheckbox = 'Others';
         foreach ($leaveYPositions as $key => $yPos) {
             $search = str_replace(' Leave', '', $key); 
@@ -85,11 +82,11 @@ class LeaveFormService
             }
         }
 
-        // Print the checkbox or "Others" input
         if (str_contains($leaveName, 'Others') || $matchedCheckbox === 'Others') {
             $pdf->SetFont('CenturyGothic', '', 8);
             $pdf->SetXY(10, 146);
-            $pdf->Write(0, $leaveRequest->leave_detail_category); 
+            $customLeaveType = $leaveRequest->leave_type_others ?? 'Others';
+            $pdf->Write(0, $customLeaveType); 
         } else {
             $pdf->SetXY(6, $leaveYPositions[$matchedCheckbox]); 
             $pdf->SetFont('zapfdingbats', '', 8); $pdf->Write(0, '3'); 
@@ -149,7 +146,6 @@ class LeaveFormService
             }
         } 
         elseif (stripos($leaveName, 'Women') !== false) {
-            
             $pdf->SetFont('CenturyGothic', '', 6);
             $y = 110;          
             $startXLine1 = 156;  
@@ -183,43 +179,8 @@ class LeaveFormService
         $pdf->SetXY(10, 158); 
         $pdf->Write(0, number_format($leaveRequest->working_days_applied, 2) . ' days');
         
-        $startDate = Carbon::parse($leaveRequest->start_date);
-        $endDate = Carbon::parse($leaveRequest->end_date);
-        
-        $calendarDaysSpan = $startDate->diffInDays($endDate) + 1;
-        $daysApplied = (float)$leaveRequest->working_days_applied;
-        $weekendDays = 0;
-        $tempDate = $startDate->copy();
-        while ($tempDate->lte($endDate)) {
-            if ($tempDate->isWeekend()) {
-                $weekendDays++;
-            }
-            $tempDate->addDay();
-        }
-
-        if ($calendarDaysSpan === 1 || $daysApplied === 1.0) {
-            $dates = $startDate->format('M d, Y'); 
-        } 
-        elseif ($daysApplied === (float)($calendarDaysSpan - $weekendDays)) {
-            $dates = $startDate->format('M d, Y') . ' - ' . $endDate->format('M d, Y');
-        } 
-        else {
-            $formattedDates = $leaveRequest->details()
-                ->orderBy('leave_date', 'asc')
-                ->pluck('leave_date')
-                ->map(fn($date) => Carbon::parse($date)->format('M d, Y'))
-                ->toArray();
-
-            $totalDatesCount = count($formattedDates);
-            if ($totalDatesCount === 1) {
-                $dates = $formattedDates[0];
-            } elseif ($totalDatesCount === 2) {
-                $dates = implode(' & ', $formattedDates);
-            } else {
-                $lastDate = array_pop($formattedDates);
-                $dates = implode(', ', $formattedDates) . ', & ' . $lastDate;
-            }
-        }
+        // OPTIMIZED: Run structural date ranges compression algorithm
+        $dates = $leaveRequest->formatted_inclusive_dates;
 
         $pdf->SetXY(10, 168);
         $pdf->Write(0, $dates);
@@ -234,24 +195,21 @@ class LeaveFormService
         $pdf->SetXY(45, 191); 
         $pdf->Write(0, $asOfDate);
 
-        // === 2. SAFE SNAPSHOT & DETAILS-BASED BALANCE LOGIC ===
-        
-        // The snapshots represent the exact balance BEFORE deduction
+        // 7.A
+        // SAFE SNAPSHOT & DETAILS-BASED BALANCE LOGIC
         $vlOriginal = (float)($leaveRequest->vl_balance_snapshot ?? 0);
         $slOriginal = (float)($leaveRequest->sl_balance_snapshot ?? 0);
 
         $vlDeduction = 0;
         $slDeduction = 0;
 
-        // DYNAMIC DEDUCTION: Only count days strictly marked as "With Pay"
         if ($leaveRequest->details && $leaveRequest->details->count() > 0) {
             if (in_array($leaveCode, ['VL', 'FL'])) {
-                $vlDeduction = $leaveRequest->details->where('is_with_pay', true)->sum('day_fraction');
+                $vlDeduction = $leaveRequest->details->sum('day_fraction');
             } elseif ($leaveCode === 'SL') {
-                $slDeduction = $leaveRequest->details->where('is_with_pay', true)->sum('day_fraction');
+                $slDeduction = $leaveRequest->details->sum('day_fraction');
             }
         } else {
-            // Fallback protection for legacy requests
             $daysApplied = (float)$leaveRequest->working_days_applied;
             if (in_array($leaveCode, ['VL', 'FL'])) {
                 $vlDeduction = $daysApplied;
@@ -260,14 +218,9 @@ class LeaveFormService
             }
         }
 
-        // 🌟 THE CORRECT MATHEMATICS FOR SNAPSHOTS:
-        // Row 1: Total Earned is just the original snapshot balance
         $vlEarned = $vlOriginal; 
         $slEarned = $slOriginal;
 
-        // Row 2: Less This Application (Already calculated as $vlDeduction / $slDeduction above)
-
-        // Row 3: Final Balance is the original snapshot minus the paid deduction
         $vlBalance = $vlOriginal - $vlDeduction;
         $slBalance = $slOriginal - $slDeduction;
 
@@ -305,9 +258,7 @@ class LeaveFormService
         $pdf->SetXY($slColumnX, $rowBalanceY); 
         $pdf->Cell($columnWidth, 0, $slBalanceText, 0, 0, 'C');
 
-        //admin responses
-        $pdf->SetFont('CenturyGothic', '', 8);
-
+        // Admin responses
         if ($leaveRequest->status === 'approved') {
             $pdf->SetXY(117.8, 191); 
             $pdf->SetFont('zapfdingbats', '', 8); 
@@ -350,4 +301,5 @@ class LeaveFormService
         $pdf->Output($request->has('download') ? 'D' : 'I', $fileName);
         exit;
     }
+
 }

@@ -30,7 +30,6 @@ class Employee extends Model
      */
     public function getDepartmentAttribute()
     {
-        // This will allow you to call $employee->department safely
         return $this->division ? $this->division->department : null;
     }
 

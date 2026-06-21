@@ -17,7 +17,7 @@ class IsSuperAdmin
             return $next($request);
         }
 
-        // Fix: Handle background API/JS requests gracefully
+        // Handle background API/JS requests gracefully
         if ($request->expectsJson()) {
             return response()->json(['message' => 'Unauthorized action. Super Admin access required.'], 403);
         }

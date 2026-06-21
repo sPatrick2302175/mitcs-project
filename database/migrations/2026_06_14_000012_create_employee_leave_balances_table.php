@@ -6,6 +6,9 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Run the migrations.
+     */
     public function up(): void
     {
         Schema::create('employee_leave_balances', function (Blueprint $table) {
@@ -15,8 +18,6 @@ return new class extends Migration
             $table->decimal('balance', 8, 3)->default(0.000);
             $table->integer('year')->nullable()->comment('Null for cumulative leaves (VL/SL), specific year for non-cumulative leaves (SPL)'); 
             $table->timestamps();
-
-            // ADDED: Prevent duplicate balance rows for an employee's specific leave type per year
             $table->unique(['employee_id', 'leave_type_id', 'year'], 'emp_leave_year_unique');
         });
     }

@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Department;
 use App\Models\Division;
 use App\Models\LeaveType;
+use App\Models\CustomHoliday;
 use App\Http\Requests\StoreLeaveRequest;
 use App\Http\Requests\ProcessLeaveActionRequest;
 use App\Services\LeaveManagementService;
@@ -34,7 +35,7 @@ class LeaveRequestController extends Controller
         $user = Auth::user();
         $employee = $user->employee;
         
-        // 1. Eager load the leave balances to prevent N+1 database queries
+        // load the leave balances to prevent N+1 database queries
         if ($employee) {
             $employee->load('leaveBalances');
         }
@@ -51,9 +52,8 @@ class LeaveRequestController extends Controller
             ->whereIn('status', ['pending', 'approved']);
 
         if ($user->role !== 'admin' && $employee?->division_id) {
-            $leaveQuery->whereHas('employee', function ($query) use ($employee) {
-                $query->where('division_id', $employee->division_id);
-            });
+            $leaveQuery->where('employee_id', $employee->id);
+         
         }
 
         $allLeaves = $leaveQuery->get();
@@ -62,12 +62,9 @@ class LeaveRequestController extends Controller
             $this->calendarService->getHolidayEvents(),
             $this->calendarService->getLeaveEvents($allLeaves, $employee?->id, false)
         );
-
-        // 2. Fetch active leave types for the dynamic cards
         // Fetch only the specific 4 leave types you want to display on the dashboard cards
-        $leaveTypes = \App\Models\LeaveType::whereIn('code', ['VL', 'SL', 'ML', 'SPL'])->get();
+        $leaveTypes = LeaveType::whereIn('code', ['VL', 'SL', 'ML', 'SPL'])->get();
 
-        // 3. Pass EVERYTHING to the view
         return view('leave_requests.index', compact('employee', 'leaveRequests', 'calendarEvents', 'leaveTypes'));
     }
 
@@ -81,10 +78,10 @@ class LeaveRequestController extends Controller
         $employee->load('leaveBalances');
         
         $calendarData = $this->leaveService->getLeaveCalendarData($employee);
-        $leaveTypes = \App\Models\LeaveType::all(); 
+        $leaveTypes = LeaveType::all(); 
 
-        // 🌟 FIX HERE: Fetch the full objects so the frontend can read the 'is_regular' column
-        $holidays = \App\Models\CustomHoliday::where('is_active', true)->get();
+        // Fetch the full objects so the frontend can read the 'is_regular' column
+        $holidays = CustomHoliday::where('is_active', true)->get();
 
         return view('leave_requests.create', array_merge($calendarData, [
             'leaveTypes' => $leaveTypes,
@@ -114,7 +111,7 @@ class LeaveRequestController extends Controller
     {
         $admin = auth()->user();
         
-        // Eager load everything needed for the view and calendar
+        // load everything needed for the view and calendar
         $query = LeaveRequest::with(['employee.division.department', 'leaveType', 'details'])->latest();
 
         if ($admin->is_admin === User::ROLE_SUPER_ADMIN) {
@@ -122,9 +119,7 @@ class LeaveRequestController extends Controller
             $validDeptIds = Department::where('code', '!=', 'SYSTEM-ADMIN')->pluck('id');
             $divisions = Division::whereIn('department_id', $validDeptIds)->get();
         } else {
-            // FIXED: Traverse safely through division to resolve department ID
             $deptId = $admin->employee?->division?->department_id;
-            
             $query->whereHas('employee.division', fn($q) => $q->where('department_id', $deptId));
             $divisions = Division::where('department_id', $deptId)->get();
         }
@@ -171,7 +166,9 @@ class LeaveRequestController extends Controller
         $status = strtolower($request->status);
 
         if ($status === 'approved') {
-            $daysToDeduct = (float) $request->input('days_with_pay', $leaveRequest->working_days_applied);
+            // Force the deduction to use the full working days applied, ignoring whether they are paid or unpaid so it pushes the balance into the negative
+            $daysToDeduct = (float) $leaveRequest->working_days_applied;
+            
             $this->leaveService->deductEmployeeBalance($employee, $leaveRequest->leave_type_id, $daysToDeduct, $leaveRequest->id);
         }
 
@@ -181,8 +178,8 @@ class LeaveRequestController extends Controller
             'days_with_pay' => $request->input('days_with_pay', 0),
             'days_without_pay' => $request->input('days_without_pay', 0),
             'disapproval_reason' => $request->disapproval_reason,
-            'recommending_officer_id' => Auth::id(),
-            'approving_official_id' => Auth::id(),
+            'recommending_officer_id' => Auth::user()->employee?->id,
+            'approving_official_id' => Auth::user()->employee?->id,
         ]);
 
         return redirect()->route('admin.leave-requests.index')->with('success', 'Leave application has been processed successfully!');

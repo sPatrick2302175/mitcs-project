@@ -12,21 +12,21 @@ class CalendarService
      */
     public function getHolidayEvents(): array
     {
-        // Use single mapping instead of heavy looping; frontend will handle infinite year rendering
-        return CustomHoliday::all()->map(function ($holiday) {
+        // Uses single mapping instead of heavy looping; frontend will handle infinite year rendering
+        return CustomHoliday::where('is_active', true)->get()->map(function ($holiday) {
             $isRegularColor = ($holiday->type === 'regular'); 
             $title = $holiday->name . ($holiday->is_half_day ? ' (Half-Day)' : '');
 
             return [
                 'id' => 'custom_' . $holiday->id,
                 'title' => $title,
-                'start' => \Carbon\Carbon::parse($holiday->date)->format('Y-m-d'),
+                'start' => Carbon::parse($holiday->date)->format('Y-m-d'),
                 'backgroundColor' => $isRegularColor ? '#3b82f6' : '#f97316',
                 'borderColor' => $isRegularColor ? '#2563eb' : '#ea580c',
                 'textColor' => '#ffffff',
                 'allDay' => true,
                 
-                // 🌟 CRITICAL: Pass the regular toggle flag to the calendar script
+                // Pass the regular toggle flag to the calendar script
                 'is_regular' => (bool)$holiday->is_regular, 
                 
                 'extendedProps' => [
@@ -80,7 +80,7 @@ class CalendarService
                 $events[] = [
                     'id'            => $leave->id,
                     'title'         => $title,
-                    'start'         => \Carbon\Carbon::parse($detail->leave_date)->format('Y-m-d'), 
+                    'start'         => Carbon::parse($detail->leave_date)->format('Y-m-d'), 
                     'allDay'        => true,
                     'className'     => $cssClass,
                     'extendedProps' => [

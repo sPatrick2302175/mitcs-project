@@ -21,7 +21,7 @@ class Division extends Model
     }
 
     /**
-     * Added: A division has many employees
+     * A division has many employees
      */
     public function employees()
     {

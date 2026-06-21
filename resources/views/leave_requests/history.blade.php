@@ -14,7 +14,7 @@
                     <div class="md:col-span-2">
                         <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">Search Keywords</label>
                         <div class="relative">
-                            <input type="text" id="search-input" name="search" value="{{ request('search') }}" placeholder="Type leave type, detail, or status..." class="w-full bg-gray-50 border border-gray-200 text-sm rounded-xl px-4 py-2 focus:bg-white focus:border-indigo-400 focus:ring-0 transition-colors">
+                            <input type="text" id="search-input" name="search" value="{{ request('search') }}" placeholder="Type leave type, detail, or status..." class="w-full bg-gray-50 border border-gray-200/80 text-sm font-medium rounded-xl px-4 py-2.5 focus:bg-white focus:border-[#F2A455] focus:ring-2 focus:ring-[#F2A455]/20 transition-all placeholder-gray-400">
                             <div id="table-spinner" class="hidden absolute right-3 top-2.5">
                                 <svg class="animate-spin h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -26,7 +26,7 @@
 
                     <div>
                         <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">Status</label>
-                        <select id="status-select" name="status" class="w-full bg-gray-50 border border-gray-200 text-sm rounded-xl px-4 py-2 focus:bg-white focus:border-indigo-400 focus:ring-0 transition-colors">
+                        <select id="status-select" name="status" class="w-full bg-gray-50 border border-gray-200/80 text-sm font-bold text-gray-600 rounded-xl px-4 py-2.5 focus:bg-white focus:border-[#F2A455] focus:ring-2 focus:ring-[#F2A455]/20 transition-all">
                             <option value="">All Status</option>
                             <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
                             <option value="approved" {{ request('status') == 'approved' ? 'selected' : '' }}>Approved</option>
@@ -56,9 +56,12 @@
                                         {{ \Carbon\Carbon::parse($request->date_of_filing)->format('M d, Y') }}
                                     </td>
                                     <td class="py-4 px-6">
-                                        <span class="text-sm font-bold text-gray-700 block">{{ $request->leave_type }}</span>
-                                        @if($request->leave_type_others)
-                                            <span class="text-[11px] text-gray-400 block italic">Specifics: {{ $request->leave_type_others }}</span>
+                                        <!-- Access the related model using ->leaveType-> -->
+                                        <span class="text-sm font-bold text-gray-700 block">{{ $request->leaveType->leave_type_name ?? 'Unknown Leave' }}</span>
+                                        
+                                        <!-- Use the correct database column name for specifics -->
+                                        @if($request->leave_detail_specifics)
+                                            <span class="text-[11px] text-gray-400 block italic">Specifics: {{ $request->leave_detail_specifics }}</span>
                                         @endif
                                     </td>
                                     <td class="py-4 px-6 text-sm font-medium text-gray-600 whitespace-nowrap">
@@ -88,6 +91,9 @@
                                         @endif
                                     </td>
                                     <td class="py-4 px-6 text-center whitespace-nowrap">
+                                        <a href="{{ route('leave-requests.show', [$request->id, 'from' => 'history']) }}" class="inline-flex items-center justify-center px-3 py-1.5 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-800 font-bold text-[10px] uppercase tracking-wider rounded-lg border border-gray-200/60 shadow-sm transition-all duration-200 active:scale-[0.98]">
+                                            View Record
+                                        </a>
                                         @if($request->status !== 'pending')
                                             <a href="{{ route('leave-requests.pdf', $request->id) }}" class="inline-flex items-center justify-center px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-800 font-bold text-[10px] uppercase tracking-wider rounded-lg border border-indigo-100/60 transition-colors">
                                                 <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>

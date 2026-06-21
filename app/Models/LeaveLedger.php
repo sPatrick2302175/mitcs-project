@@ -38,13 +38,13 @@ class LeaveLedger extends Model
         return $this->belongsTo(LeaveType::class);
     }
 
-    // NEW: The Accountability relationship
+    // Accountability relationship
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    // NEW: The Polymorphic relationship
+    // Polymorphic relationship
     public function reference()
     {
         return $this->morphTo();

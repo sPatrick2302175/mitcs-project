@@ -7,6 +7,7 @@ use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\LeaveRequestController; 
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\CustomHolidayController;
+use App\Http\Controllers\LeaveLedgerController;
 use App\Http\Middleware\IsAdmin;
 use App\Http\Middleware\IsSuperAdmin;
 use App\Models\User;
@@ -31,6 +32,7 @@ Route::middleware('auth')->group(function () {
     // EMPLOYEE LEAVE ROUTES
     // ==========================================
     Route::get('/my-leave-history', [LeaveRequestController::class, 'myHistory'])->name('leave-requests.history');
+    Route::get('/my-leave-ledger', [LeaveLedgerController::class, 'myLedger'])->name('leave-ledger.index');
     Route::get('/leave-requests/create', [LeaveRequestController::class, 'create'])->name('leave-requests.create');
     Route::post('/leave-requests', [LeaveRequestController::class, 'store'])->name('leave-requests.store');
     Route::get('/leave-requests/{id}/pdf', [LeaveRequestController::class, 'generatePdf'])->name('leave-requests.pdf');
@@ -57,6 +59,10 @@ Route::middleware(['auth', IsAdmin::class])->group(function () {
         // Custom Holidays Management
         Route::resource('custom-holidays', CustomHolidayController::class)->except(['show']);
         Route::patch('/custom-holidays/{customHoliday}/toggle', [CustomHolidayController::class, 'toggleStatus'])->name('custom-holidays.toggle');
+
+        // Manual Monthly Accrual Allocations
+        Route::post('/employees/mass-allocate-monthly-credits', [EmployeeController::class, 'massAllocateMonthlyCredits'])->name('employees.mass-allocate');
+        Route::post('/employees/{employee}/allocate-monthly-credits', [EmployeeController::class, 'allocateMonthlyCredits'])->name('employees.allocate-credits');
     });
 });
 
@@ -68,6 +74,8 @@ Route::middleware(['auth', IsSuperAdmin::class])->group(function () {
     // Manage users (only index, edit, and update)
     Route::resource('users', UserController::class)->only(['index', 'edit', 'update']);
 });
+
+
 
 // Breeze Authentication Routes
 require __DIR__.'/auth.php';

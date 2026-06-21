@@ -12,6 +12,7 @@ class LeaveRequest extends Model
     protected $fillable = [
         'employee_id',
         'leave_type_id',
+        'leave_type_others',
         'date_of_filing',
         'leave_detail_category', 
         'leave_detail_specifics', 
@@ -20,7 +21,7 @@ class LeaveRequest extends Model
         'end_date',
         'commutation_requested', 
         
-        // ADDED: The historical balance snapshots for Section 7.A
+        // historical balance snapshots for Section 7.A
         'vl_balance_snapshot',
         'sl_balance_snapshot',
 
@@ -81,7 +82,6 @@ class LeaveRequest extends Model
      */
     public function details()
     {
-        // Change 'LeaveRequestDetail::class' to whatever your details model is called
         return $this->hasMany(LeaveRequestDetail::class); 
     }
 
@@ -92,7 +92,6 @@ class LeaveRequest extends Model
                 $subQ->where('leave_detail_category', 'like', "%{$search}%")
                      ->orWhere('leave_detail_specifics', 'like', "%{$search}%")
                      ->orWhereHas('leaveType', function ($typeQ) use ($search) {
-                         // UPDATED: Changed 'name' to 'leave_type_name'
                          $typeQ->where('leave_type_name', 'like', "%{$search}%")
                                ->orWhere('code', 'like', "%{$search}%");
                      })
@@ -114,5 +113,81 @@ class LeaveRequest extends Model
                 default => null
             };
         });
+    }
+
+    /**
+     * Compresses chronological leave dates into a clean, month-grouped format.
+     */
+    public function getFormattedInclusiveDatesAttribute(): string
+    {
+        // Gather exact unique days filed from the database breakdown
+        $dates = $this->details()
+            ->orderBy('leave_date', 'asc')
+            ->pluck('leave_date')
+            ->map(fn($d) => \Carbon\Carbon::parse($d))
+            ->toArray();
+
+        // Fallback safety layer for legacy entries
+        if (empty($dates)) {
+            $start = \Carbon\Carbon::parse($this->start_date);
+            $end = \Carbon\Carbon::parse($this->end_date);
+            if ($start->equalTo($end)) {
+                return $start->format('M d, Y');
+            }
+            return $start->format('M d, Y') . ' - ' . $end->format('M d, Y');
+        }
+
+        // Group dates by Year, then Month
+        $grouped = [];
+        foreach ($dates as $date) {
+            $year = $date->year;
+            $month = $date->format('M'); 
+            $day = $date->day;
+            $grouped[$year][$month][] = $day;
+        }
+
+        $yearStrings = [];
+        $totalYears = count($grouped);
+
+        foreach ($grouped as $year => $months) {
+            $monthStrings = [];
+            foreach ($months as $month => $days) {
+                sort($days);
+                $ranges = [];
+                $start = $days[0];
+                $end = $days[0];
+
+                for ($i = 1; $i < count($days); $i++) {
+                    if ($days[$i] === $end + 1) {
+                        $end = $days[$i];
+                    } else {
+                        $ranges[] = ($start === $end) ? $start : "$start-$end";
+                        $start = $days[$i];
+                        $end = $days[$i];
+                    }
+                }
+                $ranges[] = ($start === $end) ? $start : "$start-$end";
+
+                $monthStrings[] = $month . ' ' . implode(', ', $ranges);
+            }
+
+            if ($totalYears === 1) {
+                $yearStrings[] = implode('; ', $monthStrings);
+            } else {
+                $yearStrings[] = implode('; ', $monthStrings) . ", $year";
+            }
+        }
+
+        $finalString = implode('; ', $yearStrings);
+        if ($totalYears === 1) {
+            $firstYear = array_key_first($grouped);
+            $finalString .= ", $firstYear";
+        }
+
+        if (strlen($finalString) > 60) {
+            return "Various Dates (See Attached Details)";
+        }
+
+        return $finalString;
     }
 }

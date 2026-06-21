@@ -106,7 +106,7 @@
             50% { opacity: .4; transform: scale(1.1); }
         }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+    
 
     <div class="py-12 bg-gray-50/50 min-h-screen">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
@@ -163,7 +163,7 @@
                         <label class="block text-[10px] font-black uppercase tracking-wider text-gray-400 mb-1.5">Review Status State</label>
                         <select id="admin-status-select" name="status" class="w-full bg-gray-50 border border-gray-200/80 text-sm font-bold text-gray-600 rounded-xl px-4 py-2.5 focus:bg-white focus:border-[#F2A455] focus:ring-2 focus:ring-[#F2A455]/20 transition-all">
                             <option value="">All Status</option>
-                            <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending (Needs Review)</option>
+                            <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
                             <option value="approved" {{ request('status') == 'approved' ? 'selected' : '' }}>Approved</option>
                             <option value="disapproved" {{ request('status') == 'disapproved' ? 'selected' : '' }}>Disapproved</option>
                         </select>
@@ -214,8 +214,8 @@
                     <span class="text-gray-500">Schedule Legend:</span>
                     <span class="inline-flex items-center gap-1.5 text-emerald-700"><span class="w-3 h-3 rounded bg-emerald-50 border border-emerald-200"></span> Approved Leaves</span>
                     <span class="inline-flex items-center gap-1.5 text-amber-700"><span class="w-3 h-3 rounded bg-amber-50 border border-amber-200"></span> Pending Requests</span>
-                    <span class="inline-flex items-center gap-1.5 text-gray-600"><span class="w-3 h-3 rounded bg-orange-500"></span> None Regular Holidays</span>
                     <span class="inline-flex items-center gap-1.5 text-blue-600"><span class="w-3 h-3 rounded bg-blue-500"></span> Regular Holidays</span>
+                    <span class="inline-flex items-center gap-1.5 text-gray-600"><span class="w-3 h-3 rounded bg-orange-500"></span> Non-Regular Holidays</span>
                 </div>
             </div>
 
@@ -225,7 +225,7 @@
             <div id="admin-table-container" class="bg-white rounded-2xl shadow-xl shadow-gray-200/40 border border-gray-100/80 overflow-hidden transition-all duration-300">
                 <div class="p-6 md:p-8 border-b border-gray-100/60 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white">
                     <div>
-                        <h3 class="text-xl font-extrabold text-gray-800 tracking-tight">Civil Service Form No. 6 Applications</h3>
+                        <h3 class="text-xl font-extrabold text-gray-800 tracking-tight">Recent Leave Applications</h3>
                         <p class="text-sm text-gray-400 font-semibold mt-1">Review, certify, and log final action outcomes for corporate leave allocations.</p>
                     </div>
                 </div>
@@ -255,8 +255,9 @@
                                     </td>
 
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="text-sm font-bold text-gray-700">{{ $request->leave_type }}</span>
-                                        @if($request->leave_type === 'Others' && $request->leave_type_others)
+                                        <span class="text-sm font-bold text-gray-700">{{ $request->leaveType->leave_type_name ?? $request->leaveType->name ?? 'Unknown Leave Type' }}</span>
+                                        
+                                        @if(($request->leaveType->leave_type_name ?? $request->leaveType->name) === 'Others' && $request->leave_type_others)
                                             <span class="block text-[11px] font-bold text-[#F2A455] uppercase tracking-wider mt-0.5">({{ $request->leave_type_others }})</span>
                                         @endif
                                     </td>
@@ -331,6 +332,7 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             let calendar;

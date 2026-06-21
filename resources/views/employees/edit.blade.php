@@ -33,6 +33,24 @@
                     </div>
                 @endif
 
+                @if(in_array(auth()->user()->is_admin, [App\Models\User::ROLE_SUPER_ADMIN, App\Models\User::ROLE_ADMIN_OFFICER, App\Models\User::ROLE_DEPT_HEAD]))
+                    <div class="mb-8 p-5 bg-orange-50/50 border border-orange-100/60 rounded-xl flex items-center justify-between">
+                        <div>
+                            <h4 class="text-sm font-bold text-gray-800">Monthly Leave Allocation</h4>
+                            <p class="text-xs text-gray-500 mt-0.5">Manually post +1.25 VL and SL standard credits to this employee's balance.</p>
+                        </div>
+                        <form action="{{ route('admin.employees.allocate-credits', $employee->id) }}" method="POST" onsubmit="return confirm('Credit +1.25 VL and SL to {{ $employee->first_name }}?');">
+                            @csrf
+                            <button type="submit" 
+                                    {{-- @if(now()->day !== 1) disabled title="Only available on the 1st day of the month" @endif --}}
+                                    class="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-lg font-bold text-xs text-white uppercase tracking-widest hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <svg class="w-4 h-4 mr-2 text-[#F2A455]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                Allocate +1.25 Credits
+                            </button>
+                        </form>
+                    </div>
+                @endif
+
                 <form action="{{ route('employees.update', $employee->id) }}" method="POST" class="space-y-8">
                     @csrf 
                     @method('PUT')
@@ -134,18 +152,17 @@
 
                                             @if($leaveType->is_cumulative)
                                                 <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
-                                                    🔄 Cumulative
+                                                    Cumulative
                                                 </span>
                                             @else
                                                 <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-100">
-                                                    📌 Fixed
+                                                    Fixed
                                                 </span>
                                             @endif
                                         </div>
                                         
                                         <input type="number" 
                                             step="0.01" 
-                                            min="0" 
                                             name="balances[{{ $leaveType->id }}]" 
                                             value="{{ old('balances.' . $leaveType->id, $currentBalance) }}" 
                                             required 

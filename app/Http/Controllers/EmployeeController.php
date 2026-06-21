@@ -12,26 +12,34 @@ use Illuminate\Support\Facades\DB;
 
 class EmployeeController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $loggedInAdmin = auth()->user();
+        $search = $request->input('search');
 
-        // Fetch employees based on role excluding super admin
-        if ($loggedInAdmin->is_admin === User::ROLE_SUPER_ADMIN) {
-            $employeesQuery = Employee::with(['division.department', 'user', 'leaveBalances'])
-                ->where('employee_id_number', '!=', '0000000')
-                ->get();
-        } else {
-            // Both Admin Officers (1) and Dept Heads (3) fall here and safely get only their department's team
+        // Start the base query
+        $query = Employee::with(['division.department', 'user', 'leaveBalances'])
+            ->where('employee_id_number', '!=', '0000000');
+
+        // Role-based filtering
+        if ($loggedInAdmin->is_admin !== User::ROLE_SUPER_ADMIN) {
             $departmentId = $loggedInAdmin->employee?->division?->department_id;
-
-            $employeesQuery = Employee::with(['division.department', 'user', 'leaveBalances'])
-                ->whereHas('division', function ($query) use ($departmentId) {
-                    $query->where('department_id', $departmentId);
-                })
-                ->where('employee_id_number', '!=', '0000000')
-                ->get();
+            $query->whereHas('division', function ($q) use ($departmentId) {
+                $q->where('department_id', $departmentId);
+            });
         }
+
+        // Search filtering (Name or Employee ID)
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('first_name', 'like', "%{$search}%")
+                ->orWhere('last_name', 'like', "%{$search}%")
+                ->orWhere('employee_id_number', 'like', "%{$search}%");
+            });
+        }
+
+        // Fetch the results
+        $employeesQuery = $query->get();
 
         // Group the table by the department name
         $groupedEmployees = $employeesQuery->groupBy(function($employee) {
@@ -40,10 +48,10 @@ class EmployeeController extends Controller
                 : 'Unassigned Department';
         });
 
-        // Fetch active leave types for dynamic table headers
         $leaveTypes = \App\Models\LeaveType::all();
 
-        // Pass BOTH groupedEmployees and leaveTypes to the view
+       
+
         return view('employees.index', compact('groupedEmployees', 'leaveTypes'));
     }
 
@@ -52,7 +60,7 @@ class EmployeeController extends Controller
         $departments = Department::where('code', '!=', 'SYSTEM-ADMIN')->get();
         $divisions = Division::all();
         
-        // 🎯 FIX: Only send the 4 core leaves to the frontend creation form
+        // Only send the 4 core leaves to the frontend creation form
         $leaveTypes = \App\Models\LeaveType::whereIn('code', ['VL', 'SL', 'FL', 'SPL'])->get();
         
         return view('employees.create', compact('departments', 'divisions', 'leaveTypes'));
@@ -84,7 +92,7 @@ class EmployeeController extends Controller
                 'position_code' => $validatedData['position_code'],
             ]);
 
-            // 🎯 FIX: Query ALL 13 system leaves from the database
+            // Query ALL 13 system leaves from the database
             $allLeaveTypes = \App\Models\LeaveType::all();
 
             foreach ($allLeaveTypes as $type) {
@@ -104,13 +112,13 @@ class EmployeeController extends Controller
 
     public function show(string $id)
     {
-        // 1. Fetch the employee with relationships preloaded (Your existing code - perfect!)
+        // Fetch the employee with relationships preloaded
         $employee = Employee::with(['division.department', 'user', 'leaveBalances.leaveType'])->findOrFail($id);
         
-        // 2. ADD THIS: Fetch all leave types so the Blade file can build the list dynamically
+        // Fetch all leave types so the Blade file can build the list dynamically
         $leaveTypes = \App\Models\LeaveType::all();
 
-        // 3. UPDATE THIS: Pass both 'employee' and 'leaveTypes' to the view
+        // Pass both 'employee' and 'leaveTypes' to the view
         return view('employees.show', compact('employee', 'leaveTypes'));
     }
 
@@ -120,7 +128,7 @@ class EmployeeController extends Controller
         $departments = Department::where('code', '!=', 'SYSTEM-ADMIN')->get();
         $divisions = Division::all();
         
-        // 🎯 FIX: Only display the 4 core leaves on the editing screen
+        // Only display the 4 core leaves on the editing screen
         $leaveTypes = \App\Models\LeaveType::whereIn('code', ['VL', 'SL', 'FL', 'SPL'])->get();
 
         return view('employees.edit', compact('employee', 'departments', 'divisions', 'leaveTypes'));
@@ -152,7 +160,7 @@ class EmployeeController extends Controller
                 'position_code' => $validatedData['position_code'],
             ]);
 
-            // 🎯 FIX: Safely update only the 4 core leaves submitted by the form
+            // Safely update only the 4 core leaves submitted by the form
             foreach ($validatedData['balances'] as $leaveTypeId => $balanceAmount) {
                 $employee->leaveBalances()->updateOrCreate(
                     ['leave_type_id' => $leaveTypeId],
@@ -237,5 +245,169 @@ class EmployeeController extends Controller
         ]);
 
         return redirect()->back()->with('success', 'User role updated successfully!');
+    }
+
+    /**
+     * INDIVIDUAL ALLOCATION: Manually add +1.25 to a single employee
+     */
+    public function allocateMonthlyCredits(Request $request, Employee $employee)
+    {
+        // 1. Strict Security Check: Only allow on the 1st day of the month
+        // if (now()->day !== 1) {
+        //     return redirect()->back()->withErrors(['error' => 'Monthly credits can only be posted on the 1st day of the month.']);
+        // }
+
+        $vlType = \App\Models\LeaveType::where('code', 'VL')->first();
+        
+        //  DUPLICATE CHECK: Look for existing accrual this month
+        $alreadyAllocated = \App\Models\LeaveLedger::where('employee_id', $employee->id)
+            ->where('leave_type_id', $vlType->id)
+            ->where('reason_code', 'MONTHLY_ACCRUAL')
+            ->whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
+            ->exists();
+
+        if ($alreadyAllocated) {
+            return redirect()->back()->withErrors(['error' => "{$employee->first_name} has already received their monthly accrual for this month."]);
+        }
+
+        DB::beginTransaction();
+        try {
+            $slType = \App\Models\LeaveType::where('code', 'SL')->first();
+            $currentYear = now()->year;
+
+            // VL Allocation
+            $vlBalance = EmployeeLeaveBalance::firstOrCreate(
+                ['employee_id' => $employee->id, 'leave_type_id' => $vlType->id, 'year' => $currentYear],
+                ['balance' => 0]
+            );
+            $vlBalance->balance += 1.25;
+            $vlBalance->save();
+
+            \App\Models\LeaveLedger::create([
+                'employee_id' => $employee->id,
+                'leave_type_id' => $vlType->id,
+                'type' => 'accrual', 
+                'amount' => 1.25,
+                'running_balance' => $vlBalance->balance,
+                'created_by' => auth()->id(),
+                'reason_code' => 'MONTHLY_ACCRUAL',
+                'remarks' => 'Manual Monthly Accrual Allocation (Standard)',
+            ]);
+
+            // SL Allocation
+            $slBalance = EmployeeLeaveBalance::firstOrCreate(
+                ['employee_id' => $employee->id, 'leave_type_id' => $slType->id, 'year' => $currentYear],
+                ['balance' => 0]
+            );
+            $slBalance->balance += 1.25;
+            $slBalance->save();
+
+            \App\Models\LeaveLedger::create([
+                'employee_id' => $employee->id,
+                'leave_type_id' => $slType->id,
+                'type' => 'accrual', 
+                'amount' => 1.25,
+                'running_balance' => $slBalance->balance,
+                'created_by' => auth()->id(),
+                'reason_code' => 'MONTHLY_ACCRUAL',
+                'remarks' => 'Manual Monthly Accrual Allocation (Standard)',
+            ]);
+
+            DB::commit();
+            return redirect()->back()->with('success', '1.25 Standard Monthly Credits successfully posted to VL and SL.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->withErrors(['error' => 'Failed to allocate credits: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     *  MASS ALLOCATION: Add +1.25 to employees (Scoped by Admin Role)
+     */
+    public function massAllocateMonthlyCredits(Request $request)
+    {
+        // if (now()->day !== 1) {
+        //     return redirect()->back()->withErrors(['error' => 'Mass allocation can only be executed on the 1st day of the month.']);
+        // }
+
+        DB::beginTransaction();
+        try {
+            $vlType = \App\Models\LeaveType::where('code', 'VL')->first();
+            $slType = \App\Models\LeaveType::where('code', 'SL')->first();
+            $currentMonth = now()->month;
+            $currentYear = now()->year;
+            $loggedInAdmin = auth()->user();
+
+            //  Super Admins get everyone. Dept Heads/Officers only get their department.
+            if ($loggedInAdmin->is_admin === User::ROLE_SUPER_ADMIN) {
+                $employees = Employee::where('employee_id_number', '!=', '0000000')->get();
+            } else {
+                $departmentId = $loggedInAdmin->employee?->division?->department_id;
+                $employees = Employee::whereHas('division', function ($query) use ($departmentId) {
+                    $query->where('department_id', $departmentId);
+                })->where('employee_id_number', '!=', '0000000')->get();
+            }
+
+            $count = 0;
+
+            foreach ($employees as $employee) {
+                //  View if they were already processed
+                $alreadyAllocated = \App\Models\LeaveLedger::where('employee_id', $employee->id)
+                    ->where('leave_type_id', $vlType->id)
+                    ->where('reason_code', 'MONTHLY_ACCRUAL')
+                    ->whereMonth('created_at', $currentMonth)
+                    ->whereYear('created_at', $currentYear)
+                    ->exists();
+
+                if ($alreadyAllocated) {
+                    continue; // Skip to next employee
+                }
+
+                // VL
+                $vlBalance = EmployeeLeaveBalance::firstOrCreate(
+                    ['employee_id' => $employee->id, 'leave_type_id' => $vlType->id, 'year' => $currentYear],
+                    ['balance' => 0]
+                );
+                $vlBalance->balance += 1.25;
+                $vlBalance->save();
+
+                \App\Models\LeaveLedger::create([
+                    'employee_id' => $employee->id, 'leave_type_id' => $vlType->id, 
+                    'type' => 'accrual', 
+                    'amount' => 1.25, 'running_balance' => $vlBalance->balance, 'created_by' => $loggedInAdmin->id,
+                    'reason_code' => 'MONTHLY_ACCRUAL', 'remarks' => 'Mass Monthly Accrual Allocation',
+                ]);
+
+                // SL
+                $slBalance = EmployeeLeaveBalance::firstOrCreate(
+                    ['employee_id' => $employee->id, 'leave_type_id' => $slType->id, 'year' => $currentYear],
+                    ['balance' => 0]
+                );
+                $slBalance->balance += 1.25;
+                $slBalance->save();
+
+                \App\Models\LeaveLedger::create([
+                    'employee_id' => $employee->id, 'leave_type_id' => $slType->id, 
+                    'type' => 'accrual',  
+                    'amount' => 1.25, 'running_balance' => $slBalance->balance, 'created_by' => $loggedInAdmin->id,
+                    'reason_code' => 'MONTHLY_ACCRUAL', 'remarks' => 'Mass Monthly Accrual Allocation',
+                ]);
+                
+                $count++;
+            }
+
+            DB::commit();
+
+            // Custom success message depending on if everyone was skipped
+            if ($count === 0) {
+                return redirect()->back()->with('success', "No credits were posted. All selected employees have already received their monthly allocation.");
+            }
+
+            return redirect()->back()->with('success', "Mass allocation complete. {$count} employees were credited (others were skipped).");
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->withErrors(['error' => 'Mass allocation failed: ' . $e->getMessage()]);
+        }
     }
 }

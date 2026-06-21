@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Hash;
 
 class LoginRequest extends FormRequest
 {
@@ -35,7 +36,7 @@ class LoginRequest extends FormRequest
     /**
      * Attempt to authenticate the request's credentials.
      *
-     * @throws \Illuminate\Validation\ValidationException
+     * @throws ValidationException
      */
     public function authenticate(): void
     {
@@ -47,14 +48,14 @@ class LoginRequest extends FormRequest
         // Locate the web account associated with that employee profile
         $user = $employee ? User::where('employee_id', $employee->id)->first() : null;
 
-        // Security Fix: If the user doesn't exist, we use a dummy hash string 
+        // If the user doesn't exist, we use a dummy hash string 
         // to force Hash::check to perform the full computation anyway.
-        // This makes valid and invalid ID attempts take the exact same amount of time.
+        // makes valid and invalid ID attempts take the exact same amount of time.
         $dummyHash = '$2y$10$I95vA68mU5h0tYxqy9.wS.7P9P4XuxYm4uA6i/4eNlyB2hWjCba6K'; 
         $userHash = $user ? $user->password : $dummyHash;
 
         // Perform the password verification check safely
-        if (! $user || ! \Illuminate\Support\Facades\Hash::check($this->password, $userHash)) {
+        if (! $user || ! Hash::check($this->password, $userHash)) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
@@ -62,7 +63,7 @@ class LoginRequest extends FormRequest
             ]);
         }
 
-        // Performance Fix: Log the user in directly since we already have the object
+        // Log the user in directly since we already have the object
         // and verified the password, saving a duplicate database query.
         Auth::login($user, $this->boolean('remember'));
 
@@ -72,7 +73,7 @@ class LoginRequest extends FormRequest
     /**
      * Ensure the login request is not rate limited.
      *
-     * @throws \Illuminate\Validation\ValidationException
+     * @throws ValidationException
      */
     public function ensureIsNotRateLimited(): void
     {
