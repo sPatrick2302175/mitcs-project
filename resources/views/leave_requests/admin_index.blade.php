@@ -272,7 +272,7 @@
                                     </td>
 
                                     <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-extrabold text-gray-800">
-                                        {{ number_format($request->working_days_applied, 1) }}
+                                        {{ number_format($request->working_days_applied, 4) }}
                                     </td>
 
                                     <td class="px-6 py-4 whitespace-nowrap text-center">

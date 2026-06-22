@@ -1,12 +1,6 @@
 <x-app-layout>
     @php
-        // 1. Explicitly filter out only the 4 leave types you want to track
-        $targetCodes = ['VL', 'SL', 'FL', 'SPL'];
-        $leaveTypes = App\Models\LeaveType::whereIn('code', $targetCodes)
-            ->get()
-            ->sortBy(function($type) use ($targetCodes) {
-                return array_search($type->code, $targetCodes);
-            });
+        $leaveTypes = App\Models\LeaveType::all();
 
         // Get the current logged-in employee to access their hardcoded balances
         $employee = auth()->user()->employee;
@@ -88,26 +82,26 @@
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead>
-                            <!-- Increased Header Text Sizes -->
                             <tr class="bg-gray-50/50 border-b border-gray-100/60">
-                                <th class="py-4 px-6 text-xs font-bold uppercase tracking-wider text-gray-500">Date / Particulars</th>
-                                <th class="py-4 px-6 text-xs font-bold uppercase tracking-wider text-gray-500 text-center">VL (Vacation)</th>
-                                <th class="py-4 px-6 text-xs font-bold uppercase tracking-wider text-gray-500 text-center">SL (Sick)</th>
-                                <th class="py-4 px-6 text-xs font-bold uppercase tracking-wider text-gray-500 text-center">MANDATORY (FL)</th>
-                                <th class="py-4 px-6 text-xs font-bold uppercase tracking-wider text-gray-500 text-center">SPL (Special Priv.)</th>
+                                <th class="py-2.5 px-3 text-xs font-bold uppercase tracking-wider text-gray-500 whitespace-nowrap">Date / Particulars</th>
+                                
+                                @foreach($leaveTypes as $type)
+                                    <th class="py-2.5 px-3 text-xs font-bold uppercase tracking-wider text-gray-500 text-center whitespace-nowrap">
+                                        {{ $type->code }}
+                                    </th>
+                                @endforeach
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-50">
                             
                             <!-- Carry-over Row -->
                             <tr class="bg-gray-50/30 hover:bg-gray-50/50 transition-colors duration-200">
-                                <td class="py-4 px-6 text-sm font-bold tracking-wide uppercase text-gray-600">
+                                <td class="py-2 px-3 text-xs font-bold tracking-wide uppercase text-gray-500">
                                     Total balances as of the month (Carry-over)
                                 </td>
                                 @foreach($leaveTypes as $type)
-                                    <!-- Increased Carry-over number size -->
-                                    <td class="py-4 px-6 text-center text-base font-extrabold text-gray-800">
-                                        {{ number_format($computedOpening[$type->id] ?? 0, 3) }}
+                                    <td class="py-2 px-3 text-center text-sm font-extrabold text-gray-700">
+                                        {{ number_format($computedOpening[$type->id] ?? 0, 4, '.', '') }}
                                     </td>
                                 @endforeach
                             </tr>
@@ -115,50 +109,61 @@
                             <!-- TRANSACTIONS -->
                             @forelse($entries as $entry)
                                 <tr class="hover:bg-gray-50/30 transition-colors duration-200">
-                                    <td class="py-4 px-6">
-                                        <!-- Increased Date Size -->
-                                        <div class="text-base font-bold text-gray-800 whitespace-nowrap">
+                                    <td class="py-3 px-3">
+                                        <div class="text-sm font-bold text-gray-800 whitespace-nowrap">
                                             {{ $entry->created_at->format('M d, Y') }}
                                         </div>
                                         @if($entry->remarks)
-                                            <!-- Increased Remarks Size -->
-                                            <div class="text-sm text-gray-500 font-medium mt-1 italic">
+                                            <div class="text-xs text-gray-400 font-medium mt-0.5 italic max-w-xs truncate">
                                                 {{ $entry->remarks }}
                                             </div>
                                         @endif
                                     </td>
                                     
                                     @foreach($leaveTypes as $type)
-                                        <td class="py-4 px-6 text-center whitespace-nowrap">
+                                        <td class="py-3 px-3 text-center whitespace-nowrap">
                                             @if($entry->leave_type_id == $type->id)
-                                                <!-- Increased Badge Text & Padding -->
+                                                
                                                 @if($entry->type == 'deduction')
-                                                    <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs sm:text-sm font-bold bg-rose-50 text-rose-600 border border-rose-100/60 shadow-sm">
-                                                        -{{ number_format($entry->amount, 1) }}
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-rose-50 text-rose-600 border border-rose-100/60 shadow-sm">
+                                                        -{{ number_format($entry->amount, 4, '.', '') }}
                                                     </span>
                                                 @elseif($entry->type == 'accrual')
-                                                    <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs sm:text-sm font-bold bg-emerald-50 text-emerald-600 border border-emerald-100/60 shadow-sm">
-                                                        +{{ number_format($entry->amount, 3) }}
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-emerald-50 text-emerald-600 border border-emerald-100/60 shadow-sm">
+                                                        +{{ number_format($entry->amount, 4, '.', '') }}
                                                     </span>
                                                 @else
-                                                    <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs sm:text-sm font-bold bg-blue-50 text-blue-600 border border-blue-100/60 shadow-sm">
-                                                        {{ $entry->amount > 0 ? '+' : '' }}{{ number_format($entry->amount, 3) }}
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-blue-50 text-blue-600 border border-blue-100/60 shadow-sm">
+                                                        {{ $entry->amount > 0 ? '+' : '' }}{{ number_format($entry->amount, 4, '.', '') }}
                                                     </span>
                                                 @endif
                                                 
-                                                <!-- Increased Balance Text -->
-                                                <span class="block text-xs text-gray-500 font-medium mt-1.5">
-                                                    Bal: {{ number_format($entry->running_balance, 3) }}
-                                                </span>
+                                                @php
+                                                    // Dynamic Audit Trail Calculations
+                                                    if ($entry->type === 'deduction') {
+                                                        $prevBalance = $entry->running_balance + $entry->amount;
+                                                    } else {
+                                                        $prevBalance = $entry->running_balance - $entry->amount;
+                                                    }
+                                                @endphp
+
+                                                <div class="mt-1 text-[10px] text-left inline-block border-t border-gray-100 pt-1 w-20">
+                                                    <div class="text-gray-400 flex justify-between">
+                                                        <span>Prev:</span> <span>{{ number_format($prevBalance, 4, '.', '') }}</span>
+                                                    </div>
+                                                    <div class="text-gray-500 font-bold flex justify-between">
+                                                        <span>New:</span> <span>{{ number_format($entry->running_balance, 4, '.', '') }}</span>
+                                                    </div>
+                                                </div>
                                             @else
-                                                <span class="text-gray-300 font-normal text-base">-</span>
+                                                <span class="text-gray-200 font-normal text-sm">-</span>
                                             @endif
                                         </td>
                                     @endforeach
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="py-12 text-center">
+                                    <td colspan="{{ count($leaveTypes) + 1 }}" class="py-12 text-center">
                                         <span class="text-base font-medium text-gray-500">No transactions recorded for this calendar month.</span>
                                     </td>
                                 </tr>
@@ -168,13 +173,12 @@
                         <!-- GRAND TOTAL FOOTER BLOCK -->
                         <tfoot>
                             <tr class="bg-gray-50/80 border-t border-gray-200/80">
-                                <td class="py-5 px-6 text-sm font-bold uppercase tracking-wider text-gray-700">
+                                <td class="py-3 px-3 text-xs font-bold uppercase tracking-wider text-gray-600">
                                     Grand Total (Ending Balances)
                                 </td>
                                 @foreach($leaveTypes as $type)
-                                    <!-- Enlarged Grand Total Numbers -->
-                                    <td class="py-5 px-6 text-center text-lg font-black text-[#F2A455]">
-                                        {{ number_format($currentBalances[$type->id] ?? 0, 3) }}
+                                    <td class="py-3 px-3 text-center text-base font-black text-[#F2A455]">
+                                        {{ number_format($currentBalances[$type->id] ?? 0, 4, '.', '') }}
                                     </td>
                                 @endforeach
                             </tr>
