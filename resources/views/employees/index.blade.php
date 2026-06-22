@@ -43,12 +43,17 @@
                 @endphp
                 
                 <div class="mb-6 flex justify-end">
-                    <form action="{{ route('admin.employees.mass-allocate') }}" method="POST" onsubmit="return confirm('Are you sure you want to mass allocate +1.25 Leave Credits to {{ $scopeText }}? This action will be recorded in the ledger and cannot be easily undone.');">
+                    <form action="{{ route('admin.employees.mass-allocate') }}" method="POST" class="flex items-center gap-3" onsubmit="return confirm('Are you sure you want to mass allocate +' + document.getElementById('mass_alloc_amount').value + ' Leave Credits to {{ $scopeText }}? This action will be recorded in the ledger and cannot be easily undone.');">
                         @csrf
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500 font-bold text-sm">+</span>
+                            <input type="number" step="0.01" name="allocation_amount" id="mass_alloc_amount" value="1.25" min="0.01" required
+                                class="w-24 pl-7 pr-3 py-2 bg-white border border-gray-200 text-sm rounded-lg focus:border-[#F2A455] focus:ring-2 focus:ring-[#F2A455]/20 transition-all shadow-sm">
+                        </div>
                         <button type="submit" 
                                 class="inline-flex items-center px-4 py-2 bg-[#F2A455] border border-transparent rounded-lg font-bold text-xs text-white uppercase tracking-widest hover:bg-[#d98b3f] focus:outline-none focus:ring-2 focus:ring-[#F2A455] focus:ring-offset-2 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#F2A455]">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-                            Mass Allocate Standard Monthly Credits (+1.25)
+                            Mass Allocate Credits
                         </button>
                     </form>
                 </div>

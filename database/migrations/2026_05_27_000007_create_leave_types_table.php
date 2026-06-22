@@ -19,7 +19,7 @@ return new class extends Migration
             $table->boolean('requires_attachment')->default(false);
             $table->boolean('is_cumulative')->default(false);
             $table->boolean('is_event_based')->default(false);
-            $table->decimal('max_days_per_year', 5, 1)->nullable();
+            $table->decimal('max_days_per_year', 12, 4)->nullable();
             $table->timestamps();
         });
     }

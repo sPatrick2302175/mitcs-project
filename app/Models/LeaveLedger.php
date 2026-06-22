@@ -24,8 +24,8 @@ class LeaveLedger extends Model
     ];
 
     protected $casts = [
-        'amount' => 'decimal:3',
-        'running_balance' => 'decimal:3',
+        'amount' => 'decimal:4',
+        'running_balance' => 'decimal:4',
     ];
 
     public function employee()
