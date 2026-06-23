@@ -87,6 +87,7 @@
             border-radius: 0.5rem !important;
             font-weight: 700 !important;
             opacity: 0.8 !important;
+            cursor: not-allowed;
         }
 
         /* Standard Disabled Days (Weekends & Purely Non-working Days) */
@@ -627,7 +628,7 @@
 
                             //  Disable the day ONLY if it is a FULL holiday. 
                             // Half-days are ignored here so they remain clickable!
-                            if (matchedHoliday && !matchedHoliday.is_half_day) {
+                            if (matchedHoliday) {
                                 return true;
                             }
                             return false;
@@ -704,7 +705,7 @@
                                                 return hDate === currStr || (h.is_regular && hDate.substring(5) === mStr);
                                             });
 
-                                            if (!matchedHoliday || matchedHoliday.is_half_day) {
+                                            if (!matchedHoliday) {
                                                 if (!newDates.some(d => d.getTime() === currTime)) {
                                                     newDates.push(new Date(current));
                                                 }

@@ -1,0 +1,189 @@
+Table departments {
+  id bigint [pk, increment]
+  department_name varchar
+  code varchar [unique]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table divisions {
+  id bigint [pk, increment]
+  department_id bigint
+  division_name varchar
+  code varchar [unique, note: 'nullable']
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table employees {
+  id bigint [pk, increment]
+  division_id bigint [note: 'nullable']
+  employee_id_number varchar [unique]
+  first_name varchar
+  last_name varchar
+  middle_initial varchar(5) [note: 'nullable']
+  position varchar
+  position_code varchar [note: 'nullable']
+  salary decimal(12,4) [note: 'nullable, Monthly gross salary for computing monetization']
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table users {
+  id bigint [pk, increment]
+  employee_id bigint [note: 'nullable']
+  name varchar
+  email varchar [unique]
+  email_verified_at timestamp [note: 'nullable']
+  password varchar
+  is_admin integer [default: 0]
+  remember_token varchar [note: 'nullable']
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table password_reset_tokens {
+  email varchar [pk]
+  token varchar
+  created_at timestamp [note: 'nullable']
+}
+
+Table sessions {
+  id varchar [pk]
+  user_id bigint [note: 'nullable']
+  ip_address varchar(45) [note: 'nullable']
+  user_agent text [note: 'nullable']
+  payload longtext
+  last_activity integer
+}
+
+Table leave_types {
+  id bigint [pk, increment]
+  code varchar [unique]
+  leave_type_name varchar
+  is_paid boolean [default: true]
+  requires_attachment boolean [default: false]
+  is_cumulative boolean [default: false]
+  is_event_based boolean [default: false]
+  max_days_per_year decimal(12,4) [note: 'nullable']
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table custom_holidays {
+  id bigint [pk, increment]
+  name varchar
+  type varchar [default: 'custom']
+  is_regular boolean [default: false]
+  is_half_day boolean [default: false]
+  is_active boolean [default: true]
+  date date
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table leave_requests {
+  id bigint [pk, increment]
+  employee_id bigint
+  leave_type_id bigint
+  leave_type_others varchar [note: 'nullable'] // Added from migration 2026_06_19_000012
+  date_of_filing date
+  leave_detail_category varchar [note: 'nullable']
+  leave_detail_specifics varchar [note: 'nullable']
+  working_days_applied decimal(8,4)
+  start_date date
+  end_date date
+  commutation_requested boolean [default: false]
+  vl_balance_snapshot decimal(8,4) [note: 'nullable, VL balance before this deduction']
+  sl_balance_snapshot decimal(8,4) [note: 'nullable, SL balance before this deduction']
+  fl_balance_snapshot decimal(8,4) [note: 'nullable, FL balance before this deduction']
+  spl_balance_snapshot decimal(8,4) [note: 'nullable, SPL balance before this deduction']
+  status varchar [default: 'pending'] // enum: pending, recommended_for_approval, recommended_for_disapproval, approved, disapproved
+  recommendation_reason text [note: 'nullable']
+  recommending_officer_id bigint [note: 'nullable']
+  approving_official_id bigint [note: 'nullable']
+  approved_others varchar [note: 'nullable']
+  disapproval_reason text [note: 'nullable']
+  days_with_pay decimal(8,4) [note: 'nullable']
+  days_without_pay decimal(8,4) [note: 'nullable']
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table leave_request_details {
+  id bigint [pk, increment]
+  leave_request_id bigint
+  leave_date date
+  day_fraction decimal(12,4) [default: 1.0000]
+  is_with_pay boolean [default: true]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table leave_attachments {
+  id bigint [pk, increment]
+  leave_request_id bigint
+  file_path varchar
+  file_name varchar
+  uploaded_at timestamp [default: `now()`]
+}
+
+Table employee_leave_balances {
+  id bigint [pk, increment]
+  employee_id bigint
+  leave_type_id bigint
+  balance decimal(12,4) [default: 0.0000]
+  year integer [note: 'nullable, Null for cumulative leaves (VL/SL), specific year for non-cumulative leaves (SPL)']
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    (employee_id, leave_type_id, year) [unique, name: 'emp_leave_year_unique']
+  }
+}
+
+Table leave_ledgers {
+  id bigint [pk, increment]
+  employee_id bigint
+  leave_type_id bigint
+  type varchar // enum: accrual, deduction, adjustment
+  amount decimal(12,4)
+  running_balance decimal(12,4)
+  reference_type varchar [note: 'nullable']
+  reference_id bigint [note: 'nullable']
+  created_by bigint [note: 'nullable']
+  reason_code varchar [note: 'nullable']
+  remarks text [note: 'nullable']
+  created_at timestamp
+  updated_at timestamp
+}
+
+// ==========================================
+// RELATIONSHIPS & CONSTRAINTS (FOREIGN KEYS)
+// ==========================================
+
+// Organizational Hierarchy
+Ref: divisions.department_id > departments.id [delete: cascade]
+Ref: employees.division_id > divisions.id [delete: set null]
+
+// Auth & Access
+Ref: users.employee_id - employees.id [delete: cascade] // One-to-One
+Ref: sessions.user_id > users.id 
+
+// Leave Requests
+Ref: leave_requests.employee_id > employees.id [delete: cascade]
+Ref: leave_requests.leave_type_id > leave_types.id [delete: restrict]
+Ref: leave_requests.recommending_officer_id > employees.id [delete: set null]
+Ref: leave_requests.approving_official_id > employees.id [delete: set null]
+
+// Request Details & Attachments
+Ref: leave_request_details.leave_request_id > leave_requests.id [delete: cascade]
+Ref: leave_attachments.leave_request_id > leave_requests.id [delete: cascade]
+
+// Leave Balances & Auditing
+Ref: employee_leave_balances.employee_id > employees.id [delete: cascade]
+Ref: employee_leave_balances.leave_type_id > leave_types.id [delete: restrict]
+
+Ref: leave_ledgers.employee_id > employees.id [delete: cascade]
+Ref: leave_ledgers.leave_type_id > leave_types.id [delete: restrict]
+Ref: leave_ledgers.created_by > users.id [delete: set null]
