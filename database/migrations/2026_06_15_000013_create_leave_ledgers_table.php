@@ -16,8 +16,8 @@ return new class extends Migration
             $table->foreignId('employee_id')->constrained('employees')->cascadeOnDelete();
             $table->foreignId('leave_type_id')->constrained('leave_types')->restrictOnDelete();
             $table->enum('type', ['accrual', 'deduction', 'adjustment']);
-            $table->decimal('amount', 8, 3);
-            $table->decimal('running_balance', 8, 3);
+            $table->decimal('amount', 12, 4);
+            $table->decimal('running_balance', 12, 4);
             // 1. Polymorphic Reference (No strict foreign key constraints)
             $table->string('reference_type')->nullable(); 
             $table->unsignedBigInteger('reference_id')->nullable(); 

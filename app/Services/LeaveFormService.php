@@ -174,10 +174,11 @@ class LeaveFormService
             }
         }
 
+        //6.C
         // --- DYNAMIC DAYS & DATES LOGIC ---
         $pdf->SetFont('CenturyGothic', '', 8);
         $pdf->SetXY(10, 158); 
-        $pdf->Write(0, number_format($leaveRequest->working_days_applied, 2) . ' days');
+        $pdf->Write(0, number_format($leaveRequest->working_days_applied, 4) . ' days');
         
         // OPTIMIZED: Run structural date ranges compression algorithm
         $dates = $leaveRequest->formatted_inclusive_dates;
@@ -234,14 +235,14 @@ class LeaveFormService
         $rowDeductionY = 206.5;   
         $rowBalanceY = 211.5;     
 
-        $vlEarnedText = number_format($vlEarned, 2);
-        $slEarnedText = number_format($slEarned, 2);
+        $vlEarnedText = number_format($vlEarned, 4);
+        $slEarnedText = number_format($slEarned, 4);
         
-        $vlDeductionText = $vlDeduction > 0 ? number_format($vlDeduction, 2) : '0';
-        $slDeductionText = $slDeduction > 0 ? number_format($slDeduction, 2) : '0';
+        $vlDeductionText = $vlDeduction > 0 ? number_format($vlDeduction, 4) : '0';
+        $slDeductionText = $slDeduction > 0 ? number_format($slDeduction, 4) : '0';
         
-        $vlBalanceText = number_format($vlBalance, 2);
-        $slBalanceText = number_format($slBalance, 2);
+        $vlBalanceText = number_format($vlBalance, 4);
+        $slBalanceText = number_format($slBalance, 4);
 
         $pdf->SetXY($vlColumnX, $rowEarnedY); 
         $pdf->Cell($columnWidth, 0, $vlEarnedText, 0, 0, 'C'); 
@@ -258,16 +259,18 @@ class LeaveFormService
         $pdf->SetXY($slColumnX, $rowBalanceY); 
         $pdf->Cell($columnWidth, 0, $slBalanceText, 0, 0, 'C');
 
+
+        //7.B & 7.C
         // Admin responses
         if ($leaveRequest->status === 'approved') {
             $pdf->SetXY(117.8, 191); 
             $pdf->SetFont('zapfdingbats', '', 8); 
             $pdf->Write(0, '3'); 
             
-            $pdf->SetFont('CenturyGothic', '', 8);
+            $pdf->SetFont('CenturyGothic', '', 7);
 
             if ($leaveRequest->days_with_pay > 0) {
-                $pdf->SetXY(12, 235);
+                $pdf->SetXY(10, 235);
                 $pdf->Write(0, $leaveRequest->days_with_pay);
             }
             if ($leaveRequest->days_without_pay > 0) {

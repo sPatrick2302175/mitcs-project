@@ -14,7 +14,7 @@ class EmployeeLeaveBalance extends Model
     ];
 
     protected $casts = [
-        'balance' => 'decimal:3',
+        'balance' => 'decimal:4',
         'year' => 'integer',
     ];
 
@@ -23,7 +23,7 @@ class EmployeeLeaveBalance extends Model
     public function getDisplayBalanceAttribute()
     {
         // If the real balance is negative (e.g. -2.75), return 0. Otherwise, return the real balance???
-        return $this->balance < 0 ? 0.000 : (float) $this->balance;
+        return $this->balance < 0 ? 0.0000 : (float) $this->balance;
     }
 
     public function employee()

@@ -38,7 +38,7 @@ class LeaveTypesSeeder extends Seeder
                 'requires_attachment' => false,
                 'is_cumulative' => false,
                 'is_event_based' => false,
-                'max_days_per_year' => 5.0 // Deducted from VL, resets annually
+                'max_days_per_year' => 5.0000 // Deducted from VL, resets annually
             ],
             [
                 'code' => 'SPL', 
@@ -47,7 +47,7 @@ class LeaveTypesSeeder extends Seeder
                 'requires_attachment' => false,
                 'is_cumulative' => false,
                 'is_event_based' => false,
-                'max_days_per_year' => 3.0
+                'max_days_per_year' => 3.0000
             ],
             [
                 'code' => 'SOPL', 
@@ -56,7 +56,7 @@ class LeaveTypesSeeder extends Seeder
                 'requires_attachment' => true,
                 'is_cumulative' => false,
                 'is_event_based' => true,
-                'max_days_per_year' => 7.0
+                'max_days_per_year' => 7.0000
             ],
 
             // 3. Event-Based / Situational Leaves
@@ -67,7 +67,7 @@ class LeaveTypesSeeder extends Seeder
                 'requires_attachment' => true,
                 'is_cumulative' => false,
                 'is_event_based' => true,
-                'max_days_per_year' => 105.0
+                'max_days_per_year' => 105.0000
             ],
             [
                 'code' => 'PL', 
@@ -76,7 +76,7 @@ class LeaveTypesSeeder extends Seeder
                 'requires_attachment' => true,
                 'is_cumulative' => false,
                 'is_event_based' => true,
-                'max_days_per_year' => 7.0
+                'max_days_per_year' => 7.0000
             ],
             [
                 'code' => 'AL', 
@@ -85,7 +85,7 @@ class LeaveTypesSeeder extends Seeder
                 'requires_attachment' => true,
                 'is_cumulative' => false,
                 'is_event_based' => true,
-                'max_days_per_year' => 60.0 // Standard max bond window
+                'max_days_per_year' => 60.0000 // Standard max bond window
             ],
             [
                 'code' => 'VAWC', 
@@ -94,7 +94,7 @@ class LeaveTypesSeeder extends Seeder
                 'requires_attachment' => true,
                 'is_cumulative' => false,
                 'is_event_based' => true,
-                'max_days_per_year' => 10.0
+                'max_days_per_year' => 10.0000
             ],
             [
                 'code' => 'SLBW', 
@@ -103,7 +103,7 @@ class LeaveTypesSeeder extends Seeder
                 'requires_attachment' => true,
                 'is_cumulative' => false,
                 'is_event_based' => true,
-                'max_days_per_year' => 60.0 // Up to 2 months max
+                'max_days_per_year' => 60.0000 // Up to 2 months max
             ],
             [
                 'code' => 'SEL', 
@@ -112,7 +112,7 @@ class LeaveTypesSeeder extends Seeder
                 'requires_attachment' => true,
                 'is_cumulative' => false,
                 'is_event_based' => true,
-                'max_days_per_year' => 5.0
+                'max_days_per_year' => 5.0000
             ],
 
             // 4. Institutional / Career Leaves
@@ -123,7 +123,7 @@ class LeaveTypesSeeder extends Seeder
                 'requires_attachment' => true,
                 'is_cumulative' => false,
                 'is_event_based' => true,
-                'max_days_per_year' => 180.0 // Up to 6 months max
+                'max_days_per_year' => 180.0000 // Up to 6 months max
             ],
             [
                 'code' => 'REHAB', 
@@ -132,7 +132,7 @@ class LeaveTypesSeeder extends Seeder
                 'requires_attachment' => true,
                 'is_cumulative' => false,
                 'is_event_based' => true,
-                'max_days_per_year' => 180.0 // Up to 6 months max
+                'max_days_per_year' => 180.0000 // Up to 6 months max
             ],
             [
                 'code' => 'OTHERS', 

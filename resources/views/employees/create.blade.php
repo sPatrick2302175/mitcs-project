@@ -115,17 +115,17 @@
                         <div class="md:col-span-2 pt-4 mt-2 border-t border-gray-100/60">
                             <div class="mb-6">
                                 <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wider">Initial Leave Balances</h3>
-                                <p class="text-xs text-gray-500 mt-1">Core leave allotments are pre-filled based on standard annual allocations. The remaining 9 event-driven leave lines will be automatically set to zero in the database.</p>
+                                <p class="text-xs text-gray-500 mt-1">Standard leave allotments (VL, SL, FL, SPL) are pre-filled. You may manually input starting balances for all other special and event-driven leaves below.</p>
                             </div>
                             
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 @foreach($leaveTypes as $leaveType)
                                     @php
                                         // Pre-fill the standard values for core leaves on load
-                                        $defaultVal = 0;
-                                        if ($leaveType->code === 'VL' || $leaveType->code === 'SL') $defaultVal = 15;
-                                        if ($leaveType->code === 'FL') $defaultVal = 5;
-                                        if ($leaveType->code === 'SPL') $defaultVal = 3;
+                                        $defaultVal = 0.0000;
+                                        if ($leaveType->code === 'VL' || $leaveType->code === 'SL') $defaultVal = 15.0000;
+                                        if ($leaveType->code === 'FL') $defaultVal = 5.0000;
+                                        if ($leaveType->code === 'SPL') $defaultVal = 3.0000;
                                     @endphp
 
                                     <div class="group bg-white p-4 rounded-xl border border-gray-100 shadow-sm relative hover:border-[#F2A455]/30 transition-colors duration-200">
@@ -146,10 +146,9 @@
                                         </div>
                                         
                                         <input type="number" 
-                                            step="0.01" 
-                                            
+                                            step="0.0001" 
                                             name="balances[{{ $leaveType->id }}]" 
-                                            value="{{ old('balances.' . $leaveType->id, $defaultVal) }}" 
+                                            value="{{ number_format(old('balances.' . $leaveType->id, $defaultVal), 4, '.', '') }}"
                                             required 
                                             class="block w-full rounded-xl border-gray-200 bg-gray-50/40 px-4 py-3 text-gray-800 focus:border-[#F2A455] focus:ring focus:ring-[#F2A455]/10 focus:bg-white transition-all duration-200 sm:text-sm">
                                         

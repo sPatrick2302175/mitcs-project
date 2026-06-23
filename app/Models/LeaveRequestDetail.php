@@ -16,7 +16,7 @@ class LeaveRequestDetail extends Model
     protected $casts = [
         'leave_date' => 'date',
         'is_with_pay' => 'boolean',
-        'day_fraction' => 'decimal:2', 
+        'day_fraction' => 'decimal:4', 
     ];
 
     public function leaveRequest()

@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('leave_request_id')->constrained('leave_requests')->cascadeOnDelete();
             $table->date('leave_date');
-            $table->decimal('day_fraction', 3, 2)->default(1.00); 
+            $table->decimal('day_fraction', 12, 4)->default(1.0000); 
             $table->boolean('is_with_pay')->default(true);
             $table->timestamps();
         });

@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('middle_initial', 5)->nullable();
             $table->string('position');
             $table->string('position_code')->nullable();
-            $table->decimal('salary', 12, 2)->nullable()->comment('Monthly gross salary for computing monetization');
+            $table->decimal('salary', 12, 4)->nullable()->comment('Monthly gross salary for computing monetization');
             $table->timestamps();
         });
     }

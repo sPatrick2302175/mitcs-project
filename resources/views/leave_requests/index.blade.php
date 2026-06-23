@@ -359,14 +359,14 @@
     <script>
             document.addEventListener('DOMContentLoaded', function() {
                 
-                // 1. Get baseline records securely loaded from controller array mapping pipelines
+                // Get baseline records securely loaded from controller array mapping pipelines
                 const baseEvents = @json($calendarEvents ?? []);
                 console.log('Sanitized Base Event Models:', baseEvents);
 
                 const yearDisplay = document.getElementById('custom-year-display');
                 var calendarEl = document.getElementById('calendar');
                 
-                // 2. Initialize Calendar Engine Configuration Layer
+                // Initialize Calendar Engine Configuration Layer
                 var calendar = new FullCalendar.Calendar(calendarEl, {
                     initialView: 'dayGridMonth',
                     height: 'auto',
@@ -396,26 +396,24 @@
                     },
                     
                     // TRUE MATHEMATICAL INFINITE EVENT GENERATOR HOOK
-                    // TRUE MATHEMATICAL INFINITE EVENT GENERATOR HOOK
                     events: function(fetchInfo, successCallback, failureCallback) {
                         let dynamicEvents = [];
                         let startYear = fetchInfo.start.getFullYear();
                         let endYear = fetchInfo.end.getFullYear();
 
                         baseEvents.forEach(event => {
-                            
                             const isActive = event.is_active ?? (event.extendedProps && event.extendedProps.is_active) ?? true;
-                                
+                    
                             // If the admin toggled it off (false or 0), skip rendering it entirely!
                             if (isActive === false || isActive === 0 || isActive === "0") {
-                                return; // Skips to the next event
+                                return; 
                             }
 
                             // Check base properties or nested extended metadata safely
                             const isRegular = event.is_regular || (event.extendedProps && event.extendedProps.is_regular);
 
                             if (isRegular) {
-                                // 🌟 HOLIDAYS (isRegular = true): Re-render across every visible calendar frame context
+                                // HOLIDAYS (isRegular = true): Re-render across every visible calendar frame context
                                 for (let y = startYear; y <= endYear; y++) {
                                     let clonedEvent = { ...event }; 
                                     
@@ -431,13 +429,13 @@
                                     // Prevent engine conflicts via dynamically unique identification hashes
                                     clonedEvent.id = `${event.id || 'holiday'}-infinite-${y}`; 
 
-                                    // 🌟 NO EXTRA CLASSES FOR HOLIDAYS: Leave classNames empty so they don't scale
+                                    // NO EXTRA CLASSES FOR HOLIDAYS: Leave classNames empty so they don't scale
                                     clonedEvent.classNames = []; 
 
                                     dynamicEvents.push(clonedEvent);
                                 }
                             } else {
-                                // 🌟 LEAVE REQUESTS (isRegular = false): Standard leaves flow out naturally 
+                                // LEAVE REQUESTS (isRegular = false): Standard leaves flow out naturally 
                                 let standardEvent = { ...event };
 
                                 // Determine status ('approved', 'pending', etc.)
@@ -477,23 +475,20 @@
                         return {
                             html: `
                                 <div style="display: flex; align-items: center; width: 100%; overflow: hidden; padding: 0 4px;">
-                                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; ${textColorStyle}">
-                                        ${arg.event.title}
-                                    </span>
+                                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; ${textColorStyle}">${arg.event.title}</span>
                                 </div>
                             `
                         };
                     }
                 }); 
-                
                 calendar.render();
 
-                // 3. UP/DOWN CLICK WARPING INTERFACES (Linked directly to FullCalendar Engine)
+                // EVENTS VIA TIMESHIFT BUTTON CLICK BINDINGS
                 document.getElementById('year-btn-up').addEventListener('click', function() {
                     let currentDate = calendar.getDate();
                     let nextYear = currentDate.getFullYear() + 1;
                     let currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
-                    
+                
                     calendar.gotoDate(`${nextYear}-${currentMonth}-01`);
                 });
 

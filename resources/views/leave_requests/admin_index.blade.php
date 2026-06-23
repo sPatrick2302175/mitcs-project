@@ -272,7 +272,7 @@
                                     </td>
 
                                     <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-extrabold text-gray-800">
-                                        {{ number_format($request->working_days_applied, 1) }}
+                                        {{ number_format($request->working_days_applied, 4) }}
                                     </td>
 
                                     <td class="px-6 py-4 whitespace-nowrap text-center">
@@ -353,12 +353,15 @@
                         center: 'title',
                         right: 'dayGridMonth,dayGridWeek'
                     },
-                    buttonText: { today: 'Today', month: 'Month', week: 'Week' },
+                    buttonText: { 
+                        today: 'Today', 
+                        month: 'Month', 
+                        week: 'Week' 
+                    },
                     
-                    // 🌟 REMOVE YEAR FROM CENTER HEADER
                     titleFormat: { month: 'long' },
 
-                    // 🌟 AUTO-SYNCHRONIZE THE TOP RIGHT YEAR PANEL ON PREV/NEXT MONTH CLICK
+                    // AUTO-SYNCHRONIZE THE TOP RIGHT YEAR PANEL ON PREV/NEXT MONTH CLICK
                     datesSet: function(info) {
                         let activeViewDate = calendar.getDate();
                         let currentYearContext = activeViewDate.getFullYear();
@@ -367,17 +370,22 @@
                         }
                     },
 
-                    // 🌟 DYNAMIC MATHEMATICAL RECURRING HOLIDAY PROPAGATOR
+                    // DYNAMIC MATHEMATICAL RECURRING HOLIDAY PROPAGATOR
                     events: function(fetchInfo, successCallback, failureCallback) {
                         let dynamicEvents = [];
                         let startYear = fetchInfo.start.getFullYear();
                         let endYear = fetchInfo.end.getFullYear();
 
                         calendarEvents.forEach(event => {
+                            // Fix 1: Filter out inactive records safely if active state exists
+                            const isActive = event.is_active ?? (event.extendedProps && event.extendedProps.is_active) ?? true;
+                            if (isActive === false || isActive === 0 || isActive === "0") {
+                                return; 
+                            }
+
                             const isRegular = event.is_regular || (event.extendedProps && event.extendedProps.is_regular);
 
                             if (isRegular) {
-                                // Clone the item across every future/past iteration window visible in this frame
                                 for (let y = startYear; y <= endYear; y++) {
                                     let clonedEvent = { ...event }; 
                                     let monthDayStr = String(clonedEvent.start).substring(5, 10); 
@@ -388,11 +396,16 @@
                                         clonedEvent.end = `${y}-${endMonthDayStr}`;
                                     }
                                     
-                                    clonedEvent.id = `${event.id || 'holiday'}-infinite-${y}`; 
+                                    // Fix 3: Fall back on a random index or true unique identifier if event.id is missing
+                                    let uniqueKey = event.id || Math.random().toString(36).substr(2, 9);
+                                    clonedEvent.id = `${uniqueKey}-infinite-${y}`; 
+
+                                    // Fix 2: Reset classNames array to prevent styling layout collapse
+                                    clonedEvent.classNames = [];
+
                                     dynamicEvents.push(clonedEvent);
                                 }
                             } else {
-                                // Keep standard single-instance leave records untouched
                                 dynamicEvents.push(event);
                             }
                         });
@@ -431,11 +444,12 @@
                 });
                 calendar.render();
 
-                // 🌟 TELEPORT EVENTS VIA TIMESHIFT BUTTON CLICK BINDINGS
+                // EVENTS VIA TIMESHIFT BUTTON CLICK BINDINGS
                 document.getElementById('year-btn-up').addEventListener('click', function() {
                     let currentDate = calendar.getDate();
                     let nextYear = currentDate.getFullYear() + 1;
                     let currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
+
                     calendar.gotoDate(`${nextYear}-${currentMonth}-01`);
                 });
 
@@ -443,6 +457,7 @@
                     let currentDate = calendar.getDate();
                     let prevYear = currentDate.getFullYear() - 1;
                     let currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
+
                     calendar.gotoDate(`${prevYear}-${currentMonth}-01`);
                 });
             }
@@ -482,7 +497,7 @@
                         tableContainer.innerHTML = freshTableContent.innerHTML;
                     }
                     
-                    // 🌟 AJAX FILTER RE-BINDING COMPATIBILITY
+                    //  AJAX FILTER RE-BINDING COMPATIBILITY
                     const freshDataStore = freshDocument.getElementById('calendar-data-store');
                     if (freshDataStore && calendar) {
                         // Update the reference data scope array variable

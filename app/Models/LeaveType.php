@@ -22,7 +22,7 @@ class LeaveType extends Model
         'requires_attachment' => 'boolean',
         'is_cumulative' => 'boolean',
         'is_event_based' => 'boolean',
-        'max_days_per_year' => 'decimal:1', 
+        'max_days_per_year' => 'decimal:4', 
     ];
 
     public function balances()

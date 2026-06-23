@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Carbon\Carbon;
 
 class LeaveRequest extends Model
 {
@@ -40,9 +41,9 @@ class LeaveRequest extends Model
         'start_date' => 'date',
         'end_date' => 'date',
         'commutation_requested' => 'boolean',
-        'working_days_applied' => 'decimal:1',
-        'vl_balance_snapshot' => 'decimal:3',
-        'sl_balance_snapshot' => 'decimal:3',
+        'working_days_applied' => 'decimal:4',
+        'vl_balance_snapshot' => 'decimal:4',
+        'sl_balance_snapshot' => 'decimal:4',
     ];
 
     public function employee()
@@ -124,13 +125,13 @@ class LeaveRequest extends Model
         $dates = $this->details()
             ->orderBy('leave_date', 'asc')
             ->pluck('leave_date')
-            ->map(fn($d) => \Carbon\Carbon::parse($d))
+            ->map(fn($d) => Carbon::parse($d))
             ->toArray();
 
         // Fallback safety layer for legacy entries
         if (empty($dates)) {
-            $start = \Carbon\Carbon::parse($this->start_date);
-            $end = \Carbon\Carbon::parse($this->end_date);
+            $start = Carbon::parse($this->start_date);
+            $end = Carbon::parse($this->end_date);
             if ($start->equalTo($end)) {
                 return $start->format('M d, Y');
             }

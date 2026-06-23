@@ -39,13 +39,17 @@
                             <h4 class="text-sm font-bold text-gray-800">Monthly Leave Allocation</h4>
                             <p class="text-xs text-gray-500 mt-0.5">Manually post +1.25 VL and SL standard credits to this employee's balance.</p>
                         </div>
-                        <form action="{{ route('admin.employees.allocate-credits', $employee->id) }}" method="POST" onsubmit="return confirm('Credit +1.25 VL and SL to {{ $employee->first_name }}?');">
+                        <form action="{{ route('admin.employees.allocate-credits', $employee->id) }}" method="POST" class="flex items-center gap-3" onsubmit="return confirm('Credit +' + document.getElementById('alloc_amount').value + ' VL and SL to {{ $employee->first_name }}?');">
                             @csrf
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500 font-bold text-sm">+</span>
+                                <input type="number" step="0.01" name="allocation_amount" id="alloc_amount" value="1.25" min="0.01" required
+                                    class="w-24 pl-7 pr-3 py-2 bg-white border border-gray-200 text-sm rounded-lg focus:border-[#F2A455] focus:ring-2 focus:ring-[#F2A455]/20 transition-all shadow-sm">
+                            </div>
                             <button type="submit" 
-                                    {{-- @if(now()->day !== 1) disabled title="Only available on the 1st day of the month" @endif --}}
                                     class="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-lg font-bold text-xs text-white uppercase tracking-widest hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">
                                 <svg class="w-4 h-4 mr-2 text-[#F2A455]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                                Allocate +1.25 Credits
+                                Allocate Credits
                             </button>
                         </form>
                     </div>
@@ -135,13 +139,13 @@
                         <div class="md:col-span-2 pt-4 mt-2 border-t border-gray-100/60">
                             <div class="mb-6">
                                 <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wider">Manage Leave Balances</h3>
-                                <p class="text-xs text-gray-500 mt-1">Adjust core available balances. Manual adjustments made here update the active balances directly.</p>
+                                <p class="text-xs text-gray-500 mt-1">Adjust available balances for all leave types. Manual adjustments made here will automatically be recorded as adjustment entries in the employee's Leave Ledger.</p>
                             </div>
                             
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 @foreach($leaveTypes as $leaveType)
                                     @php
-                                        $currentBalance = $employee->leaveBalances->firstWhere('leave_type_id', $leaveType->id)?->balance ?? 0;
+                                        $currentBalance = $employee->leaveBalances->firstWhere('leave_type_id', $leaveType->id)?->balance ?? number_format(0, 4);
                                     @endphp
 
                                     <div class="group bg-white p-4 rounded-xl border border-gray-100 shadow-sm relative hover:border-[#F2A455]/30 transition-colors duration-200">
@@ -162,7 +166,7 @@
                                         </div>
                                         
                                         <input type="number" 
-                                            step="0.01" 
+                                            step="0.00001" 
                                             name="balances[{{ $leaveType->id }}]" 
                                             value="{{ old('balances.' . $leaveType->id, $currentBalance) }}" 
                                             required 

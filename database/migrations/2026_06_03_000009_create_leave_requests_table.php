@@ -22,7 +22,7 @@ return new class extends Migration
             $table->string('leave_detail_specifics')->nullable(); 
             
             // 6.C NUMBER OF WORKING DAYS APPLIED FOR
-            $table->decimal('working_days_applied', 8, 1);
+            $table->decimal('working_days_applied', 8, 4);
             $table->date('start_date');
             $table->date('end_date');
             
@@ -30,10 +30,10 @@ return new class extends Migration
             $table->boolean('commutation_requested')->default(false);
             
             // 7.A CERTIFICATION OF LEAVE CREDITS (SNAPSHOTS)
-            $table->decimal('vl_balance_snapshot', 8, 3)->nullable()->comment('VL balance before this deduction');
-            $table->decimal('sl_balance_snapshot', 8, 3)->nullable()->comment('SL balance before this deduction');
-            $table->decimal('fl_balance_snapshot', 8, 3)->nullable()->comment('FL balance before this deduction');
-            $table->decimal('spl_balance_snapshot', 8, 3)->nullable()->comment('SPL balance before this deduction');
+            $table->decimal('vl_balance_snapshot', 8, 4)->nullable()->comment('VL balance before this deduction');
+            $table->decimal('sl_balance_snapshot', 8, 4)->nullable()->comment('SL balance before this deduction');
+            $table->decimal('fl_balance_snapshot', 8, 4)->nullable()->comment('FL balance before this deduction');
+            $table->decimal('spl_balance_snapshot', 8, 4)->nullable()->comment('SPL balance before this deduction');
 
             $table->enum('status', [
                 'pending', 
@@ -51,8 +51,8 @@ return new class extends Migration
             $table->foreignId('approving_official_id')->nullable()->constrained('employees')->nullOnDelete();
             $table->string('approved_others')->nullable();
             $table->text('disapproval_reason')->nullable();
-            $table->decimal('days_with_pay', 8, 1)->nullable();
-            $table->decimal('days_without_pay', 8, 1)->nullable();
+            $table->decimal('days_with_pay', 8, 4)->nullable();
+            $table->decimal('days_without_pay', 8, 4)->nullable();
 
             $table->timestamps();
         });
