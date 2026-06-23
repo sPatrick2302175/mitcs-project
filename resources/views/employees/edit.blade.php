@@ -192,7 +192,7 @@
 
                         <!-- Actions (Right side) -->
                         <div class="flex items-center space-x-3">
-                            <a href="{{ route('employees.show', $employee->id) }}" 
+                            <a href="{{ route('employees.show', ['employee' => $employee->id, 'from' => request()->query('from'), 'request_id' => request()->query('request_id')]) }}"
                                 class="text-sm font-semibold text-gray-500 hover:text-gray-800 px-5 py-3 rounded-xl hover:bg-gray-50 transition-all duration-200">
                                 Cancel
                             </a>

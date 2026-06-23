@@ -51,8 +51,16 @@
                 <div class="p-6 md:p-8 border-b border-gray-100/60 flex flex-col md:flex-row justify-between items-start gap-6 bg-white">
                     <div>
                         <span class="text-[11px] font-bold uppercase tracking-widest text-[#F2A455] block mb-1.5">Civil Service Form No. 6</span>
-                        <h3 class="text-3xl font-black text-gray-800 tracking-tight">
-                            {{ $leaveRequest->employee->first_name ?? '' }} {{ $leaveRequest->employee->last_name ?? 'Unknown Employee' }}
+                        <h3 class="text-3xl font-black tracking-tight text-gray-800">
+                            @if(auth()->check() && auth()->user()->is_admin !== 0)
+                                <a href="{{ route('employees.show', ['employee' => $leaveRequest->employee_id, 'from' => 'review', 'request_id' => $leaveRequest->id]) }}" class="cursor-pointer" title="View Employee Profile">
+                                    {{ $leaveRequest->employee->first_name ?? '' }} {{ $leaveRequest->employee->last_name ?? 'Unknown Employee' }}
+                                    
+                                    <svg class="w-6 h-6 ml-2 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                                </a>
+                            @else
+                                <span>{{ $leaveRequest->employee->first_name ?? '' }} {{ $leaveRequest->employee->last_name ?? 'Unknown Employee' }}</span>
+                            @endif
                         </h3>
                         <p class="text-sm text-gray-500 font-medium mt-1.5">
                             ID Number: <span class="bg-gray-50 text-gray-700 px-2 py-0.5 rounded-md border border-gray-100 font-bold ml-1">{{ $leaveRequest->employee->employee_id_number ?? 'N/A' }}</span>
