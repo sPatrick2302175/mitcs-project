@@ -637,7 +637,7 @@
                         const dateStr = fp.formatDate(dayElem.dateObj, "Y-m-d");
                         const monthDayStr = dateStr.substring(5); 
 
-                        // 🌟 NEW: Force-detect "Today" and attach a permanent reference class
+                        //  Force-detect "Today" and attach a permanent reference class
                         const todayStr = fp.formatDate(new Date(), "Y-m-d");
                         if (dateStr === todayStr) {
                             dayElem.classList.add("calendar-today-marker");
@@ -670,7 +670,7 @@
                             }
                         }
 
-                        // 🌟 UPGRADED SHIFT-CLICK LOGIC (Select & Erase Modes)
+                        // SHIFT-CLICK LOGIC (Select & Erase Modes)
                         dayElem.addEventListener("click", function(e) {
                             if (e.shiftKey && lastSelectedDate) {
                                 let start = new Date(lastSelectedDate);
@@ -680,7 +680,7 @@
                                     let temp = start; start = end; end = temp;
                                 }
 
-                                // 🌟 NEW: Detect if we are erasing. If the clicked date is already selected, we erase the range!
+                                // Detect if we are erasing. If the clicked date is already selected, we erase the range
                                 let isErasing = dayElem.classList.contains("selected");
                                 
                                 let newDates = [...fpInstance.selectedDates];

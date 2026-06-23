@@ -264,8 +264,8 @@
 
         function submitRole(button, roleValue) {
             const form = button.closest('form');
-            form.querySelector('input[name="role"]').value = roleValue; // Set hidden input
-            form.submit(); // Submit the Laravel form natively
+            form.querySelector('input[name="role"]').value = roleValue;
+            form.submit();
         }
 
         // Automatically close the dropdown if the user clicks anywhere outside of it

@@ -391,21 +391,16 @@
             const icon = document.getElementById('legendIcon');
             
             if (legend.classList.contains('max-h-0')) {
-                // SLIDE DOWN & FADE IN
                 legend.classList.remove('max-h-0', 'opacity-0');
-                // 500px is safely taller than the grid will ever be, allowing a smooth slide
                 legend.classList.add('max-h-[500px]', 'opacity-100'); 
                 
                 btnText.textContent = 'Hide Leave Codes Legend';
-                // Rotate the chevron point upwards
                 icon.classList.add('-rotate-180'); 
             } else {
-                // SLIDE UP & FADE OUT
                 legend.classList.remove('max-h-[500px]', 'opacity-100');
                 legend.classList.add('max-h-0', 'opacity-0');
                 
                 btnText.textContent = 'View Leave Codes Legend';
-                // Rotate the chevron back down
                 icon.classList.remove('-rotate-180'); 
             }
         }

@@ -44,7 +44,7 @@ class LeaveLedgerController extends Controller
             $openingBalances[$type->id] = $lastEntry ? $lastEntry->running_balance : 0;
         }
 
-        // IMPORTANT: Add 'employee' to the compact() list so the Blade file can use it!
+        // IMPORTANT: Add 'employee' to the compact() list so the Blade file can use it
         return view('leave-ledger.index', compact('entries', 'date', 'openingBalances', 'employee'));
     }
 }

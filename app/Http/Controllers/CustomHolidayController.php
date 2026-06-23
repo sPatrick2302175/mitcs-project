@@ -7,9 +7,6 @@ use Illuminate\Http\Request;
 
 class CustomHolidayController extends Controller
 {
-    /**
-     * Display a listing of the custom holidays.
-     */
     public function index()
     {
         // Sorted by date ascending so upcoming holidays appear in chronological order
@@ -17,12 +14,8 @@ class CustomHolidayController extends Controller
         return view('custom_holidays.index', compact('holidays')); 
     }
 
-    /**
-     * Store newly created custom holiday(s) in storage.
-     */
     public function store(Request $request)
     {
-        // Validate that 'dates' exists
         $request->validate([
             'name' => 'required|string|max:255',
             'dates' => 'required|string',
@@ -45,10 +38,6 @@ class CustomHolidayController extends Controller
 
         return redirect()->back()->with('success', 'Holidays added successfully!');
     }
-
-    /**
-     * Show the form for editing the specified custom holiday.
-     */
    
     public function edit($id)
     {
@@ -59,9 +48,6 @@ class CustomHolidayController extends Controller
         return view('custom_holidays.edit', compact('customHoliday'));
     }
 
-    /**
-     * Update the specified holiday in storage.
-     */
     public function update(Request $request, $id)
     {
         // 1. Validate the incoming data
@@ -100,9 +86,6 @@ class CustomHolidayController extends Controller
         return redirect()->back()->with('success', "Holiday has been {$status} successfully.");
     }
 
-    /**
-     * Remove the specified custom holiday from storage.
-     */
     public function destroy(CustomHoliday $customHoliday)
     {
         $customHoliday->delete();

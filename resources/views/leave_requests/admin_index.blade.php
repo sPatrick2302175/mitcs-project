@@ -10,7 +10,6 @@
         .fc-theme-standard td, .fc-theme-standard th { border-color: #f3f4f6 !important; }
         .fc-scrollgrid { border-radius: 1rem; overflow: hidden; border-color: #f3f4f6 !important; }
         
-        /* Brand-themed primary action layout elements for FullCalendar control layer */
         .fc .fc-button-primary { 
             background-color: #1f2937 !important; 
             border-color: transparent !important; 
@@ -33,7 +32,6 @@
         .fc-col-header-cell-cushion { font-size: 0.7rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em; color: #6b7280; padding: 0.75rem 0 !important; }
         .fc-daygrid-day-number { font-size: 0.875rem; font-weight: 600; color: #374151; padding: 0.5rem !important; }
         
-        /* Updated: Brand consistent light backdrop hue highlighting for today's grid index */
         .fc-day-today { background-color: rgba(242, 164, 85, 0.08) !important; }
         
         .fc-event { 
@@ -370,14 +368,12 @@
                         }
                     },
 
-                    // DYNAMIC MATHEMATICAL RECURRING HOLIDAY PROPAGATOR
                     events: function(fetchInfo, successCallback, failureCallback) {
                         let dynamicEvents = [];
                         let startYear = fetchInfo.start.getFullYear();
                         let endYear = fetchInfo.end.getFullYear();
 
                         calendarEvents.forEach(event => {
-                            // Fix 1: Filter out inactive records safely if active state exists
                             const isActive = event.is_active ?? (event.extendedProps && event.extendedProps.is_active) ?? true;
                             if (isActive === false || isActive === 0 || isActive === "0") {
                                 return; 
@@ -396,11 +392,9 @@
                                         clonedEvent.end = `${y}-${endMonthDayStr}`;
                                     }
                                     
-                                    // Fix 3: Fall back on a random index or true unique identifier if event.id is missing
                                     let uniqueKey = event.id || Math.random().toString(36).substr(2, 9);
                                     clonedEvent.id = `${uniqueKey}-infinite-${y}`; 
 
-                                    // Fix 2: Reset classNames array to prevent styling layout collapse
                                     clonedEvent.classNames = [];
 
                                     dynamicEvents.push(clonedEvent);
@@ -423,7 +417,7 @@
                         const props = info.event.extendedProps;
                         
                         if (props && props.leave_id) {
-                            const leaveRequestId = props.leave_id; // Read directly from safe extended properties
+                            const leaveRequestId = props.leave_id;
                             const reviewRouteTemplate = "{{ route('admin.leave-requests.review', ':id') }}";
                             window.location.href = reviewRouteTemplate.replace(':id', leaveRequestId);
                             info.jsEvent.preventDefault();
