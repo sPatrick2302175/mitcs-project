@@ -16,14 +16,11 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="font-sans text-gray-900 antialiased">
-        <!-- 1. CHANGED: Removed bg-gray-100 and added background image configuration -->
         <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-cover bg-center bg-no-repeat"
              style="background-image: url('{{ asset('images/ngc.png') }}');">
 
-            <!-- 2. CHANGED: Added backdrop-blur-sm and slightly translucent white (bg-white/95) so the background image looks premium behind it -->
             <div class="w-full sm:max-w-md mt-6 px-6 py-6 bg-white/95 backdrop-blur-sm shadow-xl overflow-hidden sm:rounded-2xl">
                 
-                <!-- 3. CHANGED: Moved the logo link inside the container and added "flex justify-center" to center it -->
                 <div class="flex justify-center mb-4 mt-2">
                     <a href="/">
                         <x-application-logo class="w-40 h-auto fill-current text-gray-500" />
@@ -39,7 +36,7 @@
                 duration: 1.2,
                 easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
                 smoothWheel: true,
-                smoothTouch: false // Keeps native touch behavior on mobile (highly recommended)
+                smoothTouch: false
             });
 
             function raf(time) {

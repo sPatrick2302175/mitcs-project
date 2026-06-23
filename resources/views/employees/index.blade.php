@@ -91,7 +91,7 @@
                 </div>
             @endif
 
-            <!-- 🌟 WRAPPED IN AJAX TARGET CONTAINER 🌟 -->
+            <!-- WRAPPED IN AJAX TARGET CONTAINER -->
             <div id="employee-table-container">
                 @forelse($groupedEmployees as $departmentName => $employees)
                     @php
@@ -189,7 +189,8 @@
                         <p class="text-sm text-gray-500 font-medium">Try adjusting your search terms.</p>
                     </div>
                 @endforelse
-            </div> <!-- 🌟 END OF AJAX TARGET CONTAINER 🌟 -->
+            </div> 
+            <!-- END OF AJAX TARGET CONTAINER -->
 
         </div>
     </div>

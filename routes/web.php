@@ -45,7 +45,7 @@ Route::middleware(['auth', IsAdmin::class])->group(function () {
     Route::resource('divisions', DivisionController::class);
     Route::resource('employees', EmployeeController::class);
 
-    // 🔐 SECURED: Moved inside the Admin group so standard employees are blocked entirely
+    // Moved inside the Admin group so standard employees are blocked entirely
     Route::put('/employees/{employee}/change-role', [EmployeeController::class, 'changeRole'])->name('employees.changeRole');
 
     // ==========================================

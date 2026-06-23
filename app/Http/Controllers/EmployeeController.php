@@ -210,7 +210,7 @@ class EmployeeController extends Controller
             }
         });
 
-        return redirect()->route('employees.show', $employee->id)->with('success', 'Employee updated successfully!');
+        return back()->with('success', 'Employee updated successfully!');
     }
 
     public function destroy(string $id)

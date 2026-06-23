@@ -10,7 +10,6 @@
         .fc-theme-standard td, .fc-theme-standard th { border-color: #f3f4f6 !important; }
         .fc-scrollgrid { border-radius: 1rem; overflow: hidden; border-color: #f3f4f6 !important; }
         
-        /* Brand-themed primary action layout elements for FullCalendar control layer */
         .fc .fc-button-primary { 
             background-color: #1f2937 !important; 
             border-color: transparent !important; 
@@ -33,10 +32,8 @@
         .fc-col-header-cell-cushion { font-size: 0.7rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em; color: #6b7280; padding: 0.75rem 0 !important; }
         .fc-daygrid-day-number { font-size: 0.875rem; font-weight: 600; color: #374151; padding: 0.5rem !important; }
         
-        /* Updated: Brand consistent light backdrop hue highlighting for today's grid index */
         .fc-day-today { background-color: rgba(242, 164, 85, 0.08) !important; }
 
-        /* Updated Base Event Style */
         .fc-event { 
             display: flex !important;
             align-items: center !important;
@@ -404,7 +401,7 @@
                         baseEvents.forEach(event => {
                             const isActive = event.is_active ?? (event.extendedProps && event.extendedProps.is_active) ?? true;
                     
-                            // If the admin toggled it off (false or 0), skip rendering it entirely!
+                            // If the admin toggled it off (false or 0), skip rendering it entirely
                             if (isActive === false || isActive === 0 || isActive === "0") {
                                 return; 
                             }

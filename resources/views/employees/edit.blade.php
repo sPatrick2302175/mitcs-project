@@ -7,10 +7,8 @@
 
     <div class="py-12 bg-gray-50/50 min-h-screen">
         <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
-            <!-- Modernized Form Card Layer -->
             <div class="bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100/60 p-8 md:p-10 transition-all duration-300">
                 
-                <!-- Modern, Soft Alert styling for Validation Errors -->
                 @if ($errors->any())
                     <div class="mb-8 bg-rose-50/70 backdrop-blur-sm border border-rose-100 rounded-xl p-5 transition-all duration-300 animate-fadeIn">
                         <div class="flex items-start">
@@ -192,7 +190,7 @@
 
                         <!-- Actions (Right side) -->
                         <div class="flex items-center space-x-3">
-                            <a href="{{ route('employees.show', $employee->id) }}" 
+                            <a href="{{ route('employees.show', ['employee' => $employee->id, 'from' => request()->query('from'), 'request_id' => request()->query('request_id')]) }}"
                                 class="text-sm font-semibold text-gray-500 hover:text-gray-800 px-5 py-3 rounded-xl hover:bg-gray-50 transition-all duration-200">
                                 Cancel
                             </a>
@@ -213,7 +211,6 @@
         </div>
     </div>
 
-    <!-- Maintained Functional Vanilla JS with Clean UI Transition Logic Override -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const deptDropdown = document.getElementById('department_dropdown');

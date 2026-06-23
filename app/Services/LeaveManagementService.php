@@ -21,7 +21,7 @@ class LeaveManagementService
         // 1. DYNAMIC SALARY INTERCEPT: Update employee profile and clean up the data array
         if (isset($validated['salary'])) {
             $employee->update(['salary' => $validated['salary']]);
-            unset($validated['salary']); 
+            unset($validated['salary']);
         }
 
         $rawDates = array_map('trim', explode(',', $validated['selected_dates']));

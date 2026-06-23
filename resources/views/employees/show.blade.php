@@ -202,16 +202,31 @@
                             </li>
                         @endforelse
                     </ul>
+
+                    <div class="mt-8 pt-6 border-t border-gray-100/60">
+                        <a href="{{ route('leave-ledger.index', ['employee_id' => $employee->id, 'from' => request()->query('from'), 'request_id' => request()->query('request_id')]) }}"
+                        class="flex justify-center items-center w-full px-4 py-3 bg-[#F2A455]/10 text-[#df9344] hover:bg-[#F2A455] hover:text-white border border-[#F2A455]/20 rounded-xl font-bold text-xs uppercase tracking-widest transition-all duration-200 shadow-sm group">
+                            <svg class="w-4 h-4 mr-2 transform group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            View Full Balance Record
+                        </a>
+                    </div>
                 </div>
 
             </div>
             
             <div class="mt-8 flex justify-end items-center space-x-3">
-                <a href="{{ route('employees.index') }}" 
-                    class="text-sm font-semibold text-gray-500 hover:text-gray-800 px-5 py-3 rounded-xl hover:bg-gray-100/60 transition-all duration-200">
-                    Back to Employee List
-                </a>
-                <a href="{{ route('employees.edit', $employee->id) }}" 
+                @if(request()->query('from') === 'review' && request()->has('request_id'))
+                    <a href="{{ route('admin.leave-requests.review', request()->query('request_id')) }}" 
+                        class="text-sm font-semibold text-gray-500 hover:text-gray-800 px-5 py-3 rounded-xl hover:bg-gray-100/60 transition-all duration-200">
+                        Back to Review
+                    </a>
+                @else
+                    <a href="{{ route('employees.index') }}" 
+                        class="text-sm font-semibold text-gray-500 hover:text-gray-800 px-5 py-3 rounded-xl hover:bg-gray-100/60 transition-all duration-200">
+                        Back to Employee List
+                    </a>
+                @endif
+                <a href="{{ route('employees.edit', ['employee' => $employee->id, 'from' => request()->query('from'), 'request_id' => request()->query('request_id')]) }}" 
                     class="inline-flex items-center px-6 py-3 bg-[#F2A455] border border-transparent rounded-xl font-bold text-xs text-white uppercase tracking-widest hover:bg-[#df9344] focus:outline-none focus:ring-2 focus:ring-[#F2A455]/40 active:scale-[0.98] transition-all duration-200 shadow-lg shadow-orange-500/10">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 00-2 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                     Edit Employee
@@ -249,8 +264,8 @@
 
         function submitRole(button, roleValue) {
             const form = button.closest('form');
-            form.querySelector('input[name="role"]').value = roleValue; // Set hidden input
-            form.submit(); // Submit the Laravel form natively
+            form.querySelector('input[name="role"]').value = roleValue;
+            form.submit();
         }
 
         // Automatically close the dropdown if the user clicks anywhere outside of it

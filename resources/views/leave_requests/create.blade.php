@@ -87,6 +87,7 @@
             border-radius: 0.5rem !important;
             font-weight: 700 !important;
             opacity: 0.8 !important;
+            cursor: not-allowed;
         }
 
         /* Standard Disabled Days (Weekends & Purely Non-working Days) */
@@ -627,7 +628,7 @@
 
                             //  Disable the day ONLY if it is a FULL holiday. 
                             // Half-days are ignored here so they remain clickable!
-                            if (matchedHoliday && !matchedHoliday.is_half_day) {
+                            if (matchedHoliday) {
                                 return true;
                             }
                             return false;
@@ -637,7 +638,7 @@
                         const dateStr = fp.formatDate(dayElem.dateObj, "Y-m-d");
                         const monthDayStr = dateStr.substring(5); 
 
-                        // 🌟 NEW: Force-detect "Today" and attach a permanent reference class
+                        //  Force-detect "Today" and attach a permanent reference class
                         const todayStr = fp.formatDate(new Date(), "Y-m-d");
                         if (dateStr === todayStr) {
                             dayElem.classList.add("calendar-today-marker");
@@ -670,7 +671,7 @@
                             }
                         }
 
-                        // 🌟 UPGRADED SHIFT-CLICK LOGIC (Select & Erase Modes)
+                        // SHIFT-CLICK LOGIC (Select & Erase Modes)
                         dayElem.addEventListener("click", function(e) {
                             if (e.shiftKey && lastSelectedDate) {
                                 let start = new Date(lastSelectedDate);
@@ -680,7 +681,7 @@
                                     let temp = start; start = end; end = temp;
                                 }
 
-                                // 🌟 NEW: Detect if we are erasing. If the clicked date is already selected, we erase the range!
+                                // Detect if we are erasing. If the clicked date is already selected, we erase the range
                                 let isErasing = dayElem.classList.contains("selected");
                                 
                                 let newDates = [...fpInstance.selectedDates];
@@ -704,7 +705,7 @@
                                                 return hDate === currStr || (h.is_regular && hDate.substring(5) === mStr);
                                             });
 
-                                            if (!matchedHoliday || matchedHoliday.is_half_day) {
+                                            if (!matchedHoliday) {
                                                 if (!newDates.some(d => d.getTime() === currTime)) {
                                                     newDates.push(new Date(current));
                                                 }
