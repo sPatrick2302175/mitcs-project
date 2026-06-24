@@ -69,3 +69,13 @@ Upon fresh installation and database seeding, a default Super Admin account is g
 
 Security Note: These credentials are for development, testing, and evaluation purposes only. For actual deployment, please ensure this default username and password is changed immediately upon depoloyment.
 
+
+## Nice to have
+
+* **Dynamic Leave Type Management** Dedicated panel granting administrators full capability to add, edit, and delete system-wide leave classifications dynamically
+* **Attatchment Functionality on leave application (UNFINISHED)** An optional feature allowing employees to attach required proof (e.g., medical certificates or travel orders) directly to their leave applications, and can be reviewed directly to admins.
+* **Leave request cancelation for employees** An option to request a pending Leave application.
+* **Alternative Text-Based Date Entry** An option allowing date input text for applying leave instead of calendar.
+
+
+
