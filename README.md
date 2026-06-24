@@ -67,5 +67,5 @@ Upon fresh installation and database seeding, a default Super Admin account is g
 * **Employee ID / Username:** `0000000`
 * **Password:** `12345678`
 
-> ** Security Note:** These credentials are for development, testing, and evaluation purposes only. For actual deployment, please ensure this default username and password is changed immediately upon depoloyment.
+Security Note: These credentials are for development, testing, and evaluation purposes only. For actual deployment, please ensure this default username and password is changed immediately upon depoloyment.
 
