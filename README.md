@@ -60,3 +60,12 @@ Instead of `php artisan serve`, use:
 
 Raw script file located at: `docs/database/schema.dbml`
 
+### Default System Access
+Upon fresh installation and database seeding, a default Super Admin account is generated to grant initial access to the system's configuration and user management modules.
+
+* **Role:** Super Admin
+* **Employee ID / Username:** `0000000`
+* **Password:** `12345678`
+
+> ** Security Note:** These credentials are for development, testing, and evaluation purposes only. For actual deployment, please ensure this default username and password is changed immediately upon depoloyment.
+
